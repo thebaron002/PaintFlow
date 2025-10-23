@@ -43,7 +43,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { Job } from "@/app/lib/types";
 
-export default function JobDetailsPage({ params: { id } }: { params: { id: string } }) {
+export default function JobDetailsPage({ params }: { params: { id: string } }) {
+  const { id } = params;
   const job = jobs.find((j) => j.id === id);
 
   if (!job) {
