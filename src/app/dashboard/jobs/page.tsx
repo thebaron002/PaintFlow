@@ -39,6 +39,8 @@ import {
 } from "@/components/ui/dialog";
 import { NewJobForm } from "./components/new-job-form";
 import { useToast } from "@/hooks/use-toast";
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { collection, query, where } from "firebase/firestore";
 
 
 const JobsTable = ({ jobs, clients, isLoading }: { jobs: Job[] | null, clients: Client[] | null, isLoading: boolean }) => {
@@ -179,8 +181,14 @@ const JobsTable = ({ jobs, clients, isLoading }: { jobs: Job[] | null, clients: 
 };
 
 const JobsTabContent = ({ status, clients, isLoadingClients }: { status: Job["status"], clients: Client[] | null, isLoadingClients: boolean }) => {
-  const isLoadingJobs = false;
-  const filteredJobs: Job[] | null = [];
+  const firestore = useFirestore();
+  
+  const jobsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'jobs'), where('status', '==', status));
+  }, [firestore, status]);
+
+  const { data: filteredJobs, isLoading: isLoadingJobs } = useCollection<Job>(jobsQuery);
   
   return (
     <TabsContent value={status}>
@@ -193,8 +201,15 @@ export default function JobsPage() {
   const [isNewJobOpen, setIsNewJobOpen] = useState(false);
   const { toast } = useToast();
   const jobStatuses: Job["status"][] = ["Not Started", "In Progress", "Complete", "Open Payment", "Finalized"];
-  const isLoadingClients = false;
-  const clients: Client[] | null = [];
+  
+  const firestore = useFirestore();
+
+  const clientsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'clients');
+  }, [firestore]);
+
+  const { data: clients, isLoading: isLoadingClients } = useCollection<Client>(clientsQuery);
 
   const handleJobCreated = () => {
     setIsNewJobOpen(false);
@@ -202,7 +217,6 @@ export default function JobsPage() {
       title: "Job Created!",
       description: "The new job has been added to the list.",
     });
-    // Here you would typically re-fetch the jobs data
   };
 
   return (

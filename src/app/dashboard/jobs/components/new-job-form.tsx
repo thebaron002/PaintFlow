@@ -19,15 +19,16 @@ import { CalendarIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import type { Client } from "@/app/lib/types";
+import type { Client, Job } from "@/app/lib/types";
 import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import { useFirestore, addDocumentNonBlocking } from "@/firebase";
+import { collection } from "firebase/firestore";
 
 const jobSchema = z.object({
   title: z.string().optional(),
+  clientName: z.string().min(1, "Client name is required"),
   workOrderNumber: z.string().min(1, "Work order number is required"),
   address: z.string().min(1, "Address is required"),
-  clientName: z.string().min(1, "Client name is required"),
   startDate: z.date({ required_error: "Start date is required." }),
   initialValue: z.coerce.number().min(0, "Initial value must be a positive number"),
   isFixedPay: z.boolean().default(false),
@@ -41,34 +42,63 @@ interface NewJobFormProps {
 }
 
 export function NewJobForm({ clients, onSuccess }: NewJobFormProps) {
+  const firestore = useFirestore();
+
   const form = useForm<JobFormValues>({
     resolver: zodResolver(jobSchema),
     defaultValues: {
       title: "",
+      clientName: "",
       workOrderNumber: "",
       address: "",
-      clientName: "",
       initialValue: 0,
       isFixedPay: false,
     },
   });
 
   const onSubmit = (data: JobFormValues) => {
+    if (!firestore) return;
+
     let finalTitle = data.title;
     if (!finalTitle) {
       const clientLastName = data.clientName.split(" ").pop() || "";
       finalTitle = `${clientLastName} #${data.workOrderNumber}`;
     }
 
-    const submissionData = {
-      ...data,
+    // This is a placeholder. In a real app you'd have a client creation flow.
+    const newOrExistingClient: Client = {
+        id: `client-${Date.now()}`,
+        name: data.clientName,
+        email: 'placeholder@email.com',
+        phone: '555-555-5555',
+        avatarUrl: `https://picsum.photos/seed/${Date.now()}/200`
+    };
+    
+    const newJob: Omit<Job, 'id'> = {
       title: finalTitle,
+      workOrderNumber: data.workOrderNumber,
+      address: data.address,
+      clientId: newOrExistingClient.id, // We need a client ID.
+      startDate: data.startDate.toISOString(),
+      deadline: new Date().toISOString(), // Placeholder deadline
+      specialRequirements: "",
+      status: "Not Started",
+      budget: data.initialValue, // budget is payout
+      initialValue: data.initialValue,
+      idealMaterialCost: 0,
+      idealNumberOfDays: 0,
+      productionDays: [],
+      isFixedPay: data.isFixedPay,
+      invoices: [],
+      adjustments: [],
     };
 
-    // Here you would typically call a function to save the data to your backend
-    console.log("New Job Data:", submissionData);
+    const jobsCollection = collection(firestore, 'jobs');
+    // We should also add the client, but for now we just create the job.
+    const clientsCollection = collection(firestore, 'clients');
+    addDocumentNonBlocking(clientsCollection, newOrExistingClient);
+    addDocumentNonBlocking(jobsCollection, newJob);
     
-    // For now, we just simulate success
     form.reset();
     onSuccess();
   };
