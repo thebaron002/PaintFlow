@@ -16,12 +16,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/page-header";
 import { jobs, subcontractors } from "@/app/lib/data";
-import { Briefcase, DollarSign, CalendarCheck, Users } from "lucide-react";
+import { Briefcase, DollarSign, CalendarCheck } from "lucide-react";
 import { format, subMonths, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { RevenueChart } from "./components/revenue-chart";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
 
 export default function DashboardPage() {
   const now = new Date();
@@ -48,7 +45,7 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-8">
       <PageHeader title="Dashboard" />
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
@@ -83,22 +80,6 @@ export default function DashboardPage() {
             <p className="text-xs text-muted-foreground">
               {percentChange.toFixed(1)}% from last month
             </p>
-          </CardContent>
-        </Card>
-        <Card>
-           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Subcontractors</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="flex -space-x-2 overflow-hidden">
-              {subcontractors.map(sub => (
-                <Avatar key={sub.id} className="inline-block border-2 border-background">
-                  <AvatarImage src={sub.avatarUrl} alt={sub.name} data-ai-hint="person portrait"/>
-                  <AvatarFallback>{sub.name.charAt(0)}</AvatarFallback>
-                </Avatar>
-              ))}
-            </div>
           </CardContent>
         </Card>
       </div>
