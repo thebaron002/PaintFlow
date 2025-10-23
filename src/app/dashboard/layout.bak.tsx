@@ -9,7 +9,6 @@ import {
   DollarSign,
   PanelLeft,
   Landmark,
-  LoaderCircle,
 } from "lucide-react";
 import {
   SidebarProvider,
@@ -28,7 +27,6 @@ import { UserNav } from "@/components/user-nav";
 import { Logo } from "@/components/logo";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
-import { useUser } from "@/firebase";
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -69,16 +67,6 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const isMobile = useIsMobile();
-  const { isUserLoading, user } = useUser();
-
-  const renderLoadingState = () => (
-    <div className="flex-1 flex items-center justify-center">
-      <div className="flex flex-col items-center gap-2">
-        <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-muted-foreground">Authenticating...</p>
-      </div>
-    </div>
-  );
 
   return (
     <SidebarProvider>
@@ -111,9 +99,7 @@ export default function DashboardLayout({
             <UserNav />
           </div>
         </header>
-        <main className="flex-1 p-4 sm:px-6 sm:py-0 pb-20 md:pb-4 flex flex-col">
-          {isUserLoading || !user ? renderLoadingState() : children}
-        </main>
+        <main className="flex-1 p-4 sm:px-6 sm:py-0 pb-20 md:pb-4">{children}</main>
       </SidebarInset>
       {isMobile && <BottomNavBar />}
     </SidebarProvider>
