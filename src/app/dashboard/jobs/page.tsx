@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { format } from "date-fns";
 import type { Job } from "@/app/lib/types";
 import { jobs, clients } from "@/app/lib/data";
@@ -23,7 +24,7 @@ import {
 } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, MapPin, User } from "lucide-react";
+import { PlusCircle, MapPin, User, Hash } from "lucide-react";
 import { JobActions } from "./components/job-actions";
 
 const JobsTable = ({ jobs }: { jobs: Job[] }) => (
@@ -37,7 +38,7 @@ const JobsTable = ({ jobs }: { jobs: Job[] }) => (
             </TableHead>
             <TableHead>Job Details</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead className="hidden md:table-cell">Budget</TableHead>
+            <TableHead className="hidden md:table-cell">Payout</TableHead>
             <TableHead className="hidden md:table-cell">Deadline</TableHead>
             <TableHead>
               <span className="sr-only">Actions</span>
@@ -47,28 +48,33 @@ const JobsTable = ({ jobs }: { jobs: Job[] }) => (
         <TableBody>
           {jobs.map((job) => {
             const client = clients.find((c) => c.id === job.clientId);
+            const jobTitle = `${client?.name || "N/A"} #${job.workOrderNumber}`;
             return (
               <TableRow key={job.id}>
                 <TableCell className="hidden sm:table-cell">
-                  {client ? (
-                    <Image
-                      alt={client.name}
-                      className="aspect-square rounded-md object-cover"
-                      height="64"
-                      src={client.avatarUrl}
-                      width="64"
-                      data-ai-hint="person portrait"
-                    />
-                  ) : (
-                    <div className="w-16 h-16 bg-muted rounded-md flex items-center justify-center">
-                      <User className="w-6 h-6 text-muted-foreground" />
-                    </div>
-                  )}
+                  <Link href={`/dashboard/jobs/${job.id}`}>
+                    {client ? (
+                      <Image
+                        alt={client.name}
+                        className="aspect-square rounded-md object-cover"
+                        height="64"
+                        src={client.avatarUrl}
+                        width="64"
+                        data-ai-hint="person portrait"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 bg-muted rounded-md flex items-center justify-center">
+                        <User className="w-6 h-6 text-muted-foreground" />
+                      </div>
+                    )}
+                  </Link>
                 </TableCell>
                 <TableCell className="font-medium">
-                  <div className="font-bold">{job.title}</div>
+                  <Link href={`/dashboard/jobs/${job.id}`} className="font-bold hover:underline">
+                    {jobTitle}
+                  </Link>
                   <div className="text-sm text-muted-foreground">
-                    {client?.name || "N/A"}
+                    {job.title}
                   </div>
                   <div className="text-xs text-muted-foreground flex items-center pt-1">
                     <MapPin className="w-3 h-3 mr-1" /> {job.address}
