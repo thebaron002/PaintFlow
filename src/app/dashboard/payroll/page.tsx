@@ -42,7 +42,6 @@ export default function PayrollPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Job</TableHead>
-                    <TableHead>Client</TableHead>
                     <TableHead>Initial Payment</TableHead>
                     <TableHead>Invoices</TableHead>
                     <TableHead className="text-right">Payout</TableHead>
@@ -61,7 +60,6 @@ export default function PayrollPage() {
                           <div className="font-medium">{jobTitle}</div>
                           <div className="text-sm text-muted-foreground">{job.title}</div>
                         </TableCell>
-                        <TableCell>{client?.name}</TableCell>
                         <TableCell>${job.initialValue.toLocaleString()}</TableCell>
                         <TableCell>${totalInvoiced.toLocaleString()}</TableCell>
                         <TableCell className="text-right">${payout.toLocaleString()}</TableCell>
@@ -69,7 +67,7 @@ export default function PayrollPage() {
                     )
                   }) : (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center h-24">
+                      <TableCell colSpan={4} className="text-center h-24">
                         No jobs are currently awaiting payment.
                       </TableCell>
                     </TableRow>
