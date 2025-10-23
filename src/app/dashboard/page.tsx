@@ -15,8 +15,8 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/page-header";
-import { jobs, subcontractors } from "@/app/lib/data";
-import { Briefcase, DollarSign, CalendarCheck } from "lucide-react";
+import { jobs } from "@/app/lib/data";
+import { Briefcase, DollarSign, CalendarCheck, Users } from "lucide-react";
 import { format, subMonths, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { RevenueChart } from "./components/revenue-chart";
 
@@ -95,23 +95,22 @@ export default function DashboardPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Client</TableHead>
-                    <TableHead className="hidden sm:table-cell">Subcontractor</TableHead>
+                    <TableHead className="hidden sm:table-cell">Job</TableHead>
                     <TableHead className="hidden sm:table-cell">Status</TableHead>
                     <TableHead className="text-right">Deadline</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {recentJobs.map(job => {
-                    const subcontractor = subcontractors.find(s => s.id === job.subcontractorId);
                     return (
                       <TableRow key={job.id}>
                         <TableCell>
                           <div className="font-medium">{job.clientName}</div>
-                          <div className="hidden text-sm text-muted-foreground md:inline">
-                            {job.title}
-                          </div>
+                          
                         </TableCell>
-                        <TableCell className="hidden sm:table-cell">{subcontractor?.name || 'Unassigned'}</TableCell>
+                        <TableCell className="hidden sm:table-cell">
+                         <div className="font-medium">{job.title}</div>
+                        </TableCell>
                         <TableCell className="hidden sm:table-cell">
                           <Badge variant={job.status === 'Completed' ? 'secondary' : 'default'} className="capitalize">
                             {job.status.toLowerCase()}
@@ -130,7 +129,7 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle>Revenue Overview</CardTitle>
             <CardDescription>
-              Revenue from completed jobs over the past 6 months.
+              A summary of your revenue and forecasts.
             </CardDescription>
           </CardHeader>
           <CardContent className="pl-2">
