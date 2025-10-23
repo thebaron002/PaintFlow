@@ -3,9 +3,6 @@
 import * as React from "react";
 import { format, isSameDay } from "date-fns";
 import type { Job, Client } from "@/app/lib/types";
-import { useCollection, useMemoFirebase } from "@/firebase";
-import { collection } from "firebase/firestore";
-import { useFirestore } from "@/firebase";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,10 +10,10 @@ import { Badge } from "@/components/ui/badge";
 
 export function JobCalendar({ jobs }: { jobs: Job[] }) {
   const [date, setDate] = React.useState<Date | undefined>(new Date());
-  const firestore = useFirestore();
   
-  const clientsQuery = useMemoFirebase(() => collection(firestore, 'clients'), [firestore]);
-  const { data: clients, isLoading } = useCollection<Client>(clientsQuery);
+  const clients: Client[] = [];
+  const isLoading = false;
+
 
   const jobDates = jobs.map((job) => new Date(job.deadline));
 

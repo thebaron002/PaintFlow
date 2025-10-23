@@ -25,27 +25,17 @@ import {
 } from "@/components/ui/table";
 import { DollarSign, FileDown, PlusCircle } from "lucide-react";
 import { format } from "date-fns";
-import { useCollection, useMemoFirebase } from "@/firebase";
-import { collection } from "firebase/firestore";
-import { useFirestore } from "@/firebase";
 import type { Income, Expense, Job, Client } from "@/app/lib/types";
 import { CashFlowChart } from "./components/cash-flow-chart";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function FinancePage() {
-  const firestore = useFirestore();
+  const isLoading = false;
+  const income: Income[] | null = [];
+  const expenses: Expense[] | null = [];
+  const jobs: Job[] | null = [];
+  const clients: Client[] | null = [];
 
-  const incomeQuery = useMemoFirebase(() => collection(firestore, 'income'), [firestore]);
-  const expensesQuery = useMemoFirebase(() => collection(firestore, 'expenses'), [firestore]);
-  const jobsQuery = useMemoFirebase(() => collection(firestore, 'jobs'), [firestore]);
-  const clientsQuery = useMemoFirebase(() => collection(firestore, 'clients'), [firestore]);
-  
-  const { data: income, isLoading: isLoadingIncome } = useCollection<Income>(incomeQuery);
-  const { data: expenses, isLoading: isLoadingExpenses } = useCollection<Expense>(expensesQuery);
-  const { data: jobs, isLoading: isLoadingJobs } = useCollection<Job>(jobsQuery);
-  const { data: clients, isLoading: isLoadingClients } = useCollection<Client>(clientsQuery);
-
-  const isLoading = isLoadingIncome || isLoadingExpenses || isLoadingJobs || isLoadingClients;
 
   const totalIncome = income?.reduce((acc, item) => acc + item.amount, 0) ?? 0;
   const totalExpenses = expenses?.reduce((acc, item) => acc + item.amount, 0) ?? 0;
@@ -123,7 +113,8 @@ export default function FinancePage() {
                         <TableCell className="text-right"><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
                       </TableRow>
                     ))
-                  ) : income?.map((item) => {
+                  ) : income?.length > 0 ? (
+                    income.map((item) => {
                     const job = jobs?.find(j => j.id === item.jobId);
                     return (
                       <TableRow key={item.id}>
@@ -135,7 +126,14 @@ export default function FinancePage() {
                         <TableCell className="text-right text-green-600 font-semibold">${item.amount.toLocaleString()}</TableCell>
                       </TableRow>
                     )
-                  })}
+                  })
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={3} className="h-24 text-center">
+                        No income recorded.
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
@@ -167,7 +165,8 @@ export default function FinancePage() {
                         <TableCell className="text-right"><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
                       </TableRow>
                     ))
-                  ) : expenses?.map((item) => {
+                  ) : expenses?.length > 0 ? (
+                    expenses.map((item) => {
                      const job = jobs?.find(j => j.id === item.jobId);
                      const client = job ? clients?.find(c => c.id === job.clientId) : undefined;
                     return(
@@ -181,7 +180,14 @@ export default function FinancePage() {
                         <TableCell className="text-right text-red-600 font-semibold">${item.amount.toLocaleString()}</TableCell>
                       </TableRow>
                     )
-                  })}
+                  })
+                  ) : (
+                     <TableRow>
+                      <TableCell colSpan={4} className="h-24 text-center">
+                        No expenses recorded.
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </CardContent>

@@ -6,9 +6,6 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
-import { useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, where, Timestamp } from "firebase/firestore";
-import { useFirestore } from "@/firebase";
 import type { Job } from "@/app/lib/types";
 import { subWeeks, startOfWeek, endOfWeek, isWithinInterval, startOfMonth, endOfMonth, isFuture } from "date-fns"
 import { Skeleton } from "@/components/ui/skeleton";
@@ -21,9 +18,8 @@ const chartConfig = {
 }
 
 export function RevenueChart() {
-  const firestore = useFirestore();
-  const jobsQuery = useMemoFirebase(() => collection(firestore, 'jobs'), [firestore]);
-  const { data: jobs, isLoading } = useCollection<Job>(jobsQuery);
+  const isLoading = false;
+  const jobs: Job[] | null = [];
 
   if (isLoading) {
     return (
@@ -43,7 +39,8 @@ export function RevenueChart() {
   const lastWeekRevenue = jobs
     ?.filter(job => {
       const jobDate = new Date(job.deadline);
-      return (job.status === 'Completed' || job.status === 'Invoiced') && isWithinInterval(jobDate, { start: lastWeekStart, end: lastWeekEnd });
+      const status = job.status as string; // Cast status to string
+      return (status === 'Complete' || status === 'Finalized') && isWithinInterval(jobDate, { start: lastWeekStart, end: lastWeekEnd });
     })
     .reduce((sum, job) => sum + job.budget, 0) || 0;
 

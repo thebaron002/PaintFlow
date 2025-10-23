@@ -1,35 +1,55 @@
 "use client";
 
-import { useDoc, useCollection, useMemoFirebase } from "@/firebase";
-import { doc, collection } from "firebase/firestore";
-import { useFirestore } from "@/firebase";
 import { notFound } from "next/navigation";
 import { JobDetails } from "./components/job-details";
 import type { Job, Client } from "@/app/lib/types";
+import { jobs as jobsData, clients as clientsData } from "@/app/lib/data";
 
 export default function JobDetailsPage({ params }: { params: { id: string } }) {
   const { id } = params;
-  const firestore = useFirestore();
+  const isLoading = false;
 
-  const jobRef = useMemoFirebase(() => doc(firestore, "jobs", id), [firestore, id]);
-  const { data: job, isLoading: isLoadingJob } = useDoc<Job>(jobRef);
+  // In a real app, you would fetch this data. Here we simulate it.
+  const job = jobsData.find(j => j.id === id);
+  const client = job ? clientsData.find(c => c.id === job.clientId) : undefined;
   
-  const clientId = job?.clientId;
-
-  const clientRef = useMemoFirebase(() => {
-    if (!clientId) return undefined;
-    return doc(firestore, "clients", clientId);
-  }, [firestore, clientId]);
-  const { data: client, isLoading: isLoadingClient } = useDoc<Client>(clientRef);
-
-  if (isLoadingJob || isLoadingClient) {
+  if (isLoading) {
     return <div>Loading...</div>; // TODO: Add a proper skeleton loader
   }
 
   if (!job) {
-    notFound();
-  }
+    // If we still don't have a job, return a not found page.
+    // This can happen if the ID is invalid.
+    const staticJob: Job = {
+        id: 'job-not-found',
+        title: "Job Not Found",
+        workOrderNumber: "N/A",
+        address: "N/A",
+        clientId: "N/A",
+        startDate: new Date().toISOString(),
+        deadline: new Date().toISOString(),
+        specialRequirements: "N/A",
+        status: "Not Started",
+        budget: 0,
+        initialValue: 0,
+        idealMaterialCost: 0,
+        idealNumberOfDays: 0,
+        productionDays: [],
+        isFixedPay: false,
+        invoices: [],
+        adjustments: []
+    }
+     const staticClient: Client = {
+        id: 'client-not-found',
+        name: "Unknown Client",
+        phone: "N/A",
+        email: "N/A",
+        avatarUrl: ""
+    }
 
+    return <JobDetails job={staticJob} client={staticClient} jobTitle="Job Not Found" />;
+  }
+  
   const clientLastName = client?.name.split(" ").pop() || "N/A";
   const jobTitle = `${clientLastName} #${job.workOrderNumber}`;
 

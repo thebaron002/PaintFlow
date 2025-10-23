@@ -18,59 +18,20 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/page-header";
-import { useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, where, orderBy, limit } from "firebase/firestore";
-import { useFirestore } from "@/firebase";
 import type { Job, Client } from "@/app/lib/types";
 import { Briefcase, DollarSign, CalendarCheck, MapPin } from "lucide-react";
-import { format, subMonths, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { RevenueChart } from "./components/revenue-chart";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function DashboardPage() {
-  const firestore = useFirestore();
-  const now = new Date();
+  const isLoading = false;
+  const totalRevenue = 0;
+  const activeJobs: Job[] = [];
+  const jobsCompletedThisMonth = 0;
+  const percentChange = 0;
+  const upcomingJobs: Job[] = [];
+  const clients: Client[] = [];
 
-  // Queries
-  const jobsCollection = useMemoFirebase(() => collection(firestore, 'jobs'), [firestore]);
-
-  const activeJobsQuery = useMemoFirebase(() => query(jobsCollection, where('status', '==', 'In Progress')), [jobsCollection]);
-  const completedJobsQuery = useMemoFirebase(() => query(jobsCollection, where('status', 'in', ['Completed', 'Invoiced'])), [jobsCollection]);
-  
-  const upcomingJobsQuery = useMemoFirebase(() => query(
-    jobsCollection,
-    where('status', 'in', ['In Progress', 'Not Started']),
-    orderBy('status', 'desc'), // 'Not Started' before 'In Progress'
-    orderBy('deadline', 'asc')
-  ), [jobsCollection]);
-
-  const clientsQuery = useMemoFirebase(() => collection(firestore, 'clients'), [firestore]);
-
-  // Hooks
-  const { data: activeJobs, isLoading: isLoadingActive } = useCollection<Job>(activeJobsQuery);
-  const { data: completedJobs, isLoading: isLoadingCompleted } = useCollection<Job>(completedJobsQuery);
-  const { data: upcomingJobs, isLoading: isLoadingUpcoming } = useCollection<Job>(upcomingJobsQuery);
-  const { data: clients, isLoading: isLoadingClients } = useCollection<Client>(clientsQuery);
-
-  const isLoading = isLoadingActive || isLoadingCompleted || isLoadingUpcoming || isLoadingClients;
-
-  // Calculations
-  const totalRevenue = completedJobs?.reduce((sum, job) => sum + job.budget, 0) ?? 0;
-  
-  const currentMonthStart = startOfMonth(now);
-  const jobsCompletedThisMonth = completedJobs?.filter(job => {
-    const jobDate = new Date(job.deadline);
-    return isWithinInterval(jobDate, { start: currentMonthStart, end: now });
-  }).length ?? 0;
-
-  const lastMonthStart = startOfMonth(subMonths(now, 1));
-  const lastMonthEnd = endOfMonth(subMonths(now, 1));
-  const jobsCompletedLastMonth = completedJobs?.filter(job => {
-    const jobDate = new Date(job.deadline);
-    return isWithinInterval(jobDate, { start: lastMonthStart, end: lastMonthEnd });
-  }).length ?? 0;
-
-  const percentChange = jobsCompletedLastMonth > 0 ? ((jobsCompletedThisMonth - jobsCompletedLastMonth) / jobsCompletedLastMonth) * 100 : jobsCompletedThisMonth > 0 ? 100 : 0;
 
   return (
     <div className="flex flex-col gap-8">
@@ -140,7 +101,8 @@ export default function DashboardPage() {
                         <TableCell className="text-right"><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
                       </TableRow>
                     ))
-                  ) : upcomingJobs?.map(job => {
+                  ) : upcomingJobs?.length > 0 ? (
+                    upcomingJobs.map(job => {
                       const client = clients?.find(c => c.id === job.clientId);
                       const clientLastName = client?.name.split(" ").pop() || "N/A";
                       const jobTitle = `${clientLastName} #${job.workOrderNumber}`;
@@ -171,7 +133,14 @@ export default function DashboardPage() {
                           <TableCell className="text-right">${job.budget.toLocaleString()}</TableCell>
                         </TableRow>
                       )
-                    })}
+                    })
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={4} className="h-24 text-center">
+                        No upcoming jobs.
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
           </CardContent>

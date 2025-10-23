@@ -1,9 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import { useCollection, useMemoFirebase } from "@/firebase";
-import { collection } from "firebase/firestore";
-import { useFirestore } from "@/firebase";
 import type { Client } from "@/app/lib/types";
 import { PageHeader } from "@/components/page-header";
 import {
@@ -19,10 +16,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 
 export default function ClientsPage() {
-    const firestore = useFirestore();
-
-    const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore]);
-    const { data: clients, isLoading } = useCollection<Client>(clientsQuery);
+    const isLoading = false;
+    const clients: Client[] | null = [];
 
     if (isLoading) {
         return (
@@ -67,7 +62,7 @@ export default function ClientsPage() {
                 </Button>
             </PageHeader>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {clients?.map((client) => (
+                {clients && clients.length > 0 ? clients.map((client) => (
                     <Card key={client.id}>
                         <CardHeader className="flex flex-col items-center text-center">
                             <Image
@@ -96,7 +91,13 @@ export default function ClientsPage() {
                            </div>
                         </CardContent>
                     </Card>
-                ))}
+                )) : (
+                    <Card className="md:col-span-2 lg:col-span-3">
+                        <CardContent className="flex flex-col items-center justify-center h-48">
+                            <p className="text-muted-foreground">No clients found.</p>
+                        </CardContent>
+                    </Card>
+                )}
             </div>
         </div>
     );

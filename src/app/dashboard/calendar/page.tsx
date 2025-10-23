@@ -1,18 +1,13 @@
 "use client";
 
-import { useCollection, useMemoFirebase } from "@/firebase";
-import { collection } from "firebase/firestore";
-import { useFirestore } from "@/firebase";
 import type { Job } from "@/app/lib/types";
 import { PageHeader } from "@/components/page-header";
 import { JobCalendar } from "./components/job-calendar";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function CalendarPage() {
-  const firestore = useFirestore();
-  
-  const jobsQuery = useMemoFirebase(() => collection(firestore, 'jobs'), [firestore]);
-  const { data: jobs, isLoading } = useCollection<Job>(jobsQuery);
+  const isLoading = false;
+  const jobs: Job[] = [];
 
   if (isLoading) {
     return (

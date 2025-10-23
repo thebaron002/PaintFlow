@@ -20,9 +20,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, where } from "firebase/firestore";
-import { useFirestore } from "@/firebase";
 import type { Job, Client } from "@/app/lib/types";
 import { payrollSettings } from "@/app/lib/payroll-data";
 import { Send } from "lucide-react";
@@ -31,25 +28,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function PayrollPage() {
   const router = useRouter();
-  const firestore = useFirestore();
 
-  const jobsToPayQuery = useMemoFirebase(() => 
-    query(collection(firestore, "jobs"), where("status", "==", "Open Payment")), 
-    [firestore]
-  );
-  const { data: jobsToPay, isLoading: isLoadingJobs } = useCollection<Job>(jobsToPayQuery);
-  
-  const clientsQuery = useMemoFirebase(() => 
-    collection(firestore, "clients"), 
-    [firestore]
-  );
-  const { data: clients, isLoading: isLoadingClients } = useCollection<Client>(clientsQuery);
-  
+  const isLoading = false;
+  const jobsToPay: Job[] | null = [];
+  const clients: Client[] | null = [];
+
   const handleJobClick = (jobId: string) => {
     router.push(`/dashboard/jobs/${jobId}`);
   };
-
-  const isLoading = isLoadingJobs || isLoadingClients;
 
   return (
     <div>

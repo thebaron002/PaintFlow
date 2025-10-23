@@ -4,9 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { format } from "date-fns";
 import type { Job, Client } from "@/app/lib/types";
-import { useCollection, useMemoFirebase } from "@/firebase";
-import { collection, query, where } from "firebase/firestore";
-import { useFirestore } from "@/firebase";
 import { PageHeader } from "@/components/page-header";
 import {
   Table,
@@ -170,13 +167,8 @@ const JobsTable = ({ jobs, clients, isLoading }: { jobs: Job[] | null, clients: 
 };
 
 const JobsTabContent = ({ status, clients, isLoadingClients }: { status: Job["status"], clients: Client[] | null, isLoadingClients: boolean }) => {
-  const firestore = useFirestore();
-  
-  const jobsQuery = useMemoFirebase(() => {
-    return query(collection(firestore, 'jobs'), where('status', '==', status));
-  }, [firestore, status]);
-  
-  const { data: filteredJobs, isLoading: isLoadingJobs } = useCollection<Job>(jobsQuery);
+  const isLoadingJobs = false;
+  const filteredJobs: Job[] | null = [];
   
   return (
     <TabsContent value={status}>
@@ -187,12 +179,8 @@ const JobsTabContent = ({ status, clients, isLoadingClients }: { status: Job["st
 
 export default function JobsPage() {
   const jobStatuses: Job["status"][] = ["Not Started", "In Progress", "Complete", "Open Payment", "Finalized"];
-  const firestore = useFirestore();
-
-  const clientsQuery = useMemoFirebase(() => {
-    return collection(firestore, 'clients');
-  }, [firestore]);
-  const { data: clients, isLoading: isLoadingClients } = useCollection<Client>(clientsQuery);
+  const isLoadingClients = false;
+  const clients: Client[] | null = [];
 
   return (
     <div>
