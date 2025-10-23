@@ -12,7 +12,8 @@ export default function JobDetailsPage({ params }: { params: { id: string } }) {
   }
 
   const client = clients.find((c) => c.id === job.clientId);
-  const jobTitle = `${client?.name || "N/A"} #${job.workOrderNumber}`;
+  const clientLastName = client?.name.split(" ").pop() || "N/A";
+  const jobTitle = `${clientLastName} #${job.workOrderNumber}`;
 
   return <JobDetails job={job} client={client} jobTitle={jobTitle} />;
 }

@@ -48,7 +48,8 @@ const JobsTable = ({ jobs }: { jobs: Job[] }) => (
         <TableBody>
           {jobs.map((job) => {
             const client = clients.find((c) => c.id === job.clientId);
-            const jobTitle = `${client?.name || "N/A"} #${job.workOrderNumber}`;
+            const clientLastName = client?.name.split(" ").pop() || "N/A";
+            const jobTitle = `${clientLastName} #${job.workOrderNumber}`;
             return (
               <TableRow key={job.id}>
                 <TableCell className="hidden sm:table-cell">
