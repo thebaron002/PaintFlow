@@ -1,5 +1,10 @@
+"use client";
+
 import Image from "next/image";
-import { clients } from "@/app/lib/data";
+import { useCollection, useMemoFirebase } from "@/firebase";
+import { collection } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
+import type { Client } from "@/app/lib/types";
 import { PageHeader } from "@/components/page-header";
 import {
     Card,
@@ -9,10 +14,50 @@ import {
     CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Mail, Phone, Briefcase } from "lucide-react";
+import { PlusCircle, Mail, Phone } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 
 export default function ClientsPage() {
+    const firestore = useFirestore();
+
+    const clientsQuery = useMemoFirebase(() => collection(firestore, "clients"), [firestore]);
+    const { data: clients, isLoading } = useCollection<Client>(clientsQuery);
+
+    if (isLoading) {
+        return (
+            <div>
+                <PageHeader title="Clients">
+                    <Button>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Add Client
+                    </Button>
+                </PageHeader>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {[...Array(3)].map((_, i) => (
+                         <Card key={i}>
+                            <CardHeader className="flex flex-col items-center text-center">
+                                <Skeleton className="w-24 h-24 rounded-full mb-4" />
+                                <Skeleton className="h-6 w-32 mb-2" />
+                                <Skeleton className="h-4 w-24" />
+                            </CardHeader>
+                            <CardContent className="text-center">
+                               <div className="text-sm text-muted-foreground flex items-center justify-center gap-2 mb-2">
+                                    <Mail className="w-4 h-4"/>
+                                    <Skeleton className="h-4 w-40" />
+                               </div>
+                                <div className="text-sm text-muted-foreground flex items-center justify-center gap-2">
+                                    <Phone className="w-4 h-4"/>
+                                    <Skeleton className="h-4 w-32" />
+                               </div>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div>
             <PageHeader title="Clients">
@@ -22,7 +67,7 @@ export default function ClientsPage() {
                 </Button>
             </PageHeader>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {clients.map((client) => (
+                {clients?.map((client) => (
                     <Card key={client.id}>
                         <CardHeader className="flex flex-col items-center text-center">
                             <Image

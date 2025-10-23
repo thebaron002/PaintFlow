@@ -1,17 +1,35 @@
-import { jobs, clients } from "@/app/lib/data";
+"use client";
+
+import { useDoc, useCollection, useMemoFirebase } from "@/firebase";
+import { doc, collection } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
 import { notFound } from "next/navigation";
 import { JobDetails } from "./components/job-details";
-import type { Job } from "@/app/lib/types";
+import type { Job, Client } from "@/app/lib/types";
 
 export default function JobDetailsPage({ params }: { params: { id: string } }) {
   const { id } = params;
-  const job: Job | undefined = jobs.find((j) => j.id === id);
+  const firestore = useFirestore();
+
+  const jobRef = useMemoFirebase(() => doc(firestore, "jobs", id), [firestore, id]);
+  const { data: job, isLoading: isLoadingJob } = useDoc<Job>(jobRef);
+  
+  const clientId = job?.clientId;
+
+  const clientRef = useMemoFirebase(() => {
+    if (!clientId) return undefined;
+    return doc(firestore, "clients", clientId);
+  }, [firestore, clientId]);
+  const { data: client, isLoading: isLoadingClient } = useDoc<Client>(clientRef);
+
+  if (isLoadingJob || isLoadingClient) {
+    return <div>Loading...</div>; // TODO: Add a proper skeleton loader
+  }
 
   if (!job) {
     notFound();
   }
 
-  const client = clients.find((c) => c.id === job.clientId);
   const clientLastName = client?.name.split(" ").pop() || "N/A";
   const jobTitle = `${clientLastName} #${job.workOrderNumber}`;
 

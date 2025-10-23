@@ -1,3 +1,5 @@
+"use client";
+
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,13 +25,43 @@ import {
 } from "@/components/ui/table";
 import { DollarSign, FileDown, PlusCircle } from "lucide-react";
 import { format } from "date-fns";
-import { income, expenses, jobs, clients } from "@/app/lib/data";
+import { useCollection, useMemoFirebase } from "@/firebase";
+import { collection } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
+import type { Income, Expense, Job, Client } from "@/app/lib/types";
 import { CashFlowChart } from "./components/cash-flow-chart";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function FinancePage() {
-  const totalIncome = income.reduce((acc, item) => acc + item.amount, 0);
-  const totalExpenses = expenses.reduce((acc, item) => acc + item.amount, 0);
+  const firestore = useFirestore();
+
+  const incomeQuery = useMemoFirebase(() => collection(firestore, 'income'), [firestore]);
+  const expensesQuery = useMemoFirebase(() => collection(firestore, 'expenses'), [firestore]);
+  const jobsQuery = useMemoFirebase(() => collection(firestore, 'jobs'), [firestore]);
+  const clientsQuery = useMemoFirebase(() => collection(firestore, 'clients'), [firestore]);
+  
+  const { data: income, isLoading: isLoadingIncome } = useCollection<Income>(incomeQuery);
+  const { data: expenses, isLoading: isLoadingExpenses } = useCollection<Expense>(expensesQuery);
+  const { data: jobs, isLoading: isLoadingJobs } = useCollection<Job>(jobsQuery);
+  const { data: clients, isLoading: isLoadingClients } = useCollection<Client>(clientsQuery);
+
+  const isLoading = isLoadingIncome || isLoadingExpenses || isLoadingJobs || isLoadingClients;
+
+  const totalIncome = income?.reduce((acc, item) => acc + item.amount, 0) ?? 0;
+  const totalExpenses = expenses?.reduce((acc, item) => acc + item.amount, 0) ?? 0;
   const netProfit = totalIncome - totalExpenses;
+
+  const renderStatCard = (title: string, value: number, colorClass: string = '', isLoading: boolean) => (
+     <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">{title}</CardTitle>
+          <DollarSign className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          {isLoading ? <Skeleton className="h-8 w-24" /> : <div className={`text-2xl font-bold ${colorClass}`}>${value.toLocaleString()}</div>}
+        </CardContent>
+      </Card>
+  );
 
   return (
     <div>
@@ -53,33 +85,9 @@ export default function FinancePage() {
         </TabsList>
         <TabsContent value="overview" className="mt-4">
           <div className="grid gap-4 md:grid-cols-3">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Income</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-green-600">${totalIncome.toLocaleString()}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-red-600">${totalExpenses.toLocaleString()}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Net Profit</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">${netProfit.toLocaleString()}</div>
-              </CardContent>
-            </Card>
+            {renderStatCard("Total Income", totalIncome, "text-green-600", isLoading)}
+            {renderStatCard("Total Expenses", totalExpenses, "text-red-600", isLoading)}
+            {renderStatCard("Net Profit", netProfit, "", isLoading)}
           </div>
           <Card className="mt-4">
             <CardHeader>
@@ -107,8 +115,16 @@ export default function FinancePage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {income.map((item) => {
-                    const job = jobs.find(j => j.id === item.jobId);
+                  {isLoading ? (
+                    [...Array(3)].map((_, i) => (
+                      <TableRow key={i}>
+                        <TableCell><Skeleton className="h-5 w-32 mb-1" /><Skeleton className="h-4 w-48" /></TableCell>
+                        <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                        <TableCell className="text-right"><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
+                      </TableRow>
+                    ))
+                  ) : income?.map((item) => {
+                    const job = jobs?.find(j => j.id === item.jobId);
                     return (
                       <TableRow key={item.id}>
                         <TableCell>
@@ -142,9 +158,18 @@ export default function FinancePage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {expenses.map((item) => {
-                     const job = jobs.find(j => j.id === item.jobId);
-                     const client = job ? clients.find(c => c.id === job.clientId) : undefined;
+                  {isLoading ? (
+                     [...Array(4)].map((_, i) => (
+                      <TableRow key={i}>
+                        <TableCell><Skeleton className="h-5 w-32 mb-1" /><Skeleton className="h-4 w-40" /></TableCell>
+                        <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                        <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                        <TableCell className="text-right"><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
+                      </TableRow>
+                    ))
+                  ) : expenses?.map((item) => {
+                     const job = jobs?.find(j => j.id === item.jobId);
+                     const client = job ? clients?.find(c => c.id === job.clientId) : undefined;
                     return(
                       <TableRow key={item.id}>
                         <TableCell>

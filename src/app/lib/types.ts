@@ -6,7 +6,7 @@ export type Client = {
   avatarUrl: string;
 };
 
-export type Project = {
+export type Job = {
   id: string;
   title: string;
   workOrderNumber: string;
@@ -24,12 +24,12 @@ export type Project = {
   isFixedPay: boolean;
   // invoice and adjustment types will be simple for now
   invoices: { id: string; amount: number; date: string; }[];
-  adjustments: { id: "adj1"; reason: string; amount: number; }[];
+  adjustments: { id: string; reason: string; amount: number; }[];
 };
 
 export type Expense = {
   id: string;
-  projectId: string;
+  jobId: string; // Changed from projectId to jobId
   category: 'Materials' | 'Labor' | 'Transportation' | 'Other';
   description: string;
   amount: number;
@@ -37,8 +37,8 @@ export type Expense = {
 };
 
 export type Income = {
-  id: string;
-  projectId: string;
+  id:string;
+  jobId: string; // changed from projectId
   description: string;
   amount: number;
   date: string; // ISO date string

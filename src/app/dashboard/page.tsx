@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import {
   Card,
@@ -16,45 +18,59 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/page-header";
-import { jobs, clients } from "@/app/lib/data";
+import { useCollection, useMemoFirebase } from "@/firebase";
+import { collection, query, where, orderBy, limit } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
+import type { Job, Client } from "@/app/lib/types";
 import { Briefcase, DollarSign, CalendarCheck, MapPin } from "lucide-react";
 import { format, subMonths, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { RevenueChart } from "./components/revenue-chart";
-import type { Job } from "@/app/lib/types";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function DashboardPage() {
+  const firestore = useFirestore();
   const now = new Date();
-  const activeJobs = jobs.filter(job => job.status === 'In Progress').length;
-  const totalRevenue = jobs.filter(job => job.status === 'Completed' || job.status === 'Invoiced').reduce((sum, job) => sum + job.budget, 0);
+
+  // Queries
+  const jobsCollection = useMemoFirebase(() => collection(firestore, 'jobs'), [firestore]);
+
+  const activeJobsQuery = useMemoFirebase(() => query(jobsCollection, where('status', '==', 'In Progress')), [jobsCollection]);
+  const completedJobsQuery = useMemoFirebase(() => query(jobsCollection, where('status', 'in', ['Completed', 'Invoiced'])), [jobsCollection]);
   
-  const statusOrder: Job['status'][] = ['In Progress', 'Not Started'];
-  const upcomingJobs = jobs
-    .filter(job => job.status === 'In Progress' || job.status === 'Not Started')
-    .sort((a, b) => {
-      const statusA = statusOrder.indexOf(a.status);
-      const statusB = statusOrder.indexOf(b.status);
-      if (statusA !== statusB) {
-        return statusA - statusB;
-      }
-      return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
-    });
+  const upcomingJobsQuery = useMemoFirebase(() => query(
+    jobsCollection,
+    where('status', 'in', ['In Progress', 'Not Started']),
+    orderBy('status', 'desc'), // 'Not Started' before 'In Progress'
+    orderBy('deadline', 'asc')
+  ), [jobsCollection]);
 
+  const clientsQuery = useMemoFirebase(() => collection(firestore, 'clients'), [firestore]);
 
+  // Hooks
+  const { data: activeJobs, isLoading: isLoadingActive } = useCollection<Job>(activeJobsQuery);
+  const { data: completedJobs, isLoading: isLoadingCompleted } = useCollection<Job>(completedJobsQuery);
+  const { data: upcomingJobs, isLoading: isLoadingUpcoming } = useCollection<Job>(upcomingJobsQuery);
+  const { data: clients, isLoading: isLoadingClients } = useCollection<Client>(clientsQuery);
+
+  const isLoading = isLoadingActive || isLoadingCompleted || isLoadingUpcoming || isLoadingClients;
+
+  // Calculations
+  const totalRevenue = completedJobs?.reduce((sum, job) => sum + job.budget, 0) ?? 0;
+  
   const currentMonthStart = startOfMonth(now);
-  const jobsCompletedThisMonth = jobs.filter(job => {
+  const jobsCompletedThisMonth = completedJobs?.filter(job => {
     const jobDate = new Date(job.deadline);
-    return (job.status === 'Completed' || job.status === 'Invoiced') && isWithinInterval(jobDate, { start: currentMonthStart, end: now });
-  }).length;
-  
+    return isWithinInterval(jobDate, { start: currentMonthStart, end: now });
+  }).length ?? 0;
+
   const lastMonthStart = startOfMonth(subMonths(now, 1));
   const lastMonthEnd = endOfMonth(subMonths(now, 1));
-  const jobsCompletedLastMonth = jobs.filter(job => {
+  const jobsCompletedLastMonth = completedJobs?.filter(job => {
     const jobDate = new Date(job.deadline);
-    return (job.status === 'Completed' || job.status === 'Invoiced') && isWithinInterval(jobDate, { start: lastMonthStart, end: lastMonthEnd });
-  }).length;
+    return isWithinInterval(jobDate, { start: lastMonthStart, end: lastMonthEnd });
+  }).length ?? 0;
 
   const percentChange = jobsCompletedLastMonth > 0 ? ((jobsCompletedThisMonth - jobsCompletedLastMonth) / jobsCompletedLastMonth) * 100 : jobsCompletedThisMonth > 0 ? 100 : 0;
-
 
   return (
     <div className="flex flex-col gap-8">
@@ -66,7 +82,7 @@ export default function DashboardPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalRevenue.toLocaleString()}</div>
+            {isLoading ? <Skeleton className="h-8 w-32" /> : <div className="text-2xl font-bold">${totalRevenue.toLocaleString()}</div>}
             <p className="text-xs text-muted-foreground">
               Based on completed jobs
             </p>
@@ -78,7 +94,7 @@ export default function DashboardPage() {
             <Briefcase className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+{activeJobs}</div>
+            {isLoading ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold">+{activeJobs?.length ?? 0}</div>}
             <p className="text-xs text-muted-foreground">
               Currently in progress
             </p>
@@ -90,7 +106,7 @@ export default function DashboardPage() {
             <CalendarCheck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+{jobsCompletedThisMonth}</div>
+             {isLoading ? <Skeleton className="h-8 w-12" /> : <div className="text-2xl font-bold">+{jobsCompletedThisMonth}</div>}
             <p className="text-xs text-muted-foreground">
               {percentChange.toFixed(1)}% from last month
             </p>
@@ -115,8 +131,17 @@ export default function DashboardPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {upcomingJobs.map(job => {
-                      const client = clients.find(c => c.id === job.clientId);
+                  {isLoading ? (
+                    [...Array(5)].map((_, i) => (
+                      <TableRow key={i}>
+                        <TableCell><Skeleton className="h-5 w-32 mb-1" /><Skeleton className="h-4 w-24" /></TableCell>
+                        <TableCell className="hidden sm:table-cell"><Skeleton className="h-5 w-40" /></TableCell>
+                        <TableCell className="hidden sm:table-cell"><Skeleton className="h-6 w-24 rounded-full" /></TableCell>
+                        <TableCell className="text-right"><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
+                      </TableRow>
+                    ))
+                  ) : upcomingJobs?.map(job => {
+                      const client = clients?.find(c => c.id === job.clientId);
                       const clientLastName = client?.name.split(" ").pop() || "N/A";
                       const jobTitle = `${clientLastName} #${job.workOrderNumber}`;
                       return (

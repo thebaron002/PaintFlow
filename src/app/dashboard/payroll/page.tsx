@@ -20,18 +20,36 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { jobs, clients } from "@/app/lib/data";
+import { useCollection, useMemoFirebase } from "@/firebase";
+import { collection, query, where } from "firebase/firestore";
+import { useFirestore } from "@/firebase";
+import type { Job, Client } from "@/app/lib/types";
 import { payrollSettings } from "@/app/lib/payroll-data";
 import { Send } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 
 export default function PayrollPage() {
   const router = useRouter();
-  const jobsToPay = jobs.filter(job => job.status === "Open Payment");
+  const firestore = useFirestore();
 
+  const jobsToPayQuery = useMemoFirebase(() => 
+    query(collection(firestore, "jobs"), where("status", "==", "Open Payment")), 
+    [firestore]
+  );
+  const { data: jobsToPay, isLoading: isLoadingJobs } = useCollection<Job>(jobsToPayQuery);
+  
+  const clientsQuery = useMemoFirebase(() => 
+    collection(firestore, "clients"), 
+    [firestore]
+  );
+  const { data: clients, isLoading: isLoadingClients } = useCollection<Client>(clientsQuery);
+  
   const handleJobClick = (jobId: string) => {
     router.push(`/dashboard/jobs/${jobId}`);
   };
+
+  const isLoading = isLoadingJobs || isLoadingClients;
 
   return (
     <div>
@@ -56,8 +74,20 @@ export default function PayrollPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {jobsToPay.length > 0 ? jobsToPay.map(job => {
-                     const client = clients.find(c => c.id === job.clientId);
+                  {isLoading ? (
+                    [...Array(3)].map((_, i) => (
+                      <TableRow key={i}>
+                        <TableCell>
+                          <Skeleton className="h-5 w-32 mb-1" />
+                          <Skeleton className="h-4 w-40" />
+                        </TableCell>
+                        <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                        <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                        <TableCell className="text-right"><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
+                      </TableRow>
+                    ))
+                  ) : jobsToPay && jobsToPay.length > 0 ? jobsToPay.map(job => {
+                     const client = clients?.find(c => c.id === job.clientId);
                      const clientLastName = client?.name.split(" ").pop() || "N/A";
                      const jobTitle = `${clientLastName} #${job.workOrderNumber}`;
                      const totalInvoiced = job.invoices.reduce((sum, invoice) => sum + invoice.amount, 0);
