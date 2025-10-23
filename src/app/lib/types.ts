@@ -13,7 +13,7 @@ export type Job = {
   clientId: string;
   deadline: string; // ISO date string
   specialRequirements: string;
-  status: 'Pending' | 'In Progress' | 'Completed' | 'Invoiced';
+  status: 'Not Started' | 'In Progress' | 'Complete' | 'Open Payment' | 'Finalized';
   budget: number;
 };
 

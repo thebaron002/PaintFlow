@@ -49,7 +49,7 @@ export const jobs: Job[] = [
     clientId: "client4",
     deadline: "2024-08-20T00:00:00.000Z",
     specialRequirements: "Use weather-resistant stain. Two coats needed.",
-    status: "Pending",
+    status: "Not Started",
     budget: 1200,
   },
   {
@@ -59,7 +59,7 @@ export const jobs: Job[] = [
     clientId: "client3",
     deadline: "2024-07-28T00:00:00.000Z",
     specialRequirements: "Client wants a very specific shade of blue (Benjamin Moore Hale Navy).",
-    status: "Completed",
+    status: "Complete",
     budget: 800,
   },
   {
@@ -69,7 +69,7 @@ export const jobs: Job[] = [
     clientId: "client1",
     deadline: "2024-09-30T00:00:00.000Z",
     specialRequirements: "Standard builder-grade white for all walls and ceilings.",
-    status: "Pending",
+    status: "Not Started",
     budget: 15000,
   },
   {
@@ -89,14 +89,25 @@ export const jobs: Job[] = [
     clientId: "client3",
     deadline: "2024-08-10T00:00:00.000Z",
     specialRequirements: "Zero-VOC paint only. Two-tone wall with stencil.",
-    status: "Invoiced",
+    status: "Open Payment",
     budget: 950,
   },
+  {
+    id: "job7",
+    title: "Garage Floor Epoxy",
+    address: "101 Builder's Way, Anytown, USA",
+    clientId: "client1",
+    deadline: "2024-07-20T00:00:00.000Z",
+    specialRequirements: "Requires 3-day curing time.",
+    status: "Finalized",
+    budget: 3200,
+  }
 ];
 
 export const income: Income[] = [
     { id: "inc1", jobId: "job3", description: "Payment for Living Room Accent Wall", amount: 800, date: "2024-07-30T00:00:00.000Z" },
     { id: "inc2", jobId: "job6", description: "50% Deposit for Nursery Painting", amount: 475, date: "2024-08-01T00:00:00.000Z" },
+    { id: "inc3", jobId: "job7", description: "Final Payment for Garage Epoxy", amount: 3200, date: "2024-07-25T00:00:00.000Z" },
 ];
 
 export const expenses: Expense[] = [
