@@ -14,30 +14,23 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import type { Client } from "@/app/lib/types";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 const jobSchema = z.object({
-  title: z.string().min(1, "Title is required"),
+  title: z.string().optional(),
   workOrderNumber: z.string().min(1, "Work order number is required"),
   address: z.string().min(1, "Address is required"),
-  clientId: z.string().min(1, "Client is required"),
+  clientName: z.string().min(1, "Client name is required"),
   startDate: z.date({ required_error: "Start date is required." }),
-  deadline: z.date({ required_error: "Deadline is required." }),
-  budget: z.coerce.number().min(0, "Budget must be a positive number"),
-  specialRequirements: z.string().optional(),
+  initialValue: z.coerce.number().min(0, "Initial value must be a positive number"),
+  isFixedPay: z.boolean().default(false),
 });
 
 type JobFormValues = z.infer<typeof jobSchema>;
@@ -54,9 +47,9 @@ export function NewJobForm({ clients, onSuccess }: NewJobFormProps) {
       title: "",
       workOrderNumber: "",
       address: "",
-      clientId: "",
-      specialRequirements: "",
-      budget: 0,
+      clientName: "",
+      initialValue: 0,
+      isFixedPay: false,
     },
   });
 
@@ -77,7 +70,7 @@ export function NewJobForm({ clients, onSuccess }: NewJobFormProps) {
           name="title"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Job Title</FormLabel>
+              <FormLabel>Job Title (Optional)</FormLabel>
               <FormControl>
                 <Input placeholder="e.g., Interior Painting" {...field} />
               </FormControl>
@@ -101,25 +94,13 @@ export function NewJobForm({ clients, onSuccess }: NewJobFormProps) {
           />
            <FormField
             control={form.control}
-            name="clientId"
+            name="clientName"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Client</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a client" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {clients?.map((client) => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.name}
-                      </SelectItem>
-                    ))}
-                    {(!clients || clients.length === 0) && <div className="p-2 text-sm text-muted-foreground">No clients found.</div>}
-                  </SelectContent>
-                </Select>
+                <FormControl>
+                  <Input placeholder="Enter client name" {...field} />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -165,56 +146,36 @@ export function NewJobForm({ clients, onSuccess }: NewJobFormProps) {
             />
             <FormField
               control={form.control}
-              name="deadline"
+              name="initialValue"
               render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Deadline</FormLabel>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <FormControl>
-                                <Button variant="outline" className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                    {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50"/>
-                                </Button>
-                            </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus/>
-                        </PopoverContent>
-                    </Popover>
+                <FormItem>
+                  <FormLabel>Initial Value</FormLabel>
+                  <FormControl>
+                      <div className="relative">
+                          <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">$</span>
+                          <Input type="number" placeholder="2500" className="pl-7" {...field} />
+                      </div>
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
         </div>
-
-        <FormField
-            control={form.control}
-            name="budget"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Payout / Budget</FormLabel>
-                <FormControl>
-                    <div className="relative">
-                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">$</span>
-                        <Input type="number" placeholder="2500" className="pl-7" {...field} />
-                    </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
+        
         <FormField
           control={form.control}
-          name="specialRequirements"
+          name="isFixedPay"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel>Special Requirements</FormLabel>
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+              <div className="space-y-0.5">
+                <FormLabel>Fixed Pay</FormLabel>
+              </div>
               <FormControl>
-                <Textarea placeholder="e.g., Low-VOC paint required..." {...field} />
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
               </FormControl>
-              <FormMessage />
             </FormItem>
           )}
         />
