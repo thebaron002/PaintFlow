@@ -1,131 +1,73 @@
 /**
- * @fileoverview Firestore Security Rules for the project management application.
+ * @fileoverview Firestore Security Rules for Prototyping.
  *
  * Core Philosophy:
- * This ruleset enforces a strict client-ownership model. Each client can only access their own data,
- * including projects, expenses, and income records associated with those projects.
+ * This ruleset prioritizes rapid prototyping and development. All data is publicly readable and writable by anyone, authenticated or not.
  *
  * Data Structure:
- * The data is organized hierarchically under the `/clients/{clientId}` path.
- * Projects, expenses, and income are nested as subcollections under each client.
+ * The database consists of top-level collections for 'clients', 'jobs', 'expenses', and 'incomes'. There are no user-specific subcollections.
  *
  * Key Security Decisions:
- * - Clients can only access resources (projects, expenses, income) directly associated with their ID.
- * - The rules do not allow listing all clients or all projects across clients. List operations are only
- *   permitted within a specific client's scope.
- * - Authorization Independence is achieved via path-based ownership. Every document's path inherently
- *   contains the `clientId`, which is used for access control.
+ * - Authentication is optional (anonymous access enabled).
+ * - No authorization checks are performed. All read and write operations are allowed for all users.
+ *
+ * WARNING:
+ * This configuration provides ZERO security and should NEVER be used in a production environment. It is intended for local development and testing ONLY.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Grants access only to the authenticated client.
-     * @path /clients/{clientId}
-     * @allow (get, create, update, delete) if the request is made by the client with matching clientId.
-     * @deny (get, create, update, delete) if the request is made by another client or an unauthenticated user.
-     * @principle Enforces document ownership for all operations.
+     * @description Allows all read and write operations to the 'clients' collection.
+     * @path /databases/{database}/documents/clients/{clientId}
+     * @allow (get, list) Any user can read any client document.
+     * @allow (create, update, delete) Any user can create, update, or delete any client document.
+     * @deny Never.
+     * @principle Allows open access for prototyping.
      */
     match /clients/{clientId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-          return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isSignedIn() && isOwner(clientId);
-      allow list: if false; // Listing all clients is not permitted.
-      allow create: if isSignedIn() && isOwner(clientId);
-      allow update: if isSignedIn() && isExistingOwner(clientId);
-      allow delete: if isSignedIn() && isExistingOwner(clientId);
+      allow get, list: if true;
+      allow create, update, delete: if true;
     }
 
     /**
-     * @description Grants access only to the authenticated client for their projects.
-     * @path /clients/{clientId}/projects/{projectId}
-     * @allow (get, create, update, delete) if the request is made by the client with matching clientId.
-     * @deny (get, create, update, delete) if the request is made by another client or an unauthenticated user.
-     * @principle Enforces document ownership for all operations.
+     * @description Allows all read and write operations to the 'jobs' collection.
+     * @path /databases/{database}/documents/jobs/{jobId}
+     * @allow (get, list) Any user can read any job document.
+     * @allow (create, update, delete) Any user can create, update, or delete any job document.
+     * @deny Never.
+     * @principle Allows open access for prototyping.
      */
-    match /clients/{clientId}/projects/{projectId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-          return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isSignedIn() && isOwner(clientId);
-      allow list: if isSignedIn() && isOwner(clientId);
-      allow create: if isSignedIn() && isOwner(clientId);
-      allow update: if isSignedIn() && isExistingOwner(clientId);
-      allow delete: if isSignedIn() && isExistingOwner(clientId);
+    match /jobs/{jobId} {
+      allow get, list: if true;
+      allow create, update, delete: if true;
     }
 
     /**
-     * @description Grants access only to the authenticated client for their project expenses.
-     * @path /clients/{clientId}/projects/{projectId}/expenses/{expenseId}
-     * @allow (get, create, update, delete) if the request is made by the client with matching clientId.
-     * @deny (get, create, update, delete) if the request is made by another client or an unauthenticated user.
-     * @principle Enforces document ownership for all operations.
+     * @description Allows all read and write operations to the 'expenses' collection.
+     * @path /databases/{database}/documents/expenses/{expenseId}
+     * @allow (get, list) Any user can read any expense document.
+     * @allow (create, update, delete) Any user can create, update, or delete any expense document.
+     * @deny Never.
+     * @principle Allows open access for prototyping.
      */
-    match /clients/{clientId}/projects/{projectId}/expenses/{expenseId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-          return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isSignedIn() && isOwner(clientId);
-      allow list: if isSignedIn() && isOwner(clientId);
-      allow create: if isSignedIn() && isOwner(clientId);
-      allow update: if isSignedIn() && isExistingOwner(clientId);
-      allow delete: if isSignedIn() && isExistingOwner(clientId);
+    match /expenses/{expenseId} {
+      allow get, list: if true;
+      allow create, update, delete: if true;
     }
 
     /**
-     * @description Grants access only to the authenticated client for their project income records.
-     * @path /clients/{clientId}/projects/{projectId}/income/{incomeId}
-     * @allow (get, create, update, delete) if the request is made by the client with matching clientId.
-     * @deny (get, create, update, delete) if the request is made by another client or an unauthenticated user.
-     * @principle Enforces document ownership for all operations.
+     * @description Allows all read and write operations to the 'incomes' collection.
+     * @path /databases/{database}/documents/incomes/{incomeId}
+     * @allow (get, list) Any user can read any income document.
+     * @allow (create, update, delete) Any user can create, update, or delete any income document.
+     * @deny Never.
+     * @principle Allows open access for prototyping.
      */
-    match /clients/{clientId}/projects/{projectId}/income/{incomeId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-          return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isSignedIn() && isOwner(clientId);
-      allow list: if isSignedIn() && isOwner(clientId);
-      allow create: if isSignedIn() && isOwner(clientId);
-      allow update: if isSignedIn() && isExistingOwner(clientId);
-      allow delete: if isSignedIn() && isExistingOwner(clientId);
+    match /incomes/{incomeId} {
+      allow get, list: if true;
+      allow create, update, delete: if true;
     }
   }
 }
