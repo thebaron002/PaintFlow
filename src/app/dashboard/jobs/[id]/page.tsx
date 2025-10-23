@@ -30,6 +30,7 @@ import {
   Ruler,
   Paintbrush,
   CheckCircle,
+  Pencil,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -48,12 +49,18 @@ export default function JobDetailsPage({ params }: { params: { id: string } }) {
   return (
     <div>
       <PageHeader title={jobTitle}>
-        <Button variant="outline" asChild>
-          <Link href="/dashboard/jobs">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Jobs
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" asChild>
+            <Link href="/dashboard/jobs">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Jobs
+            </Link>
+          </Button>
+          <Button>
+            <Pencil className="mr-2 h-4 w-4" />
+            Edit Job
+          </Button>
+        </div>
       </PageHeader>
 
       <div className="grid gap-6 lg:grid-cols-3">
