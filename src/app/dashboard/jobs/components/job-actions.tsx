@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type { Job } from "@/app/lib/types";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,7 +24,9 @@ export function JobActions({ job }: { job: Job }) {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-        <DropdownMenuItem>View Details</DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href={`/dashboard/jobs/${job.id}`}>View Details</Link>
+        </DropdownMenuItem>
         <DropdownMenuItem>Edit</DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem>Mark as Completed</DropdownMenuItem>
