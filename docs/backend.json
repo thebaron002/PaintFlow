@@ -1,244 +1,111 @@
+
 {
   "entities": {
-    "Project": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Project",
-      "type": "object",
-      "description": "Represents a project assignment with associated details, deadlines, and requirements.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Project entity."
-        },
-        "projectName": {
-          "type": "string",
-          "description": "Name of the project."
-        },
-        "description": {
-          "type": "string",
-          "description": "Detailed description of the project requirements."
-        },
-        "deadline": {
-          "type": "string",
-          "description": "Deadline for the project completion.",
-          "format": "date-time"
-        },
-        "specialRequirements": {
-          "type": "string",
-          "description": "Any special requirements for the project."
-        },
-        "clientId": {
-          "type": "string",
-          "description": "Reference to Client. (Relationship: Client 1:N Project)"
-        },
-        "location": {
-          "type": "string",
-          "description": "Project location or address."
-        }
-      },
-      "required": [
-        "id",
-        "projectName",
-        "description",
-        "deadline",
-        "clientId",
-        "location"
-      ]
-    },
     "Client": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Client",
       "type": "object",
-      "description": "Represents a client assigned to projects.",
+      "description": "Represents a client for whom a job is performed.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Client entity."
+        "id": { "type": "string", "description": "Unique ID for the client." },
+        "name": { "type": "string", "description": "Name of the client." },
+        "phone": { "type": "string", "description": "Client's phone number." },
+        "email": { "type": "string", "format": "email", "description": "Client's email address." },
+        "avatarUrl": { "type": "string", "format": "uri", "description": "URL of the client's avatar image." }
+      },
+      "required": ["id", "name", "email"]
+    },
+    "Job": {
+      "title": "Job",
+      "type": "object",
+      "description": "Represents a single job or project.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique ID for the job." },
+        "title": { "type": "string", "description": "Title of the job." },
+        "workOrderNumber": { "type": "string", "description": "Work order number for the job." },
+        "address": { "type": "string", "description": "Physical address where the job is located." },
+        "clientId": { "type": "string", "description": "The ID of the client this job belongs to." },
+        "startDate": { "type": "string", "format": "date-time", "description": "The start date of the job." },
+        "deadline": { "type": "string", "format": "date-time", "description": "The deadline for the job." },
+        "specialRequirements": { "type": "string", "description": "Any special requirements for the job." },
+        "status": { "type": "string", "enum": ["Not Started", "In Progress", "Complete", "Open Payment", "Finalized"] },
+        "budget": { "type": "number", "description": "The total payout/budget for the job." },
+        "initialValue": { "type": "number" },
+        "idealMaterialCost": { "type": "number" },
+        "idealNumberOfDays": { "type": "number" },
+        "productionDays": { "type": "array", "items": { "type": "string", "format": "date-time" } },
+        "isFixedPay": { "type": "boolean" },
+        "invoices": { 
+          "type": "array", 
+          "items": { 
+            "type": "object",
+            "properties": {
+              "id": {"type": "string"},
+              "amount": {"type": "number"},
+              "date": {"type": "string", "format": "date-time"}
+            }
+          } 
         },
-        "name": {
-          "type": "string",
-          "description": "Name of the client."
-        },
-        "contactInformation": {
-          "type": "string",
-          "description": "Contact information for the client (e.g., phone number, email)."
+        "adjustments": { 
+          "type": "array", 
+          "items": { 
+            "type": "object",
+            "properties": {
+              "id": {"type": "string"},
+              "reason": {"type": "string"},
+              "amount": {"type": "number"}
+            }
+          } 
         }
       },
-      "required": [
-        "id",
-        "name",
-        "contactInformation"
-      ]
+      "required": ["id", "title", "address", "clientId", "deadline", "status", "budget"]
     },
     "Expense": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Expense",
       "type": "object",
-      "description": "Represents an expense associated with a project.",
+      "description": "Represents an expense associated with a job.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Expense entity."
-        },
-        "projectId": {
-          "type": "string",
-          "description": "Reference to Project. (Relationship: Project 1:N Expense)"
-        },
-        "category": {
-          "type": "string",
-          "description": "Category of the expense (e.g., materials, labor, transportation)."
-        },
-        "amount": {
-          "type": "number",
-          "description": "Amount of the expense."
-        },
-        "date": {
-          "type": "string",
-          "description": "Date the expense was incurred.",
-          "format": "date-time"
-        },
-        "description": {
-          "type": "string",
-          "description": "Description of the expense."
-        }
+        "id": { "type": "string" },
+        "jobId": { "type": "string" },
+        "category": { "type": "string", "enum": ["Materials", "Labor", "Transportation", "Other"] },
+        "description": { "type": "string" },
+        "amount": { "type": "number" },
+        "date": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "projectId",
-        "category",
-        "amount",
-        "date"
-      ]
+      "required": ["id", "jobId", "category", "amount", "date"]
     },
     "Income": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Income",
       "type": "object",
-      "description": "Represents income received for a project.",
+      "description": "Represents an income payment associated with a job.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Income entity."
-        },
-        "projectId": {
-          "type": "string",
-          "description": "Reference to Project. (Relationship: Project 1:N Income)"
-        },
-        "amount": {
-          "type": "number",
-          "description": "Amount of income received."
-        },
-        "date": {
-          "type": "string",
-          "description": "Date the income was received.",
-          "format": "date-time"
-        },
-        "description": {
-          "type": "string",
-          "description": "Description of the income source."
-        }
+        "id": { "type": "string" },
+        "jobId": { "type": "string" },
+        "description": { "type": "string" },
+        "amount": { "type": "number" },
+        "date": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "projectId",
-        "amount",
-        "date"
-      ]
+      "required": ["id", "jobId", "amount", "date"]
     }
   },
   "auth": {
-    "providers": [
-      "password",
-      "anonymous"
-    ]
+    "providers": ["anonymous"]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/clients/{clientId}",
-        "definition": {
-          "entityName": "Client",
-          "schema": {
-            "$ref": "#/backend/entities/Client"
-          },
-          "description": "Stores client information. Clients can only access their own data. Includes denormalized 'clientId' for authorization independence",
-          "params": [
-            {
-              "name": "clientId",
-              "description": "The unique identifier of the client."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/clients/{clientId}/projects/{projectId}",
-        "definition": {
-          "entityName": "Project",
-          "schema": {
-            "$ref": "#/backend/entities/Project"
-          },
-          "description": "Stores project assignments for each client. Projects can only be accessed by the associated client. Includes denormalized 'clientId' for authorization independence.",
-          "params": [
-            {
-              "name": "clientId",
-              "description": "The unique identifier of the client."
-            },
-            {
-              "name": "projectId",
-              "description": "The unique identifier of the project."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/clients/{clientId}/projects/{projectId}/expenses/{expenseId}",
-        "definition": {
-          "entityName": "Expense",
-          "schema": {
-            "$ref": "#/backend/entities/Expense"
-          },
-          "description": "Stores expenses associated with a specific project for a client. Expenses can only be accessed by the associated client for their projects. Includes denormalized 'clientId' for authorization independence.",
-          "params": [
-            {
-              "name": "clientId",
-              "description": "The unique identifier of the client."
-            },
-            {
-              "name": "projectId",
-              "description": "The unique identifier of the project."
-            },
-            {
-              "name": "expenseId",
-              "description": "The unique identifier of the expense."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/clients/{clientId}/projects/{projectId}/income/{incomeId}",
-        "definition": {
-          "entityName": "Income",
-          "schema": {
-            "$ref": "#/backend/entities/Income"
-          },
-          "description": "Stores income records associated with a specific project for a client. Income records can only be accessed by the associated client for their projects. Includes denormalized 'clientId' for authorization independence.",
-          "params": [
-            {
-              "name": "clientId",
-              "description": "The unique identifier of the client."
-            },
-            {
-              "name": "projectId",
-              "description": "The unique identifier of the project."
-            },
-            {
-              "name": "incomeId",
-              "description": "The unique identifier of the income record."
-            }
-          ]
-        }
-      }
-    ],
-    "reasoning": "The Firestore structure is designed to manage project assignments, clients, expenses, and income, optimizing for security, scalability, and debuggability. It emphasizes Authorization Independence by avoiding hierarchical authorization dependencies.\n\nClients are stored in the `/clients` collection. Projects are organized under each client using the path `/clients/{clientId}/projects/{projectId}`. Expenses and Income associated with each project are nested under their respective projects, following the paths `/clients/{clientId}/projects/{projectId}/expenses/{expenseId}` and `/clients/{clientId}/projects/{projectId}/income/{incomeId}` respectively.\n\nThis structure facilitates simple, robust security rules based on path-based ownership. The client ID is part of the path for projects, expenses, and income, enabling direct access control based on the `clientId`. List operations are secured because each subcollection inherently belongs to a specific client, thus filtering is not required at the rule level (QAPs).\n\nThe structure avoids the need for complex `get()` calls in security rules, promoting Authorization Independence and enabling atomic operations."
+    "/clients/{clientId}": {
+      "schema": { "$ref": "#/entities/Client" },
+      "description": "Top-level collection to store all client documents."
+    },
+    "/jobs/{jobId}": {
+      "schema": { "$ref": "#/entities/Job" },
+      "description": "Top-level collection to store all job documents."
+    },
+    "/expenses/{expenseId}": {
+      "schema": { "$ref": "#/entities/Expense" },
+      "description": "Top-level collection to store all expense documents."
+    },
+    "/income/{incomeId}": {
+      "schema": { "$ref": "#/entities/Income" },
+      "description": "Top-level collection to store all income documents."
+    }
   }
 }

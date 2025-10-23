@@ -1,117 +1,131 @@
 /**
- * @file Firebase Security Rules for Firestore.
+ * @fileoverview Firestore Security Rules for the project management application.
  *
- * @core_philosophy This ruleset enforces a strict client-ownership model, where each client can only access their own data and the resources associated with their projects.
+ * Core Philosophy:
+ * This ruleset enforces a strict client-ownership model. Each client can only access their own data,
+ * including projects, expenses, and income records associated with those projects.
  *
- * @data_structure Data is organized hierarchically under the /clients/{clientId} path.  Projects, expenses, and income are nested under each client, enabling path-based authorization.
+ * Data Structure:
+ * The data is organized hierarchically under the `/clients/{clientId}` path.
+ * Projects, expenses, and income are nested as subcollections under each client.
  *
- * @key_security_decisions
- *   - Clients can only access data directly under their own client ID.
- *   - List operations are allowed within a client's scope, as they are inherently filtered by the path.
- *   - Data validation is minimal in this prototyping phase, focusing on authorization and relational integrity.
- *
- * @authorization_independence To simplify and improve the performance of the rules, the `clientId` is implicitly available in the path of all nested documents (projects, expenses, income). This avoids the need for expensive `get()` calls to verify ownership.
+ * Key Security Decisions:
+ * - Clients can only access resources (projects, expenses, income) directly associated with their ID.
+ * - The rules do not allow listing all clients or all projects across clients. List operations are only
+ *   permitted within a specific client's scope.
+ * - Authorization Independence is achieved via path-based ownership. Every document's path inherently
+ *   contains the `clientId`, which is used for access control.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Manages client data.  Allows clients to read and write their own data.
+     * @description Grants access only to the authenticated client.
      * @path /clients/{clientId}
-     * @allow (create) Client 'po4D2YRWEfgiyXJz2CXGvVCvJXq1' can create their own client document.
-     * @allow (get) Client 'po4D2YRWEfgiyXJz2CXGvVCvJXq1' can read their own client document.
-     * @allow (update) Client 'po4D2YRWEfgiyXJz2CXGvVCvJXq1' can update their own client document.
-     * @allow (delete) Client 'po4D2YRWEfgiyXJz2CXGvVCvJXq1' can delete their own client document.
-     * @deny (create) Client 'mismatchedId' cannot create a client document with a different ID.
-     * @deny (get) Client 'otherId' cannot read a different client's document.
+     * @allow (get, create, update, delete) if the request is made by the client with matching clientId.
+     * @deny (get, create, update, delete) if the request is made by another client or an unauthenticated user.
      * @principle Enforces document ownership for all operations.
      */
     match /clients/{clientId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
       function isOwner(userId) {
         return request.auth.uid == userId;
       }
 
       function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
+          return isOwner(userId) && resource != null;
       }
 
-      allow get: if isOwner(clientId);
-      allow list: if false;
-      allow create: if isOwner(clientId);
-      allow update: if isExistingOwner(clientId);
-      allow delete: if isExistingOwner(clientId);
-
-        /**
-         * @description Manages projects for a specific client.  Allows the client to manage their own projects.
-         * @path /clients/{clientId}/projects/{projectId}
-         * @allow (create) Client 'po4D2YRWEfgiyXJz2CXGvVCvJXq1' can create projects under their client ID.
-         * @allow (get) Client 'po4D2YRWEfgiyXJz2CXGvVCvJXq1' can read projects under their client ID.
-         * @allow (update) Client 'po4D2YRWEfgiyXJz2CXGvVCvJXq1' can update projects under their client ID.
-         * @allow (delete) Client 'po4D2YRWEfgiyXJz2CXGvVCvJXq1' can delete projects under their client ID.
-         * @deny (create) Client 'mismatchedId' cannot create projects under a different client ID.
-         * @deny (get) Client 'otherId' cannot read projects under a different client's ID.
-         * @principle Enforces client-based ownership for project management.
-         */
-        match /projects/{projectId} {
-          allow get: if isOwner(clientId);
-          allow list: if isOwner(clientId);
-          allow create: if isOwner(clientId);
-          allow update: if isExistingOwner(clientId);
-          allow delete: if isExistingOwner(clientId);
-
-            /**
-             * @description Manages expenses for a specific project of a client. Allows the client to manage expenses for their projects.
-             * @path /clients/{clientId}/projects/{projectId}/expenses/{expenseId}
-             * @allow (create) Client 'po4D2YRWEfgiyXJz2CXGvVCvJXq1' can create expenses under their client ID and project ID.
-             * @allow (get) Client 'po4D2YRWEfgiyXJz2CXGvVCvJXq1' can read expenses under their client ID and project ID.
-             * @allow (update) Client 'po4D2YRWEfgiyXJz2CXGvVCvJXq1' can update expenses under their client ID and project ID.
-             * @allow (delete) Client 'po4D2YRWEfgiyXJz2CXGvVCvJXq1' can delete expenses under their client ID and project ID.
-             * @deny (create) Client 'mismatchedId' cannot create expenses under a different client ID.
-             * @deny (get) Client 'otherId' cannot read expenses under a different client's ID.
-             * @principle Enforces client-based ownership for expense management.
-             */
-            match /expenses/{expenseId} {
-              allow get: if isOwner(clientId);
-              allow list: if isOwner(clientId);
-              allow create: if isOwner(clientId);
-              allow update: if isExistingOwner(clientId);
-              allow delete: if isExistingOwner(clientId);
-            }
-
-            /**
-             * @description Manages income records for a specific project of a client. Allows the client to manage income for their projects.
-             * @path /clients/{clientId}/projects/{projectId}/income/{incomeId}
-             * @allow (create) Client 'po4D2YRWEfgiyXJz2CXGvVCvJXq1' can create income records under their client ID and project ID.
-             * @allow (get) Client 'po4D2YRWEfgiyXJz2CXGvVCvJXq1' can read income records under their client ID and project ID.
-             * @allow (update) Client 'po4D2YRWEfgiyXJz2CXGvVCvJXq1' can update income records under their client ID and project ID.
-             * @allow (delete) Client 'po4D2YRWEfgiyXJz2CXGvVCvJXq1' can delete income records under their client ID and project ID.
-             * @deny (create) Client 'mismatchedId' cannot create income records under a different client ID.
-             * @deny (get) Client 'otherId' cannot read income records under a different client's ID.
-             * @principle Enforces client-based ownership for income management.
-             */
-            match /income/{incomeId} {
-              allow get: if isOwner(clientId);
-              allow list: if isOwner(clientId);
-              allow create: if isOwner(clientId);
-              allow update: if isExistingOwner(clientId);
-              allow delete: if isExistingOwner(clientId);
-            }
-        }
+      allow get: if isSignedIn() && isOwner(clientId);
+      allow list: if false; // Listing all clients is not permitted.
+      allow create: if isSignedIn() && isOwner(clientId);
+      allow update: if isSignedIn() && isExistingOwner(clientId);
+      allow delete: if isSignedIn() && isExistingOwner(clientId);
     }
-    
+
     /**
-     * @description Denies access to the /jobs collection.
-     * @path /jobs
-     * @allow This rule will not allow any operation on the /jobs collection
-     * @principle This collection is not intended for client access.
+     * @description Grants access only to the authenticated client for their projects.
+     * @path /clients/{clientId}/projects/{projectId}
+     * @allow (get, create, update, delete) if the request is made by the client with matching clientId.
+     * @deny (get, create, update, delete) if the request is made by another client or an unauthenticated user.
+     * @principle Enforces document ownership for all operations.
      */
-    match /jobs {
-      allow get: if false;
-      allow list: if false;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+    match /clients/{clientId}/projects/{projectId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+          return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isSignedIn() && isOwner(clientId);
+      allow list: if isSignedIn() && isOwner(clientId);
+      allow create: if isSignedIn() && isOwner(clientId);
+      allow update: if isSignedIn() && isExistingOwner(clientId);
+      allow delete: if isSignedIn() && isExistingOwner(clientId);
+    }
+
+    /**
+     * @description Grants access only to the authenticated client for their project expenses.
+     * @path /clients/{clientId}/projects/{projectId}/expenses/{expenseId}
+     * @allow (get, create, update, delete) if the request is made by the client with matching clientId.
+     * @deny (get, create, update, delete) if the request is made by another client or an unauthenticated user.
+     * @principle Enforces document ownership for all operations.
+     */
+    match /clients/{clientId}/projects/{projectId}/expenses/{expenseId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+          return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isSignedIn() && isOwner(clientId);
+      allow list: if isSignedIn() && isOwner(clientId);
+      allow create: if isSignedIn() && isOwner(clientId);
+      allow update: if isSignedIn() && isExistingOwner(clientId);
+      allow delete: if isSignedIn() && isExistingOwner(clientId);
+    }
+
+    /**
+     * @description Grants access only to the authenticated client for their project income records.
+     * @path /clients/{clientId}/projects/{projectId}/income/{incomeId}
+     * @allow (get, create, update, delete) if the request is made by the client with matching clientId.
+     * @deny (get, create, update, delete) if the request is made by another client or an unauthenticated user.
+     * @principle Enforces document ownership for all operations.
+     */
+    match /clients/{clientId}/projects/{projectId}/income/{incomeId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+          return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isSignedIn() && isOwner(clientId);
+      allow list: if isSignedIn() && isOwner(clientId);
+      allow create: if isSignedIn() && isOwner(clientId);
+      allow update: if isSignedIn() && isExistingOwner(clientId);
+      allow delete: if isSignedIn() && isExistingOwner(clientId);
     }
   }
 }

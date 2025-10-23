@@ -1,5 +1,6 @@
+
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, writeBatch } from 'firebase/firestore';
+import { getFirestore, collection, writeBatch, doc } from 'firebase/firestore';
 import { firebaseConfig } from '@/firebase/config'; // Make sure this path is correct
 
 // Raw data - In a real app, this might come from a JSON file or another source.
@@ -199,7 +200,7 @@ async function seedDatabase() {
     // Add clients
     const clientsCollection = collection(db, 'clients');
     clientsData.forEach(client => {
-      const docRef = collection(clientsCollection, client.id).doc();
+      const docRef = doc(clientsCollection, client.id);
       batch.set(docRef, client);
     });
     console.log(`${clientsData.length} clients prepared for batch write.`);
@@ -207,7 +208,7 @@ async function seedDatabase() {
     // Add jobs
     const jobsCollection = collection(db, 'jobs');
     jobsData.forEach(job => {
-      const docRef = collection(jobsCollection, job.id).doc();
+      const docRef = doc(jobsCollection, job.id);
       batch.set(docRef, job);
     });
     console.log(`${jobsData.length} jobs prepared for batch write.`);
@@ -215,7 +216,7 @@ async function seedDatabase() {
     // Add income
     const incomeCollection = collection(db, 'income');
     incomeData.forEach(incomeItem => {
-      const docRef = collection(incomeCollection, incomeItem.id).doc();
+      const docRef = doc(incomeCollection, incomeItem.id);
       batch.set(docRef, incomeItem);
     });
     console.log(`${incomeData.length} income records prepared for batch write.`);
@@ -223,7 +224,7 @@ async function seedDatabase() {
     // Add expenses
     const expensesCollection = collection(db, 'expenses');
     expensesData.forEach(expenseItem => {
-      const docRef = collection(expensesCollection, expenseItem.id).doc();
+      const docRef = doc(expensesCollection, expenseItem.id);
       batch.set(docRef, expenseItem);
     });
     console.log(`${expensesData.length} expense records prepared for batch write.`);
@@ -237,7 +238,7 @@ async function seedDatabase() {
   } finally {
     // In a real script, you might want to properly close connections if needed,
     // but for this simple script, process.exit() is fine.
-    console.log('Seed process finished.');
+    process.exit(0);
   }
 }
 
