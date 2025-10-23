@@ -89,23 +89,5 @@
   },
   "auth": {
     "providers": ["anonymous"]
-  },
-  "firestore": {
-    "/clients/{clientId}": {
-      "schema": { "$ref": "#/entities/Client" },
-      "description": "Top-level collection to store all client documents."
-    },
-    "/jobs/{jobId}": {
-      "schema": { "$ref": "#/entities/Job" },
-      "description": "Top-level collection to store all job documents."
-    },
-    "/expenses/{expenseId}": {
-      "schema": { "$ref": "#/entities/Expense" },
-      "description": "Top-level collection to store all expense documents."
-    },
-    "/income/{incomeId}": {
-      "schema": { "$ref": "#/entities/Income" },
-      "description": "Top-level collection to store all income documents."
-    }
   }
 }
