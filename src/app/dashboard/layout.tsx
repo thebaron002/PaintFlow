@@ -56,14 +56,6 @@ export default function DashboardLayout({
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Clients">
-                <Link href="/dashboard/clients">
-                  <Users />
-                  <span>Clients</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
               <SidebarMenuButton asChild tooltip="Calendar">
                 <Link href="/dashboard/calendar">
                   <Calendar />
