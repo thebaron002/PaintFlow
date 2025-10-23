@@ -1,30 +1,27 @@
 /**
- * @fileoverview Firestore Security Rules for Prototyping.
- *
- * Core Philosophy:
- * This ruleset prioritizes rapid prototyping and development. All data is publicly readable and writable by anyone, authenticated or not.
+ * @file Firestore Security Rules
+ * @description This ruleset enforces a strict data model where Clients and Jobs are top-level collections,
+ * and Expenses and Income are subcollections nested under Jobs.  Since there is no auth, the rules are open to the public
+ * in order to iterate quickly on the data shapes.
  *
  * Data Structure:
- * The database consists of top-level collections for 'clients', 'jobs', 'expenses', and 'incomes'. There are no user-specific subcollections.
+ * - /clients/{clientId}: Stores client information.
+ * - /jobs/{jobId}: Stores job information, including a clientId.
+ * - /jobs/{jobId}/expenses/{expenseId}: Stores expenses related to a specific job.
+ * - /jobs/{jobId}/income/{incomeId}: Stores income payments related to a specific job.
  *
  * Key Security Decisions:
- * - Authentication is optional (anonymous access enabled).
- * - No authorization checks are performed. All read and write operations are allowed for all users.
- *
- * WARNING:
- * This configuration provides ZERO security and should NEVER be used in a production environment. It is intended for local development and testing ONLY.
+ * - Public read and write access for rapid prototyping given no authentication.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows all read and write operations to the 'clients' collection.
-     * @path /databases/{database}/documents/clients/{clientId}
-     * @allow (get, list) Any user can read any client document.
-     * @allow (create, update, delete) Any user can create, update, or delete any client document.
-     * @deny Never.
-     * @principle Allows open access for prototyping.
+     * @description Allows anyone to read or write client data.
+     * @path /clients/{clientId}
+     * @allow (get, list, create, update, delete)
+     * @principle Open access for prototyping
      */
     match /clients/{clientId} {
       allow get, list: if true;
@@ -32,42 +29,36 @@ service cloud.firestore {
     }
 
     /**
-     * @description Allows all read and write operations to the 'jobs' collection.
-     * @path /databases/{database}/documents/jobs/{jobId}
-     * @allow (get, list) Any user can read any job document.
-     * @allow (create, update, delete) Any user can create, update, or delete any job document.
-     * @deny Never.
-     * @principle Allows open access for prototyping.
+     * @description Allows anyone to read or write job data.
+     * @path /jobs/{jobId}
+     * @allow (get, list, create, update, delete)
+     * @principle Open access for prototyping
      */
     match /jobs/{jobId} {
       allow get, list: if true;
       allow create, update, delete: if true;
-    }
 
-    /**
-     * @description Allows all read and write operations to the 'expenses' collection.
-     * @path /databases/{database}/documents/expenses/{expenseId}
-     * @allow (get, list) Any user can read any expense document.
-     * @allow (create, update, delete) Any user can create, update, or delete any expense document.
-     * @deny Never.
-     * @principle Allows open access for prototyping.
-     */
-    match /expenses/{expenseId} {
-      allow get, list: if true;
-      allow create, update, delete: if true;
-    }
+      /**
+       * @description Allows anyone to read or write expense data for a specific job.
+       * @path /jobs/{jobId}/expenses/{expenseId}
+       * @allow (get, list, create, update, delete)
+       * @principle Open access for prototyping
+       */
+      match /expenses/{expenseId} {
+        allow get, list: if true;
+        allow create, update, delete: if true;
+      }
 
-    /**
-     * @description Allows all read and write operations to the 'incomes' collection.
-     * @path /databases/{database}/documents/incomes/{incomeId}
-     * @allow (get, list) Any user can read any income document.
-     * @allow (create, update, delete) Any user can create, update, or delete any income document.
-     * @deny Never.
-     * @principle Allows open access for prototyping.
-     */
-    match /incomes/{incomeId} {
-      allow get, list: if true;
-      allow create, update, delete: if true;
+      /**
+       * @description Allows anyone to read or write income data for a specific job.
+       * @path /jobs/{jobId}/income/{incomeId}
+       * @allow (get, list, create, update, delete)
+       * @principle Open access for prototyping
+       */
+      match /income/{incomeId} {
+        allow get, list: if true;
+        allow create, update, delete: if true;
+      }
     }
   }
 }
