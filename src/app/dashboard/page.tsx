@@ -23,12 +23,12 @@ import type { Job } from "@/app/lib/types";
 
 export default function DashboardPage() {
   const now = new Date();
-  const activeJobs = jobs.filter(job => job.status === 'In Progress' || job.status === 'Pending').length;
+  const activeJobs = jobs.filter(job => job.status === 'In Progress').length;
   const totalRevenue = jobs.filter(job => job.status === 'Completed' || job.status === 'Invoiced').reduce((sum, job) => sum + job.budget, 0);
   
-  const statusOrder: Job['status'][] = ['Open Payment', 'Not Started'];
+  const statusOrder: Job['status'][] = ['In Progress', 'Not Started'];
   const upcomingJobs = jobs
-    .filter(job => job.status === 'Open Payment' || job.status === 'Not Started')
+    .filter(job => job.status === 'In Progress' || job.status === 'Not Started')
     .sort((a, b) => {
       const statusA = statusOrder.indexOf(a.status);
       const statusB = statusOrder.indexOf(b.status);
@@ -79,7 +79,7 @@ export default function DashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold">+{activeJobs}</div>
             <p className="text-xs text-muted-foreground">
-              Pending or in progress
+              Currently in progress
             </p>
           </CardContent>
         </Card>
