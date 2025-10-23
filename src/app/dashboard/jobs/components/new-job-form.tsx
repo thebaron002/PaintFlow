@@ -90,19 +90,6 @@ export function NewJobForm({ clients, onSuccess }: NewJobFormProps) {
           )}
         />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="workOrderNumber"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Work Order #</FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g., WO-008" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
            <FormField
             control={form.control}
             name="clientName"
@@ -111,6 +98,19 @@ export function NewJobForm({ clients, onSuccess }: NewJobFormProps) {
                 <FormLabel>Client</FormLabel>
                 <FormControl>
                   <Input placeholder="Enter client name" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="workOrderNumber"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Work Order #</FormLabel>
+                <FormControl>
+                  <Input placeholder="e.g., WO-008" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
