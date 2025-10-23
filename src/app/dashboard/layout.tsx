@@ -4,7 +4,8 @@ import {
   Calendar,
   LayoutDashboard,
   DollarSign,
-  PanelLeft
+  PanelLeft,
+  Landmark
 } from "lucide-react";
 import {
   SidebarProvider,
@@ -66,6 +67,14 @@ export default function DashboardLayout({
                 <Link href="/dashboard/finance">
                   <DollarSign />
                   <span>Finance</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="Payroll">
+                <Link href="/dashboard/payroll">
+                  <Landmark />
+                  <span>Payroll</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
