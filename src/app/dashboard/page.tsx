@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   Card,
   CardContent,
@@ -16,7 +17,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/page-header";
 import { jobs, clients } from "@/app/lib/data";
-import { Briefcase, DollarSign, CalendarCheck, Users } from "lucide-react";
+import { Briefcase, DollarSign, CalendarCheck, MapPin } from "lucide-react";
 import { format, subMonths, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { RevenueChart } from "./components/revenue-chart";
 import type { Job } from "@/app/lib/types";
@@ -117,10 +118,20 @@ export default function DashboardPage() {
                   {upcomingJobs.map(job => (
                       <TableRow key={job.id}>
                         <TableCell>
-                          <div className="font-medium">{job.title}</div>
+                          <Link href={`/dashboard/jobs/${job.id}`} className="font-medium hover:underline">
+                            {job.title}
+                          </Link>
                         </TableCell>
                         <TableCell className="hidden sm:table-cell">
-                         <div className="font-medium">{job.address}</div>
+                          <a 
+                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.address)}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="flex items-center hover:underline"
+                          >
+                            <MapPin className="w-4 h-4 mr-2 text-muted-foreground" />
+                            {job.address}
+                          </a>
                         </TableCell>
                         <TableCell className="hidden sm:table-cell">
                           <Badge variant="outline" className="capitalize">
