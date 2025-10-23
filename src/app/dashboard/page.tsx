@@ -16,7 +16,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/page-header";
 import { jobs, subcontractors } from "@/app/lib/data";
-import { Briefcase, DollarSign, Users, CalendarCheck } from "lucide-react";
+import { Briefcase, DollarSign, CalendarCheck } from "lucide-react";
 import { format } from 'date-fns';
 
 export default function DashboardPage() {
@@ -27,7 +27,7 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col gap-8">
       <PageHeader title="Dashboard" />
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
@@ -37,18 +37,6 @@ export default function DashboardPage() {
             <div className="text-2xl font-bold">${totalRevenue.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
               Based on completed jobs
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Subcontractors</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{subcontractors.length}</div>
-            <p className="text-xs text-muted-foreground">
-              Currently active
             </p>
           </CardContent>
         </Card>
