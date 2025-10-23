@@ -169,6 +169,22 @@ const JobsTable = ({ jobs, clients, isLoading }: { jobs: Job[] | null, clients: 
   )
 };
 
+const JobsTabContent = ({ status, clients, isLoadingClients }: { status: Job["status"], clients: Client[] | null, isLoadingClients: boolean }) => {
+  const firestore = useFirestore();
+  
+  const jobsQuery = useMemoFirebase(() => {
+    return query(collection(firestore, 'jobs'), where('status', '==', status));
+  }, [firestore, status]);
+  
+  const { data: filteredJobs, isLoading: isLoadingJobs } = useCollection<Job>(jobsQuery);
+  
+  return (
+    <TabsContent value={status}>
+      <JobsTable jobs={filteredJobs} clients={clients} isLoading={isLoadingJobs || isLoadingClients} />
+    </TabsContent>
+  );
+};
+
 export default function JobsPage() {
   const jobStatuses: Job["status"][] = ["Not Started", "In Progress", "Complete", "Open Payment", "Finalized"];
   const firestore = useFirestore();
@@ -177,21 +193,6 @@ export default function JobsPage() {
     return collection(firestore, 'clients');
   }, [firestore]);
   const { data: clients, isLoading: isLoadingClients } = useCollection<Client>(clientsQuery);
-
-  const jobsQueries = useMemoFirebase(() => {
-    return jobStatuses.reduce((acc, status) => {
-        acc[status] = query(collection(firestore, 'jobs'), where('status', '==', status));
-        return acc;
-    }, {} as Record<Job['status'], ReturnType<typeof query>>);
-  }, [firestore]);
-
-  const jobsData = {
-    "Not Started": useCollection<Job>(jobsQueries["Not Started"]),
-    "In Progress": useCollection<Job>(jobsQueries["In Progress"]),
-    "Complete": useCollection<Job>(jobsQueries["Complete"]),
-    "Open Payment": useCollection<Job>(jobsQueries["Open Payment"]),
-    "Finalized": useCollection<Job>(jobsQueries["Finalized"]),
-  };
 
   return (
     <div>
@@ -207,14 +208,9 @@ export default function JobsPage() {
                  <TabsTrigger key={status} value={status}>{status}</TabsTrigger>
             ))}
         </TabsList>
-        {jobStatuses.map(status => {
-            const { data: filteredJobs, isLoading: isLoadingJobs } = jobsData[status];
-            return(
-                <TabsContent key={status} value={status}>
-                    <JobsTable jobs={filteredJobs} clients={clients} isLoading={isLoadingJobs || isLoadingClients} />
-                </TabsContent>
-            )
-        })}
+        {jobStatuses.map(status => (
+          <JobsTabContent key={status} status={status} clients={clients} isLoadingClients={isLoadingClients} />
+        ))}
       </Tabs>
     </div>
   );
