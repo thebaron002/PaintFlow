@@ -1,71 +1,67 @@
 {
   "entities": {
-    "Job": {
+    "Project": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Job",
+      "title": "Project",
       "type": "object",
-      "description": "Represents a job assignment with associated details, deadlines, and requirements.",
+      "description": "Represents a project assignment with associated details, deadlines, and requirements.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the Job entity."
+          "description": "Unique identifier for the Project entity."
         },
-        "jobName": {
+        "projectName": {
           "type": "string",
-          "description": "Name of the job."
+          "description": "Name of the project."
         },
         "description": {
           "type": "string",
-          "description": "Detailed description of the job requirements."
+          "description": "Detailed description of the project requirements."
         },
         "deadline": {
           "type": "string",
-          "description": "Deadline for the job completion.",
+          "description": "Deadline for the project completion.",
           "format": "date-time"
         },
         "specialRequirements": {
           "type": "string",
-          "description": "Any special requirements for the job."
+          "description": "Any special requirements for the project."
         },
-        "subcontractorId": {
+        "clientId": {
           "type": "string",
-          "description": "Reference to Subcontractor. (Relationship: Subcontractor 1:N Job)"
+          "description": "Reference to Client. (Relationship: Client 1:N Project)"
         },
         "location": {
           "type": "string",
-          "description": "Job location or address."
+          "description": "Project location or address."
         }
       },
       "required": [
         "id",
-        "jobName",
+        "projectName",
         "description",
         "deadline",
-        "subcontractorId",
+        "clientId",
         "location"
       ]
     },
-    "Subcontractor": {
+    "Client": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Subcontractor",
+      "title": "Client",
       "type": "object",
-      "description": "Represents a subcontractor assigned to jobs.",
+      "description": "Represents a client assigned to projects.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the Subcontractor entity."
+          "description": "Unique identifier for the Client entity."
         },
         "name": {
           "type": "string",
-          "description": "Name of the subcontractor."
+          "description": "Name of the client."
         },
         "contactInformation": {
           "type": "string",
-          "description": "Contact information for the subcontractor (e.g., phone number, email)."
-        },
-        "skills": {
-          "type": "string",
-          "description": "Skills and qualifications of the subcontractor."
+          "description": "Contact information for the client (e.g., phone number, email)."
         }
       },
       "required": [
@@ -78,15 +74,15 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Expense",
       "type": "object",
-      "description": "Represents an expense associated with a job.",
+      "description": "Represents an expense associated with a project.",
       "properties": {
         "id": {
           "type": "string",
           "description": "Unique identifier for the Expense entity."
         },
-        "jobId": {
+        "projectId": {
           "type": "string",
-          "description": "Reference to Job. (Relationship: Job 1:N Expense)"
+          "description": "Reference to Project. (Relationship: Project 1:N Expense)"
         },
         "category": {
           "type": "string",
@@ -108,7 +104,7 @@
       },
       "required": [
         "id",
-        "jobId",
+        "projectId",
         "category",
         "amount",
         "date"
@@ -118,15 +114,15 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Income",
       "type": "object",
-      "description": "Represents income received for a job.",
+      "description": "Represents income received for a project.",
       "properties": {
         "id": {
           "type": "string",
           "description": "Unique identifier for the Income entity."
         },
-        "jobId": {
+        "projectId": {
           "type": "string",
-          "description": "Reference to Job. (Relationship: Job 1:N Income)"
+          "description": "Reference to Project. (Relationship: Project 1:N Income)"
         },
         "amount": {
           "type": "number",
@@ -144,7 +140,7 @@
       },
       "required": [
         "id",
-        "jobId",
+        "projectId",
         "amount",
         "date"
       ]
@@ -159,57 +155,57 @@
   "firestore": {
     "structure": [
       {
-        "path": "/subcontractors/{subcontractorId}",
+        "path": "/clients/{clientId}",
         "definition": {
-          "entityName": "Subcontractor",
+          "entityName": "Client",
           "schema": {
-            "$ref": "#/backend/entities/Subcontractor"
+            "$ref": "#/backend/entities/Client"
           },
-          "description": "Stores subcontractor information.  Subcontractors can only access their own data. Includes denormalized 'subcontractorId' for authorization independence",
+          "description": "Stores client information. Clients can only access their own data. Includes denormalized 'clientId' for authorization independence",
           "params": [
             {
-              "name": "subcontractorId",
-              "description": "The unique identifier of the subcontractor."
+              "name": "clientId",
+              "description": "The unique identifier of the client."
             }
           ]
         }
       },
       {
-        "path": "/subcontractors/{subcontractorId}/jobs/{jobId}",
+        "path": "/clients/{clientId}/projects/{projectId}",
         "definition": {
-          "entityName": "Job",
+          "entityName": "Project",
           "schema": {
-            "$ref": "#/backend/entities/Job"
+            "$ref": "#/backend/entities/Project"
           },
-          "description": "Stores job assignments for each subcontractor. Jobs can only be accessed by the associated subcontractor. Includes denormalized 'subcontractorId' for authorization independence.",
+          "description": "Stores project assignments for each client. Projects can only be accessed by the associated client. Includes denormalized 'clientId' for authorization independence.",
           "params": [
             {
-              "name": "subcontractorId",
-              "description": "The unique identifier of the subcontractor."
+              "name": "clientId",
+              "description": "The unique identifier of the client."
             },
             {
-              "name": "jobId",
-              "description": "The unique identifier of the job."
+              "name": "projectId",
+              "description": "The unique identifier of the project."
             }
           ]
         }
       },
       {
-        "path": "/subcontractors/{subcontractorId}/jobs/{jobId}/expenses/{expenseId}",
+        "path": "/clients/{clientId}/projects/{projectId}/expenses/{expenseId}",
         "definition": {
           "entityName": "Expense",
           "schema": {
             "$ref": "#/backend/entities/Expense"
           },
-          "description": "Stores expenses associated with a specific job for a subcontractor. Expenses can only be accessed by the associated subcontractor for their jobs. Includes denormalized 'subcontractorId' for authorization independence.",
+          "description": "Stores expenses associated with a specific project for a client. Expenses can only be accessed by the associated client for their projects. Includes denormalized 'clientId' for authorization independence.",
           "params": [
             {
-              "name": "subcontractorId",
-              "description": "The unique identifier of the subcontractor."
+              "name": "clientId",
+              "description": "The unique identifier of the client."
             },
             {
-              "name": "jobId",
-              "description": "The unique identifier of the job."
+              "name": "projectId",
+              "description": "The unique identifier of the project."
             },
             {
               "name": "expenseId",
@@ -219,21 +215,21 @@
         }
       },
       {
-        "path": "/subcontractors/{subcontractorId}/jobs/{jobId}/income/{incomeId}",
+        "path": "/clients/{clientId}/projects/{projectId}/income/{incomeId}",
         "definition": {
           "entityName": "Income",
           "schema": {
             "$ref": "#/backend/entities/Income"
           },
-          "description": "Stores income records associated with a specific job for a subcontractor. Income records can only be accessed by the associated subcontractor for their jobs. Includes denormalized 'subcontractorId' for authorization independence.",
+          "description": "Stores income records associated with a specific project for a client. Income records can only be accessed by the associated client for their projects. Includes denormalized 'clientId' for authorization independence.",
           "params": [
             {
-              "name": "subcontractorId",
-              "description": "The unique identifier of the subcontractor."
+              "name": "clientId",
+              "description": "The unique identifier of the client."
             },
             {
-              "name": "jobId",
-              "description": "The unique identifier of the job."
+              "name": "projectId",
+              "description": "The unique identifier of the project."
             },
             {
               "name": "incomeId",
@@ -243,6 +239,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to manage job assignments, subcontractors, expenses, and income, optimizing for security, scalability, and debuggability. It emphasizes Authorization Independence by avoiding hierarchical authorization dependencies.\n\nSubcontractors are stored in the `/subcontractors` collection. Jobs are organized under each subcontractor using the path `/subcontractors/{subcontractorId}/jobs/{jobId}`. Expenses and Income associated with each job are nested under their respective jobs, following the paths `/subcontractors/{subcontractorId}/jobs/{jobId}/expenses/{expenseId}` and `/subcontractors/{subcontractorId}/jobs/{jobId}/income/{incomeId}` respectively.\n\nThis structure facilitates simple, robust security rules based on path-based ownership. The subcontractor ID is part of the path for jobs, expenses, and income, enabling direct access control based on the `subcontractorId`.  List operations are secured because each subcollection inherently belongs to a specific subcontractor, thus filtering is not required at the rule level (QAPs).\n\nThe structure avoids the need for complex `get()` calls in security rules, promoting Authorization Independence and enabling atomic operations."
+    "reasoning": "The Firestore structure is designed to manage project assignments, clients, expenses, and income, optimizing for security, scalability, and debuggability. It emphasizes Authorization Independence by avoiding hierarchical authorization dependencies.\n\nClients are stored in the `/clients` collection. Projects are organized under each client using the path `/clients/{clientId}/projects/{projectId}`. Expenses and Income associated with each project are nested under their respective projects, following the paths `/clients/{clientId}/projects/{projectId}/expenses/{expenseId}` and `/clients/{clientId}/projects/{projectId}/income/{incomeId}` respectively.\n\nThis structure facilitates simple, robust security rules based on path-based ownership. The client ID is part of the path for projects, expenses, and income, enabling direct access control based on the `clientId`. List operations are secured because each subcollection inherently belongs to a specific client, thus filtering is not required at the rule level (QAPs).\n\nThe structure avoids the need for complex `get()` calls in security rules, promoting Authorization Independence and enabling atomic operations."
   }
 }
