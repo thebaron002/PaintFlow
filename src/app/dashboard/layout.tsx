@@ -5,7 +5,8 @@ import {
   LayoutDashboard,
   DollarSign,
   PanelLeft,
-  Landmark
+  Landmark,
+  Users
 } from "lucide-react";
 import {
   SidebarProvider,
@@ -51,6 +52,14 @@ export default function DashboardLayout({
                 <Link href="/dashboard/jobs">
                   <Briefcase />
                   <span>Jobs</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="Subcontractors">
+                <Link href="/dashboard/subcontractors">
+                  <Users />
+                  <span>Subcontractors</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

@@ -100,7 +100,7 @@ ${colorConfig
   )
 }
 
-const ChartTooltip = RechartsPrimitive.Tooltip
+const ChartTooltip = ChartTooltip
 
 const ChartTooltipContent = React.forwardRef<
   HTMLDivElement,

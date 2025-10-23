@@ -16,8 +16,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/page-header";
 import { jobs, subcontractors } from "@/app/lib/data";
-import { Briefcase, DollarSign, CalendarCheck } from "lucide-react";
-import { format, subWeeks, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { Briefcase, DollarSign, CalendarCheck, Users } from "lucide-react";
+import { format, subMonths, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { RevenueChart } from "./components/revenue-chart";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export default function DashboardPage() {
   const now = new Date();
@@ -25,32 +29,26 @@ export default function DashboardPage() {
   const totalRevenue = jobs.filter(job => job.status === 'Completed' || job.status === 'Invoiced').reduce((sum, job) => sum + job.budget, 0);
   const recentJobs = [...jobs].sort((a, b) => new Date(b.deadline).getTime() - new Date(a.deadline).getTime()).slice(0, 5);
 
-  const lastWeekStart = startOfWeek(subWeeks(now, 1));
-  const lastWeekEnd = endOfWeek(subWeeks(now, 1));
-  const lastWeekRevenue = jobs
-    .filter(job => {
-      const jobDate = new Date(job.deadline);
-      return (job.status === 'Completed' || job.status === 'Invoiced') && isWithinInterval(jobDate, { start: lastWeekStart, end: lastWeekEnd });
-    })
-    .reduce((sum, job) => sum + job.budget, 0);
-
   const currentMonthStart = startOfMonth(now);
-  const currentMonthEnd = endOfMonth(now);
-  const currentMonthForecast = jobs
-    .filter(job => {
-        const jobDate = new Date(job.deadline);
-        return isWithinInterval(jobDate, { start: currentMonthStart, end: currentMonthEnd });
-    })
-    .reduce((sum, job) => sum + job.budget, 0);
-    
-  const futureScheduledValue = jobs
-    .filter(job => new Date(job.deadline) > currentMonthEnd)
-    .reduce((sum, job) => sum + job.budget, 0);
+  const jobsCompletedThisMonth = jobs.filter(job => {
+    const jobDate = new Date(job.deadline);
+    return (job.status === 'Completed' || job.status === 'Invoiced') && isWithinInterval(jobDate, { start: currentMonthStart, end: now });
+  }).length;
+  
+  const lastMonthStart = startOfMonth(subMonths(now, 1));
+  const lastMonthEnd = endOfMonth(subMonths(now, 1));
+  const jobsCompletedLastMonth = jobs.filter(job => {
+    const jobDate = new Date(job.deadline);
+    return (job.status === 'Completed' || job.status === 'Invoiced') && isWithinInterval(jobDate, { start: lastMonthStart, end: lastMonthEnd });
+  }).length;
+
+  const percentChange = jobsCompletedLastMonth > 0 ? ((jobsCompletedThisMonth - jobsCompletedLastMonth) / jobsCompletedLastMonth) * 100 : jobsCompletedThisMonth > 0 ? 100 : 0;
+
 
   return (
     <div className="flex flex-col gap-8">
       <PageHeader title="Dashboard" />
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
@@ -81,10 +79,26 @@ export default function DashboardPage() {
             <CalendarCheck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+12</div>
+            <div className="text-2xl font-bold">+{jobsCompletedThisMonth}</div>
             <p className="text-xs text-muted-foreground">
-              +15.2% from last month
+              {percentChange.toFixed(1)}% from last month
             </p>
+          </CardContent>
+        </Card>
+        <Card>
+           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Subcontractors</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="flex -space-x-2 overflow-hidden">
+              {subcontractors.map(sub => (
+                <Avatar key={sub.id} className="inline-block border-2 border-background">
+                  <AvatarImage src={sub.avatarUrl} alt={sub.name} data-ai-hint="person portrait"/>
+                  <AvatarFallback>{sub.name.charAt(0)}</AvatarFallback>
+                </Avatar>
+              ))}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -93,6 +107,7 @@ export default function DashboardPage() {
         <Card className="lg:col-span-4">
           <CardHeader>
             <CardTitle>Upcoming Deadlines</CardTitle>
+            <CardDescription>Your most recent and upcoming jobs.</CardDescription>
           </CardHeader>
           <CardContent>
              <Table>
@@ -132,33 +147,13 @@ export default function DashboardPage() {
 
         <Card className="lg:col-span-3">
           <CardHeader>
-            <CardTitle>Financial Summary</CardTitle>
+            <CardTitle>Revenue Overview</CardTitle>
             <CardDescription>
-              A quick overview of your financial status.
+              Revenue from completed jobs over the past 6 months.
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-6">
-            <div className="flex items-center justify-between">
-              <div className="grid gap-1">
-                <p className="text-sm font-medium leading-none">Last Week's Revenue</p>
-                <p className="text-sm text-muted-foreground">Income from completed jobs.</p>
-              </div>
-              <div className="text-lg font-bold text-green-600">${lastWeekRevenue.toLocaleString()}</div>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="grid gap-1">
-                <p className="text-sm font-medium leading-none">This Month's Forecast</p>
-                <p className="text-sm text-muted-foreground">Potential income from all jobs this month.</p>
-              </div>
-              <div className="text-lg font-bold">${currentMonthForecast.toLocaleString()}</div>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="grid gap-1">
-                <p className="text-sm font-medium leading-none">Future Scheduled</p>
-                <p className="text-sm text-muted-foreground">Value of jobs beyond this month.</p>
-              </div>
-              <div className="text-lg font-bold">${futureScheduledValue.toLocaleString()}</div>
-            </div>
+          <CardContent className="pl-2">
+            <RevenueChart />
           </CardContent>
         </Card>
       </div>
