@@ -1,3 +1,6 @@
+"use client";
+
+import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { 
   Card, 
@@ -23,7 +26,12 @@ import { Send } from "lucide-react";
 
 
 export default function PayrollPage() {
+  const router = useRouter();
   const jobsToPay = jobs.filter(job => job.status === "Open Payment");
+
+  const handleJobClick = (jobId: string) => {
+    router.push(`/dashboard/jobs/${jobId}`);
+  };
 
   return (
     <div>
@@ -55,7 +63,7 @@ export default function PayrollPage() {
                      const totalInvoiced = job.invoices.reduce((sum, invoice) => sum + invoice.amount, 0);
                      const payout = job.initialValue - totalInvoiced;
                     return (
-                       <TableRow key={job.id}>
+                       <TableRow key={job.id} onClick={() => handleJobClick(job.id)} className="cursor-pointer">
                         <TableCell>
                           <div className="font-medium">{jobTitle}</div>
                           <div className="text-sm text-muted-foreground">{job.title}</div>
