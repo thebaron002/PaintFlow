@@ -1,10 +1,12 @@
+"use client";
+
+import { useState } from "react";
 import { jobs, clients } from "@/app/lib/data";
 import { PageHeader } from "@/components/page-header";
 import { notFound } from "next/navigation";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -26,15 +28,20 @@ import {
   ListChecks,
   ArrowLeft,
   CalendarDays,
-  Hash,
-  Ruler,
   Paintbrush,
   CheckCircle,
   Pencil,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Separator } from "@/components/ui/separator";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import type { Job } from "@/app/lib/types";
 
 export default function JobDetailsPage({ params }: { params: { id: string } }) {
   const job = jobs.find((j) => j.id === params.id);
@@ -42,6 +49,9 @@ export default function JobDetailsPage({ params }: { params: { id: string } }) {
   if (!job) {
     notFound();
   }
+
+  const [status, setStatus] = useState<Job["status"]>(job.status);
+  const jobStatuses: Job["status"][] = ["Not Started", "In Progress", "Complete", "Open Payment", "Finalized"];
 
   const client = clients.find((c) => c.id === job.clientId);
   const jobTitle = `${client?.name || "N/A"} #${job.workOrderNumber}`;
@@ -193,9 +203,21 @@ export default function JobDetailsPage({ params }: { params: { id: string } }) {
               <CardTitle>Job Status</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col items-center justify-center gap-2">
-              <Badge className="capitalize text-lg px-4 py-2" variant="secondary">
-                {job.status}
-              </Badge>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="w-full capitalize">
+                    {status}
+                    <ChevronDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56">
+                  {jobStatuses.map((s) => (
+                    <DropdownMenuItem key={s} onSelect={() => setStatus(s)}>
+                      {s}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </CardContent>
           </Card>
            <Card>
