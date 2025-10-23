@@ -1,5 +1,7 @@
+
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -28,6 +30,16 @@ import { Button } from "@/components/ui/button";
 import { PlusCircle, MapPin, User } from "lucide-react";
 import { JobActions } from "./components/job-actions";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { NewJobForm } from "./components/new-job-form";
+import { useToast } from "@/hooks/use-toast";
+
 
 const JobsTable = ({ jobs, clients, isLoading }: { jobs: Job[] | null, clients: Client[] | null, isLoading: boolean }) => {
   if (isLoading) {
@@ -178,17 +190,38 @@ const JobsTabContent = ({ status, clients, isLoadingClients }: { status: Job["st
 };
 
 export default function JobsPage() {
+  const [isNewJobOpen, setIsNewJobOpen] = useState(false);
+  const { toast } = useToast();
   const jobStatuses: Job["status"][] = ["Not Started", "In Progress", "Complete", "Open Payment", "Finalized"];
   const isLoadingClients = false;
   const clients: Client[] | null = [];
 
+  const handleJobCreated = () => {
+    setIsNewJobOpen(false);
+    toast({
+      title: "Job Created!",
+      description: "The new job has been added to the list.",
+    });
+    // Here you would typically re-fetch the jobs data
+  };
+
   return (
     <div>
       <PageHeader title="My Jobs">
-        <Button>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          New Job
-        </Button>
+         <Dialog open={isNewJobOpen} onOpenChange={setIsNewJobOpen}>
+            <DialogTrigger asChild>
+                <Button>
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  New Job
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[625px]">
+                <DialogHeader>
+                    <DialogTitle>Create New Job</DialogTitle>
+                </DialogHeader>
+                <NewJobForm clients={clients} onSuccess={handleJobCreated} />
+            </DialogContent>
+        </Dialog>
       </PageHeader>
       <Tabs defaultValue="Not Started">
         <TabsList className="grid w-full grid-cols-5 mb-4">
