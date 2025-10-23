@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, MapPin } from "lucide-react";
+import { PlusCircle, MapPin, Briefcase } from "lucide-react";
 import { JobActions } from "./components/job-actions";
 
 export default function JobsPage() {
