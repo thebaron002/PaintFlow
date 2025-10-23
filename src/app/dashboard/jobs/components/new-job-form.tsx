@@ -54,8 +54,19 @@ export function NewJobForm({ clients, onSuccess }: NewJobFormProps) {
   });
 
   const onSubmit = (data: JobFormValues) => {
+    let finalTitle = data.title;
+    if (!finalTitle) {
+      const clientLastName = data.clientName.split(" ").pop() || "";
+      finalTitle = `${clientLastName} #${data.workOrderNumber}`;
+    }
+
+    const submissionData = {
+      ...data,
+      title: finalTitle,
+    };
+
     // Here you would typically call a function to save the data to your backend
-    console.log("New Job Data:", data);
+    console.log("New Job Data:", submissionData);
     
     // For now, we just simulate success
     form.reset();
