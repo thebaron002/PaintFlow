@@ -1,0 +1,248 @@
+{
+  "entities": {
+    "Job": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Job",
+      "type": "object",
+      "description": "Represents a job assignment with associated details, deadlines, and requirements.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Job entity."
+        },
+        "jobName": {
+          "type": "string",
+          "description": "Name of the job."
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the job requirements."
+        },
+        "deadline": {
+          "type": "string",
+          "description": "Deadline for the job completion.",
+          "format": "date-time"
+        },
+        "specialRequirements": {
+          "type": "string",
+          "description": "Any special requirements for the job."
+        },
+        "subcontractorId": {
+          "type": "string",
+          "description": "Reference to Subcontractor. (Relationship: Subcontractor 1:N Job)"
+        },
+        "location": {
+          "type": "string",
+          "description": "Job location or address."
+        }
+      },
+      "required": [
+        "id",
+        "jobName",
+        "description",
+        "deadline",
+        "subcontractorId",
+        "location"
+      ]
+    },
+    "Subcontractor": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Subcontractor",
+      "type": "object",
+      "description": "Represents a subcontractor assigned to jobs.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Subcontractor entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the subcontractor."
+        },
+        "contactInformation": {
+          "type": "string",
+          "description": "Contact information for the subcontractor (e.g., phone number, email)."
+        },
+        "skills": {
+          "type": "string",
+          "description": "Skills and qualifications of the subcontractor."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "contactInformation"
+      ]
+    },
+    "Expense": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Expense",
+      "type": "object",
+      "description": "Represents an expense associated with a job.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Expense entity."
+        },
+        "jobId": {
+          "type": "string",
+          "description": "Reference to Job. (Relationship: Job 1:N Expense)"
+        },
+        "category": {
+          "type": "string",
+          "description": "Category of the expense (e.g., materials, labor, transportation)."
+        },
+        "amount": {
+          "type": "number",
+          "description": "Amount of the expense."
+        },
+        "date": {
+          "type": "string",
+          "description": "Date the expense was incurred.",
+          "format": "date-time"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the expense."
+        }
+      },
+      "required": [
+        "id",
+        "jobId",
+        "category",
+        "amount",
+        "date"
+      ]
+    },
+    "Income": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Income",
+      "type": "object",
+      "description": "Represents income received for a job.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Income entity."
+        },
+        "jobId": {
+          "type": "string",
+          "description": "Reference to Job. (Relationship: Job 1:N Income)"
+        },
+        "amount": {
+          "type": "number",
+          "description": "Amount of income received."
+        },
+        "date": {
+          "type": "string",
+          "description": "Date the income was received.",
+          "format": "date-time"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the income source."
+        }
+      },
+      "required": [
+        "id",
+        "jobId",
+        "amount",
+        "date"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/subcontractors/{subcontractorId}",
+        "definition": {
+          "entityName": "Subcontractor",
+          "schema": {
+            "$ref": "#/backend/entities/Subcontractor"
+          },
+          "description": "Stores subcontractor information.  Subcontractors can only access their own data. Includes denormalized 'subcontractorId' for authorization independence",
+          "params": [
+            {
+              "name": "subcontractorId",
+              "description": "The unique identifier of the subcontractor."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/subcontractors/{subcontractorId}/jobs/{jobId}",
+        "definition": {
+          "entityName": "Job",
+          "schema": {
+            "$ref": "#/backend/entities/Job"
+          },
+          "description": "Stores job assignments for each subcontractor. Jobs can only be accessed by the associated subcontractor. Includes denormalized 'subcontractorId' for authorization independence.",
+          "params": [
+            {
+              "name": "subcontractorId",
+              "description": "The unique identifier of the subcontractor."
+            },
+            {
+              "name": "jobId",
+              "description": "The unique identifier of the job."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/subcontractors/{subcontractorId}/jobs/{jobId}/expenses/{expenseId}",
+        "definition": {
+          "entityName": "Expense",
+          "schema": {
+            "$ref": "#/backend/entities/Expense"
+          },
+          "description": "Stores expenses associated with a specific job for a subcontractor. Expenses can only be accessed by the associated subcontractor for their jobs. Includes denormalized 'subcontractorId' for authorization independence.",
+          "params": [
+            {
+              "name": "subcontractorId",
+              "description": "The unique identifier of the subcontractor."
+            },
+            {
+              "name": "jobId",
+              "description": "The unique identifier of the job."
+            },
+            {
+              "name": "expenseId",
+              "description": "The unique identifier of the expense."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/subcontractors/{subcontractorId}/jobs/{jobId}/income/{incomeId}",
+        "definition": {
+          "entityName": "Income",
+          "schema": {
+            "$ref": "#/backend/entities/Income"
+          },
+          "description": "Stores income records associated with a specific job for a subcontractor. Income records can only be accessed by the associated subcontractor for their jobs. Includes denormalized 'subcontractorId' for authorization independence.",
+          "params": [
+            {
+              "name": "subcontractorId",
+              "description": "The unique identifier of the subcontractor."
+            },
+            {
+              "name": "jobId",
+              "description": "The unique identifier of the job."
+            },
+            {
+              "name": "incomeId",
+              "description": "The unique identifier of the income record."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to manage job assignments, subcontractors, expenses, and income, optimizing for security, scalability, and debuggability. It emphasizes Authorization Independence by avoiding hierarchical authorization dependencies.\n\nSubcontractors are stored in the `/subcontractors` collection. Jobs are organized under each subcontractor using the path `/subcontractors/{subcontractorId}/jobs/{jobId}`. Expenses and Income associated with each job are nested under their respective jobs, following the paths `/subcontractors/{subcontractorId}/jobs/{jobId}/expenses/{expenseId}` and `/subcontractors/{subcontractorId}/jobs/{jobId}/income/{incomeId}` respectively.\n\nThis structure facilitates simple, robust security rules based on path-based ownership. The subcontractor ID is part of the path for jobs, expenses, and income, enabling direct access control based on the `subcontractorId`.  List operations are secured because each subcollection inherently belongs to a specific subcontractor, thus filtering is not required at the rule level (QAPs).\n\nThe structure avoids the need for complex `get()` calls in security rules, promoting Authorization Independence and enabling atomic operations."
+  }
+}

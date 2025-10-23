@@ -1,0 +1,126 @@
+/**
+ * @fileOverview
+ * This ruleset enforces a strict user-ownership model for subcontractors, jobs, expenses, and income.
+ * All data is nested under /subcontractors/{subcontractorId}, ensuring that only the authenticated subcontractor can access their own data.
+ *
+ * Data Structure:
+ * - /subcontractors/{subcontractorId}: Stores subcontractor profile information.
+ * - /subcontractors/{subcontractorId}/jobs/{jobId}: Stores job details for each subcontractor.
+ * - /subcontractors/{subcontractorId}/jobs/{jobId}/expenses/{expenseId}: Stores expense records for each job.
+ * - /subcontractors/{subcontractorId}/jobs/{jobId}/income/{incomeId}: Stores income records for each job.
+ *
+ * Key Security Decisions:
+ * - Subcontractors can only access their own data tree. Listing of all subcontractors is disallowed.
+ * - All writes are validated against the authenticated user's ID to prevent unauthorized data modification.
+ * - Authorization Independence is achieved by embedding the `subcontractorId` in the path, avoiding the need for complex `get()` calls.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Allows subcontractors to manage their profile information.
+     * @path /subcontractors/{subcontractorId}
+     * @allow (create, update, delete) if the authenticated user's ID matches the subcontractorId.
+     * @allow (get) if the authenticated user's ID matches the subcontractorId.
+     * @deny (list) Listing all subcontractors is not allowed.
+     * @deny (create) if the authenticated user's ID does not match the subcontractorId.
+     * @principle Enforces document ownership for writes.
+     */
+    match /subcontractors/{subcontractorId} {
+      // Helper function to check if the authenticated user is the owner of the subcontractor document.
+      function isOwner(subcontractorId) {
+        return request.auth.uid == subcontractorId;
+      }
+
+      // Helper function to check if the authenticated user is the existing owner of the subcontractor document.
+      function isExistingOwner(subcontractorId) {
+        return isOwner(subcontractorId) && resource != null;
+      }
+
+      allow get: if isOwner(subcontractorId);
+      allow list: if false;
+      allow create: if isOwner(subcontractorId);
+      allow update: if isExistingOwner(subcontractorId);
+      allow delete: if isExistingOwner(subcontractorId);
+    }
+
+    /**
+     * @description Allows subcontractors to manage their job assignments.
+     * @path /subcontractors/{subcontractorId}/jobs/{jobId}
+     * @allow (create, update, delete) if the authenticated user's ID matches the subcontractorId.
+     * @allow (get, list) if the authenticated user's ID matches the subcontractorId.
+     * @deny (create) if the authenticated user's ID does not match the subcontractorId.
+     * @principle Enforces document ownership for writes.
+     */
+    match /subcontractors/{subcontractorId}/jobs/{jobId} {
+      // Helper function to check if the authenticated user is the owner of the subcontractor document.
+      function isOwner(subcontractorId) {
+        return request.auth.uid == subcontractorId;
+      }
+
+      // Helper function to check if the authenticated user is the existing owner of the subcontractor document.
+      function isExistingOwner(subcontractorId) {
+        return isOwner(subcontractorId) && resource != null;
+      }
+
+      allow get: if isOwner(subcontractorId);
+      allow list: if isOwner(subcontractorId);
+      allow create: if isOwner(subcontractorId);
+      allow update: if isExistingOwner(subcontractorId);
+      allow delete: if isExistingOwner(subcontractorId);
+    }
+
+    /**
+     * @description Allows subcontractors to manage expenses associated with their jobs.
+     * @path /subcontractors/{subcontractorId}/jobs/{jobId}/expenses/{expenseId}
+     * @allow (create, update, delete) if the authenticated user's ID matches the subcontractorId.
+     * @allow (get, list) if the authenticated user's ID matches the subcontractorId.
+     * @deny (create) if the authenticated user's ID does not match the subcontractorId.
+     * @principle Enforces document ownership for writes.
+     */
+    match /subcontractors/{subcontractorId}/jobs/{jobId}/expenses/{expenseId} {
+      // Helper function to check if the authenticated user is the owner of the subcontractor document.
+      function isOwner(subcontractorId) {
+        return request.auth.uid == subcontractorId;
+      }
+
+      // Helper function to check if the authenticated user is the existing owner of the subcontractor document.
+      function isExistingOwner(subcontractorId) {
+        return isOwner(subcontractorId) && resource != null;
+      }
+
+      allow get: if isOwner(subcontractorId);
+      allow list: if isOwner(subcontractorId);
+      allow create: if isOwner(subcontractorId);
+      allow update: if isExistingOwner(subcontractorId);
+      allow delete: if isExistingOwner(subcontractorId);
+    }
+
+    /**
+     * @description Allows subcontractors to manage income records associated with their jobs.
+     * @path /subcontractors/{subcontractorId}/jobs/{jobId}/income/{incomeId}
+     * @allow (create, update, delete) if the authenticated user's ID matches the subcontractorId.
+     * @allow (get, list) if the authenticated user's ID matches the subcontractorId.
+     * @deny (create) if the authenticated user's ID does not match the subcontractorId.
+     * @principle Enforces document ownership for writes.
+     */
+    match /subcontractors/{subcontractorId}/jobs/{jobId}/income/{incomeId} {
+      // Helper function to check if the authenticated user is the owner of the subcontractor document.
+      function isOwner(subcontractorId) {
+        return request.auth.uid == subcontractorId;
+      }
+
+      // Helper function to check if the authenticated user is the existing owner of the subcontractor document.
+      function isExistingOwner(subcontractorId) {
+        return isOwner(subcontractorId) && resource != null;
+      }
+
+      allow get: if isOwner(subcontractorId);
+      allow list: if isOwner(subcontractorId);
+      allow create: if isOwner(subcontractorId);
+      allow update: if isExistingOwner(subcontractorId);
+      allow delete: if isExistingOwner(subcontractorId);
+    }
+  }
+}
