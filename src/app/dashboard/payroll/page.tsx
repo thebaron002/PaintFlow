@@ -43,7 +43,8 @@ export default function PayrollPage() {
                   <TableRow>
                     <TableHead>Job</TableHead>
                     <TableHead>Client</TableHead>
-                    <TableHead>Payment Description</TableHead>
+                    <TableHead>Initial Payment</TableHead>
+                    <TableHead>Invoices</TableHead>
                     <TableHead className="text-right">Payout</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -61,13 +62,14 @@ export default function PayrollPage() {
                           <div className="text-sm text-muted-foreground">{job.title}</div>
                         </TableCell>
                         <TableCell>{client?.name}</TableCell>
-                        <TableCell>{job.title}</TableCell>
+                        <TableCell>${job.initialValue.toLocaleString()}</TableCell>
+                        <TableCell>${totalInvoiced.toLocaleString()}</TableCell>
                         <TableCell className="text-right">${payout.toLocaleString()}</TableCell>
                       </TableRow>
                     )
                   }) : (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center h-24">
+                      <TableCell colSpan={5} className="text-center h-24">
                         No jobs are currently awaiting payment.
                       </TableCell>
                     </TableRow>
