@@ -1,4 +1,4 @@
-export type Subcontractor = {
+export type Client = {
   id: string;
   name: string;
   phone: string;
@@ -10,12 +10,10 @@ export type Job = {
   id: string;
   title: string;
   address: string;
-  clientName: string;
-  clientPhone: string;
+  clientId: string;
   deadline: string; // ISO date string
   specialRequirements: string;
   status: 'Pending' | 'In Progress' | 'Completed' | 'Invoiced';
-  subcontractorId: string | null;
   budget: number;
 };
 

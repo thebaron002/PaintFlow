@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { format } from "date-fns";
-import { jobs, subcontractors } from "@/app/lib/data";
+import { jobs, clients } from "@/app/lib/data";
 import { PageHeader } from "@/components/page-header";
 import {
   Table,
@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, MapPin, Briefcase } from "lucide-react";
+import { PlusCircle, MapPin, User } from "lucide-react";
 import { JobActions } from "./components/job-actions";
 
 export default function JobsPage() {
@@ -40,7 +40,7 @@ export default function JobsPage() {
 
   return (
     <div>
-      <PageHeader title="Job Assignments">
+      <PageHeader title="My Jobs">
         <Button>
           <PlusCircle className="mr-2 h-4 w-4" />
           New Job
@@ -50,7 +50,7 @@ export default function JobsPage() {
         <CardHeader>
           <CardTitle>All Jobs</CardTitle>
           <CardDescription>
-            Manage job assignments for your subcontractors.
+            Manage your jobs from various clients.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -71,31 +71,32 @@ export default function JobsPage() {
             </TableHeader>
             <TableBody>
               {jobs.map((job) => {
-                const subcontractor = subcontractors.find(
-                  (s) => s.id === job.subcontractorId
+                const client = clients.find(
+                  (c) => c.id === job.clientId
                 );
                 return (
                   <TableRow key={job.id}>
                     <TableCell className="hidden sm:table-cell">
-                      {subcontractor ? (
+                      {client ? (
                         <Image
-                          alt={subcontractor.name}
+                          alt={client.name}
                           className="aspect-square rounded-md object-cover"
                           height="64"
-                          src={subcontractor.avatarUrl}
+                          src={client.avatarUrl}
                           width="64"
                           data-ai-hint="person portrait"
                         />
                       ) : (
                         <div className="w-16 h-16 bg-muted rounded-md flex items-center justify-center">
-                          <Briefcase className="w-6 h-6 text-muted-foreground" />
+                          <User className="w-6 h-6 text-muted-foreground" />
                         </div>
+
                       )}
                     </TableCell>
                     <TableCell className="font-medium">
                       <div className="font-bold">{job.title}</div>
                       <div className="text-sm text-muted-foreground">
-                        {subcontractor?.name || "Unassigned"}
+                        {client?.name || "N/A"}
                       </div>
                        <div className="text-xs text-muted-foreground flex items-center pt-1">
                         <MapPin className="w-3 h-3 mr-1"/> {job.address}

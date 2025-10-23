@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/table";
 import { DollarSign, FileDown, PlusCircle } from "lucide-react";
 import { format } from "date-fns";
-import { income, expenses, jobs } from "@/app/lib/data";
+import { income, expenses, jobs, clients } from "@/app/lib/data";
 import { CashFlowChart } from "./components/cash-flow-chart";
 
 export default function FinancePage() {
@@ -144,11 +144,12 @@ export default function FinancePage() {
                 <TableBody>
                   {expenses.map((item) => {
                      const job = jobs.find(j => j.id === item.jobId);
+                     const client = job ? clients.find(c => c.id === job.clientId) : undefined;
                     return(
                       <TableRow key={item.id}>
                         <TableCell>
                           <div className="font-medium">{item.description}</div>
-                           <div className="text-sm text-muted-foreground">{job?.title}</div>
+                           <div className="text-sm text-muted-foreground">{job?.title} ({client?.name})</div>
                         </TableCell>
                         <TableCell>{item.category}</TableCell>
                         <TableCell>{format(new Date(item.date), "MMM dd, yyyy")}</TableCell>

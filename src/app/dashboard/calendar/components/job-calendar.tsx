@@ -6,6 +6,7 @@ import type { Job } from "@/app/lib/types";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { clients } from "@/app/lib/data";
 
 export function JobCalendar({ jobs }: { jobs: Job[] }) {
   const [date, setDate] = React.useState<Date | undefined>(new Date());
@@ -54,22 +55,25 @@ export function JobCalendar({ jobs }: { jobs: Job[] }) {
         </CardHeader>
         <CardContent className="grid gap-4">
           {selectedDayJobs.length > 0 ? (
-            selectedDayJobs.map((job) => (
-              <div key={job.id} className="grid gap-1">
-                <div className="flex items-center justify-between">
-                  <p className="font-semibold">{job.title}</p>
-                  <Badge variant="outline" className="capitalize">
-                    {job.status}
-                  </Badge>
+            selectedDayJobs.map((job) => {
+              const client = clients.find(c => c.id === job.clientId);
+              return (
+                <div key={job.id} className="grid gap-1">
+                  <div className="flex items-center justify-between">
+                    <p className="font-semibold">{job.title}</p>
+                    <Badge variant="outline" className="capitalize">
+                      {job.status}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Client: {client?.name || 'N/A'}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Address: {job.address}
+                  </p>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Client: {job.clientName}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Address: {job.address}
-                </p>
-              </div>
-            ))
+              )
+            })
           ) : (
             <p className="text-sm text-muted-foreground">No jobs scheduled for this day.</p>
           )}

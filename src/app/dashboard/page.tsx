@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/page-header";
-import { jobs } from "@/app/lib/data";
+import { jobs, clients } from "@/app/lib/data";
 import { Briefcase, DollarSign, CalendarCheck, Users } from "lucide-react";
 import { format, subMonths, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { RevenueChart } from "./components/revenue-chart";
@@ -102,10 +102,11 @@ export default function DashboardPage() {
                 </TableHeader>
                 <TableBody>
                   {recentJobs.map(job => {
+                     const client = clients.find(c => c.id === job.clientId);
                     return (
                       <TableRow key={job.id}>
                         <TableCell>
-                          <div className="font-medium">{job.clientName}</div>
+                          <div className="font-medium">{client?.name || 'N/A'}</div>
                           
                         </TableCell>
                         <TableCell className="hidden sm:table-cell">
