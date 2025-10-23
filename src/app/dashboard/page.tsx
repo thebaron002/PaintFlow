@@ -19,12 +19,25 @@ import { jobs, clients } from "@/app/lib/data";
 import { Briefcase, DollarSign, CalendarCheck, Users } from "lucide-react";
 import { format, subMonths, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { RevenueChart } from "./components/revenue-chart";
+import type { Job } from "@/app/lib/types";
 
 export default function DashboardPage() {
   const now = new Date();
   const activeJobs = jobs.filter(job => job.status === 'In Progress' || job.status === 'Pending').length;
   const totalRevenue = jobs.filter(job => job.status === 'Completed' || job.status === 'Invoiced').reduce((sum, job) => sum + job.budget, 0);
-  const recentJobs = [...jobs].sort((a, b) => new Date(b.deadline).getTime() - new Date(a.deadline).getTime()).slice(0, 5);
+  
+  const statusOrder: Job['status'][] = ['Open Payment', 'Not Started'];
+  const upcomingJobs = jobs
+    .filter(job => job.status === 'Open Payment' || job.status === 'Not Started')
+    .sort((a, b) => {
+      const statusA = statusOrder.indexOf(a.status);
+      const statusB = statusOrder.indexOf(b.status);
+      if (statusA !== statusB) {
+        return statusA - statusB;
+      }
+      return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
+    });
+
 
   const currentMonthStart = startOfMonth(now);
   const jobsCompletedThisMonth = jobs.filter(job => {
@@ -94,33 +107,29 @@ export default function DashboardPage() {
              <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Client</TableHead>
-                    <TableHead className="hidden sm:table-cell">Job</TableHead>
+                    <TableHead>Title</TableHead>
+                    <TableHead className="hidden sm:table-cell">Address</TableHead>
                     <TableHead className="hidden sm:table-cell">Status</TableHead>
-                    <TableHead className="text-right">Deadline</TableHead>
+                    <TableHead className="text-right">Payout</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {recentJobs.map(job => {
-                     const client = clients.find(c => c.id === job.clientId);
-                    return (
+                  {upcomingJobs.map(job => (
                       <TableRow key={job.id}>
                         <TableCell>
-                          <div className="font-medium">{client?.name || 'N/A'}</div>
-                          
+                          <div className="font-medium">{job.title}</div>
                         </TableCell>
                         <TableCell className="hidden sm:table-cell">
-                         <div className="font-medium">{job.title}</div>
+                         <div className="font-medium">{job.address}</div>
                         </TableCell>
                         <TableCell className="hidden sm:table-cell">
-                          <Badge variant={job.status === 'Completed' ? 'secondary' : 'default'} className="capitalize">
-                            {job.status.toLowerCase()}
+                          <Badge variant="outline" className="capitalize">
+                            {job.status}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-right">{format(new Date(job.deadline), 'MMM dd, yyyy')}</TableCell>
+                        <TableCell className="text-right">${job.budget.toLocaleString()}</TableCell>
                       </TableRow>
-                    );
-                  })}
+                    ))}
                 </TableBody>
               </Table>
           </CardContent>
