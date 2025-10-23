@@ -17,12 +17,35 @@ import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/page-header";
 import { jobs, subcontractors } from "@/app/lib/data";
 import { Briefcase, DollarSign, CalendarCheck } from "lucide-react";
-import { format } from 'date-fns';
+import { format, subWeeks, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 
 export default function DashboardPage() {
+  const now = new Date();
   const activeJobs = jobs.filter(job => job.status === 'In Progress' || job.status === 'Pending').length;
   const totalRevenue = jobs.filter(job => job.status === 'Completed' || job.status === 'Invoiced').reduce((sum, job) => sum + job.budget, 0);
   const recentJobs = [...jobs].sort((a, b) => new Date(b.deadline).getTime() - new Date(a.deadline).getTime()).slice(0, 5);
+
+  const lastWeekStart = startOfWeek(subWeeks(now, 1));
+  const lastWeekEnd = endOfWeek(subWeeks(now, 1));
+  const lastWeekRevenue = jobs
+    .filter(job => {
+      const jobDate = new Date(job.deadline);
+      return (job.status === 'Completed' || job.status === 'Invoiced') && isWithinInterval(jobDate, { start: lastWeekStart, end: lastWeekEnd });
+    })
+    .reduce((sum, job) => sum + job.budget, 0);
+
+  const currentMonthStart = startOfMonth(now);
+  const currentMonthEnd = endOfMonth(now);
+  const currentMonthForecast = jobs
+    .filter(job => {
+        const jobDate = new Date(job.deadline);
+        return isWithinInterval(jobDate, { start: currentMonthStart, end: currentMonthEnd });
+    })
+    .reduce((sum, job) => sum + job.budget, 0);
+    
+  const futureScheduledValue = jobs
+    .filter(job => new Date(job.deadline) > currentMonthEnd)
+    .reduce((sum, job) => sum + job.budget, 0);
 
   return (
     <div className="flex flex-col gap-8">
@@ -109,46 +132,32 @@ export default function DashboardPage() {
 
         <Card className="lg:col-span-3">
           <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
+            <CardTitle>Financial Summary</CardTitle>
             <CardDescription>
-              Updates on job assignments and completions.
+              A quick overview of your financial status.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-6">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center justify-between">
               <div className="grid gap-1">
-                <p className="text-sm font-medium leading-none">Job Assigned</p>
-                <p className="text-sm text-muted-foreground">"Modern Kitchen Repaint" assigned to Jake's Painting Co.</p>
+                <p className="text-sm font-medium leading-none">Last Week's Revenue</p>
+                <p className="text-sm text-muted-foreground">Income from completed jobs.</p>
               </div>
-              <div className="ml-auto text-sm text-muted-foreground">5m ago</div>
+              <div className="text-lg font-bold text-green-600">${lastWeekRevenue.toLocaleString()}</div>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center justify-between">
               <div className="grid gap-1">
-                <p className="text-sm font-medium leading-none">Job Completed</p>
-                <p className="text-sm text-muted-foreground">"Exterior Fence Staining" marked as complete.</p>
+                <p className="text-sm font-medium leading-none">This Month's Forecast</p>
+                <p className="text-sm text-muted-foreground">Potential income from all jobs this month.</p>
               </div>
-              <div className="ml-auto text-sm text-muted-foreground">1h ago</div>
+              <div className="text-lg font-bold">${currentMonthForecast.toLocaleString()}</div>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center justify-between">
               <div className="grid gap-1">
-                <p className="text-sm font-medium leading-none">Expense Logged</p>
-                <p className="text-sm text-muted-foreground">$250 for "Sherwin-Williams Emerald" paint.</p>
+                <p className="text-sm font-medium leading-none">Future Scheduled</p>
+                <p className="text-sm text-muted-foreground">Value of jobs beyond this month.</p>
               </div>
-              <div className="ml-auto text-sm text-muted-foreground">2h ago</div>
-            </div>
-             <div className="flex items-center gap-4">
-              <div className="grid gap-1">
-                <p className="text-sm font-medium leading-none">Job Invoiced</p>
-                <p className="text-sm text-muted-foreground">Invoice sent for "Living Room Accent Wall".</p>
-              </div>
-              <div className="ml-auto text-sm text-muted-foreground">1d ago</div>
-            </div>
-             <div className="flex items-center gap-4">
-              <div className="grid gap-1">
-                <p className="text-sm font-medium leading-none">New Subcontractor</p>
-                <p className="text-sm text-muted-foreground">"Anna's Fine Finishes" added to the team.</p>
-              </div>
-              <div className="ml-auto text-sm text-muted-foreground">2d ago</div>
+              <div className="text-lg font-bold">${futureScheduledValue.toLocaleString()}</div>
             </div>
           </CardContent>
         </Card>
