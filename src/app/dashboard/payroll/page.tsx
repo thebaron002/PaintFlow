@@ -19,8 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { jobs, clients } from "@/app/lib/data";
 import { payrollSettings } from "@/app/lib/payroll-data";
-import { Badge } from "@/components/ui/badge";
-import { DollarSign, Send } from "lucide-react";
+import { Send } from "lucide-react";
 
 
 export default function PayrollPage() {
@@ -44,8 +43,8 @@ export default function PayrollPage() {
                   <TableRow>
                     <TableHead>Job</TableHead>
                     <TableHead>Client</TableHead>
+                    <TableHead>Payment Description</TableHead>
                     <TableHead className="text-right">Payout</TableHead>
-                    <TableHead className="text-center">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -53,6 +52,8 @@ export default function PayrollPage() {
                      const client = clients.find(c => c.id === job.clientId);
                      const clientLastName = client?.name.split(" ").pop() || "N/A";
                      const jobTitle = `${clientLastName} #${job.workOrderNumber}`;
+                     const totalInvoiced = job.invoices.reduce((sum, invoice) => sum + invoice.amount, 0);
+                     const payout = job.initialValue - totalInvoiced;
                     return (
                        <TableRow key={job.id}>
                         <TableCell>
@@ -60,13 +61,8 @@ export default function PayrollPage() {
                           <div className="text-sm text-muted-foreground">{job.title}</div>
                         </TableCell>
                         <TableCell>{client?.name}</TableCell>
-                        <TableCell className="text-right">${job.budget.toLocaleString()}</TableCell>
-                        <TableCell className="text-center">
-                          <Button size="sm">
-                            <DollarSign className="mr-2 h-4 w-4" />
-                            Pay
-                          </Button>
-                        </TableCell>
+                        <TableCell>{job.title}</TableCell>
+                        <TableCell className="text-right">${payout.toLocaleString()}</TableCell>
                       </TableRow>
                     )
                   }) : (
