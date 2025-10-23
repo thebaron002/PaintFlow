@@ -115,32 +115,38 @@ export default function DashboardPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {upcomingJobs.map(job => (
-                      <TableRow key={job.id}>
-                        <TableCell>
-                          <Link href={`/dashboard/jobs/${job.id}`} className="font-medium hover:underline">
-                            {job.title}
-                          </Link>
-                        </TableCell>
-                        <TableCell className="hidden sm:table-cell">
-                          <a 
-                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.address)}`} 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
-                            className="flex items-center hover:underline"
-                          >
-                            <MapPin className="w-4 h-4 mr-2 text-muted-foreground" />
-                            {job.address}
-                          </a>
-                        </TableCell>
-                        <TableCell className="hidden sm:table-cell">
-                          <Badge variant="outline" className="capitalize">
-                            {job.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">${job.budget.toLocaleString()}</TableCell>
-                      </TableRow>
-                    ))}
+                  {upcomingJobs.map(job => {
+                      const client = clients.find(c => c.id === job.clientId);
+                      const clientLastName = client?.name.split(" ").pop() || "N/A";
+                      const jobTitle = `${clientLastName} #${job.workOrderNumber}`;
+                      return (
+                        <TableRow key={job.id}>
+                          <TableCell>
+                            <Link href={`/dashboard/jobs/${job.id}`} className="font-medium hover:underline">
+                              {jobTitle}
+                            </Link>
+                             <div className="text-sm text-muted-foreground">{job.title}</div>
+                          </TableCell>
+                          <TableCell className="hidden sm:table-cell">
+                            <a 
+                              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.address)}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="flex items-center hover:underline"
+                            >
+                              <MapPin className="w-4 h-4 mr-2 text-muted-foreground" />
+                              {job.address}
+                            </a>
+                          </TableCell>
+                          <TableCell className="hidden sm:table-cell">
+                            <Badge variant="outline" className="capitalize">
+                              {job.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">${job.budget.toLocaleString()}</TableCell>
+                        </TableRow>
+                      )
+                    })}
                 </TableBody>
               </Table>
           </CardContent>
