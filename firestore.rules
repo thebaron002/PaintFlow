@@ -1,126 +1,138 @@
 /**
- * @fileOverview
- * This ruleset enforces a strict user-ownership model for subcontractors, jobs, expenses, and income.
- * All data is nested under /subcontractors/{subcontractorId}, ensuring that only the authenticated subcontractor can access their own data.
+ * @file Firestore Security Rules
+ * @description This ruleset enforces a strict client-ownership model, ensuring that clients can only access data associated with their specific client ID.
  *
  * Data Structure:
- * - /subcontractors/{subcontractorId}: Stores subcontractor profile information.
- * - /subcontractors/{subcontractorId}/jobs/{jobId}: Stores job details for each subcontractor.
- * - /subcontractors/{subcontractorId}/jobs/{jobId}/expenses/{expenseId}: Stores expense records for each job.
- * - /subcontractors/{subcontractorId}/jobs/{jobId}/income/{incomeId}: Stores income records for each job.
+ * - /clients/{clientId}: Stores client information.
+ * - /clients/{clientId}/projects/{projectId}: Stores project assignments for each client.
+ * - /clients/{clientId}/projects/{projectId}/expenses/{expenseId}: Stores expenses associated with a specific project for a client.
+ * - /clients/{clientId}/projects/{projectId}/income/{incomeId}: Stores income records associated with a specific project for a client.
  *
  * Key Security Decisions:
- * - Subcontractors can only access their own data tree. Listing of all subcontractors is disallowed.
- * - All writes are validated against the authenticated user's ID to prevent unauthorized data modification.
- * - Authorization Independence is achieved by embedding the `subcontractorId` in the path, avoiding the need for complex `get()` calls.
+ * - Clients can only create, read, update, and delete their own client document.
+ * - Clients can only create, read, update, and delete projects, expenses, and income records associated with their client ID.
+ * - Listing of all clients is disallowed.
+ * - Data consistency between the path and the document's internal fields is enforced on create and update operations.
+ *
+ * Denormalization for Authorization:
+ * - The `clientId` is part of the path for projects, expenses, and income, enabling direct access control based on the `clientId`. This avoids complex `get()` calls in security rules.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows subcontractors to manage their profile information.
-     * @path /subcontractors/{subcontractorId}
-     * @allow (create, update, delete) if the authenticated user's ID matches the subcontractorId.
-     * @allow (get) if the authenticated user's ID matches the subcontractorId.
-     * @deny (list) Listing all subcontractors is not allowed.
-     * @deny (create) if the authenticated user's ID does not match the subcontractorId.
+     * @description Enforces client-ownership for the /clients/{clientId} document.
+     * @path /clients/{clientId}
+     * @allow (create) - Authenticated user with UID matching the clientId can create a client document.
+     * @allow (get, update, delete) - Authenticated user with UID matching the clientId can get, update and delete the client document.
+     * @deny (create) - Authenticated user with UID not matching the clientId cannot create a client document.
+     * @deny (get, update, delete) - Authenticated user with UID not matching the clientId cannot get, update and delete the client document.
      * @principle Enforces document ownership for writes.
      */
-    match /subcontractors/{subcontractorId} {
-      // Helper function to check if the authenticated user is the owner of the subcontractor document.
-      function isOwner(subcontractorId) {
-        return request.auth.uid == subcontractorId;
+    match /clients/{clientId} {
+      function isSignedIn() {
+        return request.auth != null;
       }
 
-      // Helper function to check if the authenticated user is the existing owner of the subcontractor document.
-      function isExistingOwner(subcontractorId) {
-        return isOwner(subcontractorId) && resource != null;
+      function isOwner(clientId) {
+        return isSignedIn() && request.auth.uid == clientId;
       }
 
-      allow get: if isOwner(subcontractorId);
+      function isExistingOwner(clientId) {
+          return isOwner(clientId) && resource != null;
+      }
+
+      allow get: if isOwner(clientId);
       allow list: if false;
-      allow create: if isOwner(subcontractorId);
-      allow update: if isExistingOwner(subcontractorId);
-      allow delete: if isExistingOwner(subcontractorId);
+
+      allow create: if isOwner(clientId) && request.resource.data.id == clientId;
+      allow update: if isExistingOwner(clientId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(clientId);
     }
 
     /**
-     * @description Allows subcontractors to manage their job assignments.
-     * @path /subcontractors/{subcontractorId}/jobs/{jobId}
-     * @allow (create, update, delete) if the authenticated user's ID matches the subcontractorId.
-     * @allow (get, list) if the authenticated user's ID matches the subcontractorId.
-     * @deny (create) if the authenticated user's ID does not match the subcontractorId.
+     * @description Enforces client-ownership for the /clients/{clientId}/projects/{projectId} document.
+     * @path /clients/{clientId}/projects/{projectId}
+     * @allow (create) - Authenticated user with UID matching the clientId can create a project document.
+     * @allow (get, list, update, delete) - Authenticated user with UID matching the clientId can get, list, update and delete the project document.
+     * @deny (create) - Authenticated user with UID not matching the clientId cannot create a project document.
+     * @deny (get, list, update, delete) - Authenticated user with UID not matching the clientId cannot get, list, update and delete the project document.
      * @principle Enforces document ownership for writes.
      */
-    match /subcontractors/{subcontractorId}/jobs/{jobId} {
-      // Helper function to check if the authenticated user is the owner of the subcontractor document.
-      function isOwner(subcontractorId) {
-        return request.auth.uid == subcontractorId;
+    match /clients/{clientId}/projects/{projectId} {
+      function isSignedIn() {
+        return request.auth != null;
       }
 
-      // Helper function to check if the authenticated user is the existing owner of the subcontractor document.
-      function isExistingOwner(subcontractorId) {
-        return isOwner(subcontractorId) && resource != null;
+      function isOwner(clientId) {
+        return isSignedIn() && request.auth.uid == clientId;
       }
 
-      allow get: if isOwner(subcontractorId);
-      allow list: if isOwner(subcontractorId);
-      allow create: if isOwner(subcontractorId);
-      allow update: if isExistingOwner(subcontractorId);
-      allow delete: if isExistingOwner(subcontractorId);
+      function isExistingOwner(clientId) {
+          return isOwner(clientId) && resource != null;
+      }
+      allow get: if isOwner(clientId);
+      allow list: if isOwner(clientId);
+      allow create: if isOwner(clientId) && request.resource.data.clientId == clientId;
+      allow update: if isExistingOwner(clientId) && request.resource.data.clientId == resource.data.clientId;
+      allow delete: if isExistingOwner(clientId);
     }
 
     /**
-     * @description Allows subcontractors to manage expenses associated with their jobs.
-     * @path /subcontractors/{subcontractorId}/jobs/{jobId}/expenses/{expenseId}
-     * @allow (create, update, delete) if the authenticated user's ID matches the subcontractorId.
-     * @allow (get, list) if the authenticated user's ID matches the subcontractorId.
-     * @deny (create) if the authenticated user's ID does not match the subcontractorId.
+     * @description Enforces client-ownership for the /clients/{clientId}/projects/{projectId}/expenses/{expenseId} document.
+     * @path /clients/{clientId}/projects/{projectId}/expenses/{expenseId}
+     * @allow (create) - Authenticated user with UID matching the clientId can create an expense document.
+     * @allow (get, list, update, delete) - Authenticated user with UID matching the clientId can get, list, update and delete the expense document.
+     * @deny (create) - Authenticated user with UID not matching the clientId cannot create an expense document.
+     * @deny (get, list, update, delete) - Authenticated user with UID not matching the clientId cannot get, list, update and delete the expense document.
      * @principle Enforces document ownership for writes.
      */
-    match /subcontractors/{subcontractorId}/jobs/{jobId}/expenses/{expenseId} {
-      // Helper function to check if the authenticated user is the owner of the subcontractor document.
-      function isOwner(subcontractorId) {
-        return request.auth.uid == subcontractorId;
+    match /clients/{clientId}/projects/{projectId}/expenses/{expenseId} {
+      function isSignedIn() {
+        return request.auth != null;
       }
 
-      // Helper function to check if the authenticated user is the existing owner of the subcontractor document.
-      function isExistingOwner(subcontractorId) {
-        return isOwner(subcontractorId) && resource != null;
+      function isOwner(clientId) {
+        return isSignedIn() && request.auth.uid == clientId;
       }
 
-      allow get: if isOwner(subcontractorId);
-      allow list: if isOwner(subcontractorId);
-      allow create: if isOwner(subcontractorId);
-      allow update: if isExistingOwner(subcontractorId);
-      allow delete: if isExistingOwner(subcontractorId);
+      function isExistingOwner(clientId) {
+          return isOwner(clientId) && resource != null;
+      }
+      allow get: if isOwner(clientId);
+      allow list: if isOwner(clientId);
+      allow create: if isOwner(clientId) && request.resource.data.projectId == projectId;
+      allow update: if isExistingOwner(clientId) && request.resource.data.projectId == resource.data.projectId;
+      allow delete: if isExistingOwner(clientId);
     }
 
     /**
-     * @description Allows subcontractors to manage income records associated with their jobs.
-     * @path /subcontractors/{subcontractorId}/jobs/{jobId}/income/{incomeId}
-     * @allow (create, update, delete) if the authenticated user's ID matches the subcontractorId.
-     * @allow (get, list) if the authenticated user's ID matches the subcontractorId.
-     * @deny (create) if the authenticated user's ID does not match the subcontractorId.
+     * @description Enforces client-ownership for the /clients/{clientId}/projects/{projectId}/income/{incomeId} document.
+     * @path /clients/{clientId}/projects/{projectId}/income/{incomeId}
+     * @allow (create) - Authenticated user with UID matching the clientId can create an income document.
+     * @allow (get, list, update, delete) - Authenticated user with UID matching the clientId can get, list, update and delete the income document.
+     * @deny (create) - Authenticated user with UID not matching the clientId cannot create an income document.
+     * @deny (get, list, update, delete) - Authenticated user with UID not matching the clientId cannot get, list, update and delete the income document.
      * @principle Enforces document ownership for writes.
      */
-    match /subcontractors/{subcontractorId}/jobs/{jobId}/income/{incomeId} {
-      // Helper function to check if the authenticated user is the owner of the subcontractor document.
-      function isOwner(subcontractorId) {
-        return request.auth.uid == subcontractorId;
+    match /clients/{clientId}/projects/{projectId}/income/{incomeId} {
+      function isSignedIn() {
+        return request.auth != null;
       }
 
-      // Helper function to check if the authenticated user is the existing owner of the subcontractor document.
-      function isExistingOwner(subcontractorId) {
-        return isOwner(subcontractorId) && resource != null;
+      function isOwner(clientId) {
+        return isSignedIn() && request.auth.uid == clientId;
+      }
+      function isExistingOwner(clientId) {
+          return isOwner(clientId) && resource != null;
       }
 
-      allow get: if isOwner(subcontractorId);
-      allow list: if isOwner(subcontractorId);
-      allow create: if isOwner(subcontractorId);
-      allow update: if isExistingOwner(subcontractorId);
-      allow delete: if isExistingOwner(subcontractorId);
+      allow get: if isOwner(clientId);
+      allow list: if isOwner(clientId);
+      allow create: if isOwner(clientId) && request.resource.data.projectId == projectId;
+      allow update: if isExistingOwner(clientId) && request.resource.data.projectId == resource.data.projectId;
+      allow delete: if isExistingOwner(clientId);
     }
   }
 }
