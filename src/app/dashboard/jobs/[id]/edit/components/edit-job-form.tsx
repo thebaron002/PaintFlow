@@ -78,7 +78,7 @@ export function EditJobForm({ job, onSuccess }: EditJobFormProps) {
     const profitTarget = data.initialValue - idealMaterialCost;
     
     // Calculation based on a single worker (the user), as crew is not managed on this form.
-    const idealNumberOfDays = profitTarget > 0 && dailyPayTarget > 0 ? Math.floor(profitTarget / dailyPayTarget) : 0;
+    const idealNumberOfDays = profitTarget > 0 && dailyPayTarget > 0 ? parseFloat((profitTarget / dailyPayTarget).toFixed(2)) : 0;
     
     const updatedJobData = {
       title: finalTitle,
