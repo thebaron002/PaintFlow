@@ -62,6 +62,10 @@ export function JobAnalysisCard({ job, settings }: JobAnalysisCardProps) {
   const materialUsagePercentage = job.initialValue > 0 ? (materialCost / job.initialValue) * 100 : 0;
   const materialUsageColor = materialUsagePercentage > idealMaterialCostPercentage ? "text-red-600" : "text-green-600";
   const materialUsageIcon = materialUsagePercentage > idealMaterialCostPercentage ? TrendingDown : TrendingUp;
+
+  // 6. Calculate Material Cost comparison
+  const materialCostColor = materialCost > job.idealMaterialCost ? "text-red-600" : "text-green-600";
+  const materialCostIcon = materialCost > job.idealMaterialCost ? TrendingDown : TrendingUp;
   
 
   return (
@@ -83,9 +87,10 @@ export function JobAnalysisCard({ job, settings }: JobAnalysisCardProps) {
             subtext={`Target: $${dailyPayTarget.toLocaleString()}/day`}
         />
         <StatItem
-            icon={ClipboardList}
+            icon={materialCostIcon}
             label="Material Cost"
             value={`$${materialCost.toLocaleString()}`}
+            valueColor={materialCostColor}
             subtext={`Ideal: $${job.idealMaterialCost.toLocaleString()}`}
         />
         <StatItem
@@ -99,3 +104,4 @@ export function JobAnalysisCard({ job, settings }: JobAnalysisCardProps) {
     </Card>
   );
 }
+
