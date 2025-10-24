@@ -116,6 +116,9 @@ export function JobDetails({
         return 'N/A';
     }
   };
+  
+  const totalInvoiced = job.invoices?.reduce((sum, invoice) => sum + invoice.amount, 0) ?? 0;
+  const remainingPayout = job.budget - totalInvoiced;
 
   return (
     <div>
@@ -195,8 +198,8 @@ export function JobDetails({
                   <DollarSign className="h-6 w-6 text-muted-foreground" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Payout</p>
-                  <p className="text-lg font-semibold">${job.budget.toLocaleString()}</p>
+                  <p className="text-sm font-medium text-muted-foreground">Remaining Payout</p>
+                  <p className="text-lg font-semibold">${remainingPayout.toLocaleString()}</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">

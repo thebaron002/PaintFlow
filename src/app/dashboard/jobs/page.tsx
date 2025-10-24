@@ -117,6 +117,8 @@ const JobsTable = ({ jobs, isLoading }: { jobs: Job[] | null, isLoading: boolean
             {jobs?.map((job) => {
               const clientLastName = job.clientName.split(" ").pop() || "N/A";
               const jobTitle = `${clientLastName} #${job.workOrderNumber}`;
+              const totalInvoiced = job.invoices?.reduce((sum, invoice) => sum + invoice.amount, 0) ?? 0;
+              const remainingPayout = job.budget - totalInvoiced;
               return (
                 <TableRow key={job.id}>
                   <TableCell className="hidden sm:table-cell">
@@ -146,7 +148,7 @@ const JobsTable = ({ jobs, isLoading }: { jobs: Job[] | null, isLoading: boolean
                     </Badge>
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
-                    ${job.budget.toLocaleString()}
+                    ${remainingPayout.toLocaleString()}
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
                     {format(new Date(job.deadline), "MMMM dd, yyyy")}
