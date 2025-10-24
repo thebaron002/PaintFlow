@@ -75,7 +75,20 @@ export function JobDetails({
     updateDocumentNonBlocking(jobRef, updatedData);
   }
 
-  const isCompleted = job.status === 'Complete' || job.status === 'Finalized';
+  const getEndDateDisplay = () => {
+    switch(job.status) {
+      case 'Not Started':
+        return 'Not Started';
+      case 'In Progress':
+        return 'In Progress';
+      case 'Complete':
+      case 'Open Payment':
+      case 'Finalized':
+        return format(new Date(job.deadline), "MMMM dd, yyyy");
+      default:
+        return 'N/A';
+    }
+  };
 
   return (
     <div>
@@ -139,7 +152,7 @@ export function JobDetails({
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">End Date</p>
                   <p className="text-lg font-semibold">
-                    {isCompleted ? format(new Date(job.deadline), "MMMM dd, yyyy") : 'In Progress'}
+                    {getEndDateDisplay()}
                   </p>
                 </div>
               </div>
