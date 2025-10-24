@@ -1,14 +1,16 @@
 
 "use client";
 
+import { useParams } from 'next/navigation';
 import { JobDetails } from "./components/job-details";
 import type { Job } from "@/app/lib/types";
 import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 
-export default function JobDetailsPage({ params }: { params: { id: string } }) {
-  const id = params.id;
+export default function JobDetailsPage() {
+  const params = useParams();
+  const id = params.id as string;
   const firestore = useFirestore();
 
   const jobRef = useMemoFirebase(() => {
