@@ -247,9 +247,7 @@ export function JobDetails({
             </CardContent>
           </Card>
           
-          <JobAnalysisCard job={job} settings={settings} />
-
-           <Card>
+          <Card>
             <CardHeader>
               <CardTitle>Scheduling</CardTitle>
             </CardHeader>
@@ -296,6 +294,9 @@ export function JobDetails({
               </div>
             </CardContent>
           </Card>
+
+          <JobAnalysisCard job={job} settings={settings} />
+
         </div>
 
         <div className="lg:col-span-1 grid gap-6">
@@ -511,3 +512,5 @@ export function JobDetails({
     </div>
   );
 }
+
+    
