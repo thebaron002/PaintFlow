@@ -67,6 +67,7 @@ import { cn } from "@/lib/utils";
 import { JobAnalysisCard } from "./job-analysis-card";
 import Image from "next/image";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Textarea } from "@/components/ui/textarea";
 
 const adjustmentIcons = {
   Time: Clock,
@@ -94,6 +95,7 @@ export function JobDetails({
   const [invoiceModal, setInvoiceModal] = useState<ModalState<Job['invoices'][0]>>({ isOpen: false, item: null });
   const [adjustmentModal, setAdjustmentModal] = useState<ModalState<Job['adjustments'][0]>>({ isOpen: false, item: null });
   const [productionDays, setProductionDays] = useState<Date[]>(job.productionDays.map(d => new Date(d)));
+  const [notes, setNotes] = useState(job.specialRequirements || "");
   
   const jobStatuses: Job["status"][] = ["Not Started", "In Progress", "Complete", "Open Payment", "Finalized"];
 
@@ -116,7 +118,8 @@ export function JobDetails({
   useEffect(() => {
     setCurrentStatus(job.status);
     setProductionDays((job.productionDays || []).map(d => new Date(d)))
-  }, [job.status, job.productionDays]);
+    setNotes(job.specialRequirements || "");
+  }, [job.status, job.productionDays, job.specialRequirements]);
   
   const handleStatusChange = (newStatus: Job["status"]) => {
     if (!firestore || newStatus === currentStatus) return;
@@ -157,6 +160,15 @@ export function JobDetails({
     const jobRef = doc(firestore, 'jobs', job.id);
     updateDocumentNonBlocking(jobRef, { productionDays: newDays.map(d => d.toISOString()) });
   }
+
+   const handleNotesBlur = () => {
+    if (!firestore || notes === job.specialRequirements) return;
+    const jobRef = doc(firestore, 'jobs', job.id);
+    updateDocumentNonBlocking(jobRef, { specialRequirements: notes });
+    toast({
+        title: "Notes Saved",
+    });
+  };
 
   const getEndDateDisplay = () => {
     switch(job.status) {
@@ -347,6 +359,21 @@ export function JobDetails({
           </Card>
 
           <JobAnalysisCard job={job} settings={settings} />
+
+           <Card>
+            <CardHeader>
+                <CardTitle>Notes</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <Textarea
+                    placeholder="Add special requirements or notes for this job..."
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    onBlur={handleNotesBlur}
+                    rows={4}
+                />
+            </CardContent>
+          </Card>
 
         </div>
 
@@ -551,3 +578,5 @@ export function JobDetails({
     </div>
   );
 }
+
+    
