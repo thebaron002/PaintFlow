@@ -30,10 +30,9 @@ const StatItem = ({ icon: Icon, label, value, valueColor, subtext }: { icon: Rea
 );
 
 export function JobAnalysisCard({ job, settings }: JobAnalysisCardProps) {
-  // 1. Calculate Total Material Cost from adjustments
-  const materialCost = job.adjustments
-    ?.filter((adj) => adj.type === "Material")
-    .reduce((sum, adj) => sum + adj.value, 0) ?? 0;
+  // 1. Calculate Total Material Cost from invoices
+  const materialCost = job.invoices
+    ?.reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
 
   // 2. Calculate Total Adjustments value (for profit calculation)
   const globalHourlyRate = settings?.hourlyRate ?? 0;
@@ -42,13 +41,12 @@ export function JobAnalysisCard({ job, settings }: JobAnalysisCardProps) {
       const rate = adj.hourlyRate ?? globalHourlyRate;
       return sum + adj.value * rate;
     }
-    // General adjustments can be positive or negative. Material adjustments are added to the payout.
     return sum + adj.value;
   }, 0) ?? 0;
 
   // 3. Calculate Profit. This should be the total amount paid/payable to you minus your costs.
   // The client pays initialValue + totalAdjustmentsValue.
-  // The cost is materialCost (assuming you pay for materials out of pocket initially).
+  // The cost is materialCost.
   const totalRevenue = job.initialValue + totalAdjustmentsValue;
   const profit = totalRevenue - materialCost;
 
