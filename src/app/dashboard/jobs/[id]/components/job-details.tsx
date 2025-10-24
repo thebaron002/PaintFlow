@@ -62,9 +62,11 @@ export function JobDetails({
               Back to Jobs
             </Link>
           </Button>
-          <Button>
-            <Pencil className="mr-2 h-4 w-4" />
-            Edit Job
+          <Button asChild>
+            <Link href={`/dashboard/jobs/${job.id}/edit`}>
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit Job
+            </Link>
           </Button>
         </div>
       </PageHeader>

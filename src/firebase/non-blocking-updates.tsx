@@ -1,3 +1,4 @@
+
 'use client';
     
 import {
@@ -59,6 +60,7 @@ export function addDocumentNonBlocking(colRef: CollectionReference, data: any) {
 export function updateDocumentNonBlocking(docRef: DocumentReference, data: any) {
   updateDoc(docRef, data)
     .catch(error => {
+      console.error("Update failed", error);
       errorEmitter.emit(
         'permission-error',
         new FirestorePermissionError({
