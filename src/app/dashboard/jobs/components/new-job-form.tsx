@@ -19,10 +19,10 @@ import { CalendarIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import type { Job } from "@/app/lib/types";
+import type { Job, GeneralSettings } from "@/app/lib/types";
 import { Switch } from "@/components/ui/switch";
 import { useFirestore, addDocumentNonBlocking } from "@/firebase";
-import { collection } from "firebase/firestore";
+import { collection, doc, getDoc } from "firebase/firestore";
 
 const jobSchema = z.object({
   title: z.string().optional(),
@@ -55,7 +55,7 @@ export function NewJobForm({ onSuccess }: NewJobFormProps) {
     },
   });
 
-  const onSubmit = (data: JobFormValues) => {
+  const onSubmit = async (data: JobFormValues) => {
     if (!firestore) return;
 
     let finalTitle = data.title;
@@ -63,6 +63,18 @@ export function NewJobForm({ onSuccess }: NewJobFormProps) {
       const clientLastName = data.clientName.split(" ").pop() || "";
       finalTitle = `${clientLastName} #${data.workOrderNumber}`;
     }
+    
+    // Fetch settings to calculate ideal values
+    const settingsRef = doc(firestore, "settings", "global");
+    const settingsSnap = await getDoc(settingsRef);
+    const settings = settingsSnap.data() as GeneralSettings;
+
+    const dailyPayTarget = settings?.dailyPayTarget > 0 ? settings.dailyPayTarget : 300; // Default fallback
+    const idealMaterialCostPercentage = settings?.idealMaterialCostPercentage >= 0 ? settings.idealMaterialCostPercentage : 20;
+
+    const idealMaterialCost = data.initialValue * (idealMaterialCostPercentage / 100);
+    const profitTarget = data.initialValue - idealMaterialCost;
+    const idealNumberOfDays = profitTarget > 0 && dailyPayTarget > 0 ? Math.ceil(profitTarget / dailyPayTarget) : 0;
     
     const newJob: Omit<Job, 'id'> = {
       title: finalTitle,
@@ -75,8 +87,8 @@ export function NewJobForm({ onSuccess }: NewJobFormProps) {
       status: "Not Started",
       budget: data.initialValue, // budget is payout
       initialValue: data.initialValue,
-      idealMaterialCost: 0,
-      idealNumberOfDays: 0,
+      idealMaterialCost: idealMaterialCost,
+      idealNumberOfDays: idealNumberOfDays,
       productionDays: [],
       isFixedPay: data.isFixedPay,
       invoices: [],
