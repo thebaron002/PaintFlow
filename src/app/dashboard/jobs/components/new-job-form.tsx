@@ -72,7 +72,7 @@ export function NewJobForm({ onSuccess }: NewJobFormProps) {
     const dailyPayTarget = settings?.dailyPayTarget > 0 ? settings.dailyPayTarget : 300; // Default fallback
     const idealMaterialCostPercentage = settings?.idealMaterialCostPercentage >= 0 ? settings.idealMaterialCostPercentage : 20;
 
-    const idealMaterialCost = data.initialValue * (idealMaterialCostPercentage / 100);
+    const idealMaterialCost = data.isFixedPay ? 0 : data.initialValue * (idealMaterialCostPercentage / 100);
     const profitTarget = data.initialValue - idealMaterialCost;
     // Calculation based on a single worker (the user)
     const idealNumberOfDays = profitTarget > 0 && dailyPayTarget > 0 ? parseFloat((profitTarget / dailyPayTarget).toFixed(2)) : 0;

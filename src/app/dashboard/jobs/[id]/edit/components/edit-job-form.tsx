@@ -74,7 +74,7 @@ export function EditJobForm({ job, onSuccess }: EditJobFormProps) {
     const dailyPayTarget = settings?.dailyPayTarget > 0 ? settings.dailyPayTarget : 300; // Default fallback
     const idealMaterialCostPercentage = settings?.idealMaterialCostPercentage >= 0 ? settings.idealMaterialCostPercentage : 20;
 
-    const idealMaterialCost = data.initialValue * (idealMaterialCostPercentage / 100);
+    const idealMaterialCost = data.isFixedPay ? 0 : data.initialValue * (idealMaterialCostPercentage / 100);
     const profitTarget = data.initialValue - idealMaterialCost;
     
     // Calculation based on a single worker (the user), as crew is not managed on this form.
