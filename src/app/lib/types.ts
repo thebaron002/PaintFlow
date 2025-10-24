@@ -1,9 +1,21 @@
 
+
 export type Client = {
   id: string;
   name: string;
   phone: string;
   email: string;
+  avatarUrl: string;
+};
+
+export type CrewMember = {
+  id: string;
+  name: string;
+  type: 'Helper' | 'Partner';
+  dailyRate?: number;
+  profitPercentage?: number;
+  email?: string;
+  phone?: string;
   avatarUrl: string;
 };
 
@@ -32,6 +44,11 @@ export type Job = {
     description: string; 
     value: number; 
     hourlyRate?: number; // The hourly rate at the time of adjustment for 'Time' type
+  }[];
+  crew: {
+    crewMemberId: string;
+    name: string;
+    type: 'Helper' | 'Partner';
   }[];
 };
 

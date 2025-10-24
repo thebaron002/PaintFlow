@@ -93,6 +93,7 @@ export function NewJobForm({ onSuccess }: NewJobFormProps) {
       isFixedPay: data.isFixedPay,
       invoices: [],
       adjustments: [],
+      crew: [],
     };
 
     const jobsCollection = collection(firestore, 'jobs');

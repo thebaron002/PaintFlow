@@ -3,9 +3,9 @@
 
 import { useParams } from 'next/navigation';
 import { JobDetails } from "./components/job-details";
-import type { Job } from "@/app/lib/types";
-import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
-import { doc } from "firebase/firestore";
+import type { Job, CrewMember } from "@/app/lib/types";
+import { useDoc, useFirestore, useMemoFirebase, useCollection } from "@/firebase";
+import { doc, collection } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function JobDetailsPage() {
@@ -19,8 +19,16 @@ export default function JobDetailsPage() {
   }, [firestore, id]);
 
   const { data: job, isLoading: isLoadingJob } = useDoc<Job>(jobRef);
+  
+  const crewRef = useMemoFirebase(() => {
+    if(!firestore) return null;
+    return collection(firestore, "crew");
+  }, [firestore]);
+  const { data: allCrew, isLoading: isLoadingCrew } = useCollection<CrewMember>(crewRef);
 
-  if (isLoadingJob) {
+  const isLoading = isLoadingJob || isLoadingCrew;
+
+  if (isLoading) {
     return (
         <div className="p-4 sm:px-6 sm:py-0">
             <Skeleton className="h-10 w-64 mb-8" />
@@ -59,14 +67,15 @@ export default function JobDetailsPage() {
         productionDays: [],
         isFixedPay: false,
         invoices: [],
-        adjustments: []
+        adjustments: [],
+        crew: [],
     }
 
-    return <JobDetails job={staticJob} jobTitle="Job Not Found" />;
+    return <JobDetails job={staticJob} allCrew={[]} jobTitle="Job Not Found" />;
   }
   
   const clientLastName = (job.clientName || "").split(" ").pop() || "N/A";
   const jobTitle = `${clientLastName} #${job.workOrderNumber}`;
 
-  return <JobDetails job={job} jobTitle={jobTitle} />;
+  return <JobDetails job={job} allCrew={allCrew || []} jobTitle={jobTitle} />;
 }

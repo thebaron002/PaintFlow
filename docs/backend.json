@@ -46,9 +46,36 @@
               "hourlyRate": {"type": "number", "description": "The hourly rate at the time of a 'Time' adjustment."}
             }
           } 
+        },
+        "crew": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "crewMemberId": { "type": "string" },
+              "name": { "type": "string" },
+              "type": { "type": "string", "enum": ["Helper", "Partner"] }
+            }
+          }
         }
       },
       "required": ["id", "title", "address", "clientName", "deadline", "status", "budget"]
+    },
+    "CrewMember": {
+      "title": "Crew Member",
+      "type": "object",
+      "description": "Represents a helper or partner.",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string", "enum": ["Helper", "Partner"] },
+        "dailyRate": { "type": "number" },
+        "profitPercentage": { "type": "number" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "avatarUrl": { "type": "string", "format": "uri" }
+      },
+      "required": ["id", "name", "type", "avatarUrl"]
     },
     "Expense": {
       "title": "Expense",
@@ -95,6 +122,10 @@
     "/jobs/{jobId}": {
       "schema": { "$ref": "#/entities/Job" },
       "description": "Stores individual job documents."
+    },
+    "/crew/{crewMemberId}": {
+      "schema": { "$ref": "#/entities/CrewMember" },
+      "description": "Stores crew member documents."
     },
     "/income/{incomeId}": {
       "schema": { "$ref": "#/entities/Income" },

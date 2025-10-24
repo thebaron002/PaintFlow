@@ -11,6 +11,7 @@ import {
   Landmark,
   LoaderCircle,
   Settings,
+  Users,
 } from "lucide-react";
 import {
   SidebarProvider,
@@ -37,6 +38,7 @@ const navItems = [
   { href: "/dashboard/calendar", icon: Calendar, label: "Calendar" },
   { href: "/dashboard/finance", icon: DollarSign, label: "Finance" },
   { href: "/dashboard/payroll", icon: Landmark, label: "Payroll" },
+  { href: "/dashboard/crew", icon: Users, label: "Crew" },
   { href: "/dashboard/settings", icon: Settings, label: "Settings" },
 ];
 
@@ -44,14 +46,14 @@ const BottomNavBar = () => {
   const pathname = usePathname();
   return (
     <div className="md:hidden fixed bottom-0 left-0 z-50 w-full h-16 bg-background border-t">
-      <div className="grid h-full max-w-lg grid-cols-6 mx-auto font-medium">
+      <div className="grid h-full max-w-lg grid-cols-7 mx-auto font-medium">
         {navItems.map(({ href, icon: Icon, label }) => (
           <Link
             key={label}
             href={href}
             className={cn(
               "inline-flex flex-col items-center justify-center px-5 hover:bg-muted group",
-              pathname === href
+              pathname.startsWith(href) && href !== '/dashboard' || pathname === href
                 ? "text-primary"
                 : "text-muted-foreground"
             )}

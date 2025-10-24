@@ -34,6 +34,7 @@ import {
   PlusCircle,
   Clock,
   ChevronsUpDown,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -56,7 +57,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar as DayPicker } from "@/components/ui/calendar";
-import type { Job, GeneralSettings } from "@/app/lib/types";
+import type { Job, GeneralSettings, CrewMember } from "@/app/lib/types";
 import { useCollection, useDoc, useFirestore, useMemoFirebase, updateDocumentNonBlocking } from "@/firebase";
 import { collection, doc, } from "firebase/firestore";
 import { AddInvoiceForm } from "./add-invoice-form";
@@ -64,6 +65,8 @@ import { AddAdjustmentForm } from "./add-adjustment-form";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { JobAnalysisCard } from "./job-analysis-card";
+import Image from "next/image";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const adjustmentIcons = {
   Time: Clock,
@@ -78,9 +81,11 @@ type ModalState<T> = {
 
 export function JobDetails({
   job,
+  allCrew,
   jobTitle,
 }: {
   job: Job;
+  allCrew: CrewMember[];
   jobTitle: string;
 }) {
   const firestore = useFirestore();
@@ -106,9 +111,11 @@ export function JobDetails({
   const { data: settings } = useDoc<GeneralSettings>(settingsRef);
   const globalHourlyRate = settings?.hourlyRate ?? 0;
 
+  const jobCrew = job.crew?.map(c => allCrew.find(ac => ac.id === c.crewMemberId)).filter(Boolean) as CrewMember[] | undefined;
+
   useEffect(() => {
     setCurrentStatus(job.status);
-    setProductionDays(job.productionDays.map(d => new Date(d)))
+    setProductionDays((job.productionDays || []).map(d => new Date(d)))
   }, [job.status, job.productionDays]);
   
   const handleStatusChange = (newStatus: Job["status"]) => {
@@ -247,7 +254,7 @@ export function JobDetails({
             </CardContent>
           </Card>
 
-          <Card>
+           <Card>
             <CardHeader>
               <CardTitle>Financials</CardTitle>
             </CardHeader>
@@ -267,7 +274,7 @@ export function JobDetails({
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Initial Value</p>
-                  <p className="text-lg font-semibold">${job.initialValue.toLocaleString()}</p>
+                  <p className="text-lg font-semibold">${(job.initialValue || 0).toLocaleString()}</p>
                 </div>
               </div>
                <div className="flex items-start gap-3">
@@ -276,7 +283,7 @@ export function JobDetails({
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Ideal Material Cost</p>
-                  <p className="text-lg font-semibold">${job.idealMaterialCost.toLocaleString()}</p>
+                  <p className="text-lg font-semibold">${(job.idealMaterialCost || 0).toLocaleString()}</p>
                 </div>
               </div>
                <div className="flex items-start gap-3">
@@ -290,7 +297,7 @@ export function JobDetails({
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader>
               <CardTitle>Scheduling</CardTitle>
@@ -343,7 +350,7 @@ export function JobDetails({
 
         </div>
 
-        <div className="lg:col-span-1 grid gap-6">
+        <div className="lg:col-span-1 grid gap-6 content-start">
           <Card>
             <CardHeader>
               <CardTitle>Job Status</CardTitle>
@@ -366,6 +373,36 @@ export function JobDetails({
               </DropdownMenu>
             </CardContent>
           </Card>
+          
+           <Card>
+             <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Crew</CardTitle>
+               <Button size="sm" variant="outline">
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Assign
+              </Button>
+            </CardHeader>
+            <CardContent>
+               {jobCrew && jobCrew.length > 0 ? (
+                <div className="space-y-4">
+                  {jobCrew.map(member => (
+                    <div key={member.id} className="flex items-center gap-4">
+                      <Avatar>
+                        <AvatarImage src={member.avatarUrl} alt={member.name} />
+                        <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <p className="font-medium">{member.name}</p>
+                        <p className="text-sm text-muted-foreground">{member.type}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">No crew assigned.</p>
+              )}
+            </CardContent>
+          </Card>
            
            <Card>
             <CardHeader className="flex flex-row items-center justify-between">
@@ -383,7 +420,7 @@ export function JobDetails({
                     </DialogHeader>
                     <AddInvoiceForm 
                         jobId={job.id}
-                        existingInvoices={job.invoices}
+                        existingInvoices={job.invoices || []}
                         origins={invoiceOrigins}
                         onSuccess={() => handleInvoiceSuccess('add')} 
                     />
@@ -391,7 +428,7 @@ export function JobDetails({
             </Dialog>
             </CardHeader>
             <CardContent>
-              {job.invoices.length > 0 ? (
+              {(job.invoices || []).length > 0 ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -435,14 +472,14 @@ export function JobDetails({
                     <AddAdjustmentForm 
                         jobId={job.id}
                         settings={settings}
-                        existingAdjustments={job.adjustments}
+                        existingAdjustments={job.adjustments || []}
                         onSuccess={() => handleAdjustmentSuccess('add')} 
                     />
                 </DialogContent>
             </Dialog>
             </CardHeader>
             <CardContent>
-              {job.adjustments.length > 0 ? (
+              {(job.adjustments || []).length > 0 ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -488,7 +525,7 @@ export function JobDetails({
                 </DialogHeader>
                 <AddInvoiceForm 
                     jobId={job.id}
-                    existingInvoices={job.invoices}
+                    existingInvoices={job.invoices || []}
                     origins={invoiceOrigins}
                     onSuccess={() => handleInvoiceSuccess(invoiceModal.item ? 'edit' : 'add')} 
                     invoiceToEdit={invoiceModal.item!}
@@ -505,7 +542,7 @@ export function JobDetails({
                 <AddAdjustmentForm 
                     jobId={job.id}
                     settings={settings}
-                    existingAdjustments={job.adjustments}
+                    existingAdjustments={job.adjustments || []}
                     onSuccess={() => handleAdjustmentSuccess(adjustmentModal.item ? 'edit' : 'add')}
                     adjustmentToEdit={adjustmentModal.item!}
                 />
@@ -514,7 +551,3 @@ export function JobDetails({
     </div>
   );
 }
-
-    
-
-    
