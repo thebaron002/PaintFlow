@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/page-header";
 import {
   Card,
@@ -41,6 +41,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { Job } from "@/app/lib/types";
+import { useFirestore, updateDocumentNonBlocking } from "@/firebase";
+import { doc } from "firebase/firestore";
 
 export function JobDetails({
   job,
@@ -49,8 +51,31 @@ export function JobDetails({
   job: Job;
   jobTitle: string;
 }) {
+  const firestore = useFirestore();
   const [status, setStatus] = useState<Job["status"]>(job.status);
   const jobStatuses: Job["status"][] = ["Not Started", "In Progress", "Complete", "Open Payment", "Finalized"];
+
+  useEffect(() => {
+    setStatus(job.status);
+  }, [job.status]);
+  
+  const handleStatusChange = (newStatus: Job["status"]) => {
+    if (!firestore || newStatus === status) return;
+    
+    setStatus(newStatus); // Optimistic UI update
+
+    const jobRef = doc(firestore, 'jobs', job.id);
+    let updatedData: Partial<Job> = { status: newStatus };
+
+    // If status is changed to 'Complete' and it wasn't before, set the deadline
+    if (newStatus === 'Complete' && job.status !== 'Complete') {
+        updatedData.deadline = new Date().toISOString();
+    }
+    
+    updateDocumentNonBlocking(jobRef, updatedData);
+  }
+
+  const isCompleted = job.status === 'Complete' || job.status === 'Finalized';
 
   return (
     <div>
@@ -114,7 +139,7 @@ export function JobDetails({
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">End Date</p>
                   <p className="text-lg font-semibold">
-                    {format(new Date(job.deadline), "MMMM dd, yyyy")}
+                    {isCompleted ? format(new Date(job.deadline), "MMMM dd, yyyy") : 'In Progress'}
                   </p>
                 </div>
               </div>
@@ -210,7 +235,7 @@ export function JobDetails({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56">
                   {jobStatuses.map((s) => (
-                    <DropdownMenuItem key={s} onSelect={() => setStatus(s)}>
+                    <DropdownMenuItem key={s} onSelect={() => handleStatusChange(s)}>
                       {s}
                     </DropdownMenuItem>
                   ))}
@@ -277,3 +302,5 @@ export function JobDetails({
     </div>
   );
 }
+
+    
