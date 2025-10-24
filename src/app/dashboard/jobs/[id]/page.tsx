@@ -28,9 +28,11 @@ export default function JobDetailsPage() {
                 <div className="lg:col-span-2 grid gap-6">
                     <Skeleton className="h-48" />
                     <Skeleton className="h-48" />
+                    <Skeleton className="h-48" />
                 </div>
                 <div className="lg:col-span-1 grid gap-6">
                     <Skeleton className="h-24" />
+                    <Skeleton className="h-48" />
                     <Skeleton className="h-40" />
                     <Skeleton className="h-40" />
                 </div>

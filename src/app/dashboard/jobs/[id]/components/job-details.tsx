@@ -57,13 +57,14 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar as DayPicker } from "@/components/ui/calendar";
-import type { Job, GeneralSettings } from "@/app/lib/types";
+import type { Job, GeneralSettings, Expense } from "@/app/lib/types";
 import { useCollection, useDoc, useFirestore, useMemoFirebase, updateDocumentNonBlocking } from "@/firebase";
-import { collection, doc } from "firebase/firestore";
+import { collection, doc, query, where } from "firebase/firestore";
 import { AddInvoiceForm } from "./add-invoice-form";
 import { AddAdjustmentForm } from "./add-adjustment-form";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { JobAnalysisCard } from "./job-analysis-card";
 
 const adjustmentIcons = {
   Time: Clock,
@@ -105,6 +106,12 @@ export function JobDetails({
   }, [firestore]);
   const { data: settings } = useDoc<GeneralSettings>(settingsRef);
   const globalHourlyRate = settings?.hourlyRate ?? 0;
+  
+  const expensesQuery = useMemoFirebase(() => {
+    if (!firestore || !job.id) return null;
+    return query(collection(firestore, 'expenses'), where('jobId', '==', job.id));
+  }, [firestore, job.id]);
+  const { data: expenses } = useCollection<Expense>(expensesQuery);
 
   useEffect(() => {
     setCurrentStatus(job.status);
@@ -246,49 +253,9 @@ export function JobDetails({
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Financials</CardTitle>
-            </CardHeader>
-            <CardContent className="grid sm:grid-cols-2 gap-6">
-              <div className="flex items-start gap-3">
-                <div className="bg-muted p-2 rounded-md">
-                  <DollarSign className="h-6 w-6 text-muted-foreground" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Remaining Payout</p>
-                  <p className="text-lg font-semibold">${remainingPayout.toLocaleString()}</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="bg-muted p-2 rounded-md">
-                  <DollarSign className="h-6 w-6 text-muted-foreground" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Initial Value</p>
-                  <p className="text-lg font-semibold">${job.initialValue.toLocaleString()}</p>
-                </div>
-              </div>
-               <div className="flex items-start gap-3">
-                <div className="bg-muted p-2 rounded-md">
-                  <Paintbrush className="h-6 w-6 text-muted-foreground" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Ideal Material Cost</p>
-                  <p className="text-lg font-semibold">${job.idealMaterialCost.toLocaleString()}</p>
-                </div>
-              </div>
-               <div className="flex items-start gap-3">
-                <div className="bg-muted p-2 rounded-md">
-                  <CheckCircle className="h-6 w-6 text-muted-foreground" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Fixed Pay</p>
-                  <p className="text-lg font-semibold">{job.isFixedPay ? 'Yes' : 'No'}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          
+          <JobAnalysisCard job={job} settings={settings} expenses={expenses} />
+
            <Card>
             <CardHeader>
               <CardTitle>Scheduling</CardTitle>
@@ -359,6 +326,49 @@ export function JobDetails({
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
+            </CardContent>
+          </Card>
+           <Card>
+            <CardHeader>
+              <CardTitle>Financials</CardTitle>
+            </CardHeader>
+            <CardContent className="grid sm:grid-cols-2 gap-6">
+              <div className="flex items-start gap-3">
+                <div className="bg-muted p-2 rounded-md">
+                  <DollarSign className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Remaining Payout</p>
+                  <p className="text-lg font-semibold">${remainingPayout.toLocaleString()}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="bg-muted p-2 rounded-md">
+                  <DollarSign className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Initial Value</p>
+                  <p className="text-lg font-semibold">${job.initialValue.toLocaleString()}</p>
+                </div>
+              </div>
+               <div className="flex items-start gap-3">
+                <div className="bg-muted p-2 rounded-md">
+                  <Paintbrush className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Ideal Material Cost</p>
+                  <p className="text-lg font-semibold">${job.idealMaterialCost.toLocaleString()}</p>
+                </div>
+              </div>
+               <div className="flex items-start gap-3">
+                <div className="bg-muted p-2 rounded-md">
+                  <CheckCircle className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Fixed Pay</p>
+                  <p className="text-lg font-semibold">{job.isFixedPay ? 'Yes' : 'No'}</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
            <Card>
