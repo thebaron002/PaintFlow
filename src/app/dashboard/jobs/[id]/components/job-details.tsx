@@ -34,7 +34,6 @@ import {
   PlusCircle,
   Clock,
   ChevronsUpDown,
-  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -57,9 +56,9 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar as DayPicker } from "@/components/ui/calendar";
-import type { Job, GeneralSettings, Expense } from "@/app/lib/types";
+import type { Job, GeneralSettings } from "@/app/lib/types";
 import { useCollection, useDoc, useFirestore, useMemoFirebase, updateDocumentNonBlocking } from "@/firebase";
-import { collection, doc, query, where } from "firebase/firestore";
+import { collection, doc, } from "firebase/firestore";
 import { AddInvoiceForm } from "./add-invoice-form";
 import { AddAdjustmentForm } from "./add-adjustment-form";
 import { useToast } from "@/hooks/use-toast";
@@ -106,12 +105,6 @@ export function JobDetails({
   }, [firestore]);
   const { data: settings } = useDoc<GeneralSettings>(settingsRef);
   const globalHourlyRate = settings?.hourlyRate ?? 0;
-  
-  const expensesQuery = useMemoFirebase(() => {
-    if (!firestore || !job.id) return null;
-    return query(collection(firestore, 'expenses'), where('jobId', '==', job.id));
-  }, [firestore, job.id]);
-  const { data: expenses } = useCollection<Expense>(expensesQuery);
 
   useEffect(() => {
     setCurrentStatus(job.status);
@@ -254,7 +247,7 @@ export function JobDetails({
             </CardContent>
           </Card>
           
-          <JobAnalysisCard job={job} settings={settings} expenses={expenses} />
+          <JobAnalysisCard job={job} settings={settings} />
 
            <Card>
             <CardHeader>
@@ -485,7 +478,7 @@ export function JobDetails({
       </div>
       
         {/* Edit Invoice Modal */}
-        <Dialog open={invoiceModal.isOpen && !!invoiceModal.item} onOpenChange={(isOpen) => setInvoiceModal({ isOpen, item: isOpen ? adjustmentModal.item : null })}>
+        <Dialog open={invoiceModal.isOpen && !!invoiceModal.item} onOpenChange={(isOpen) => setInvoiceModal({ isOpen, item: isOpen ? invoiceModal.item : null })}>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Edit Invoice</DialogTitle>
@@ -518,5 +511,3 @@ export function JobDetails({
     </div>
   );
 }
-
-    

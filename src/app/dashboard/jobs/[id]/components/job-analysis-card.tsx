@@ -1,6 +1,7 @@
+
 "use client";
 
-import type { Job, GeneralSettings, Expense } from "@/app/lib/types";
+import type { Job, GeneralSettings } from "@/app/lib/types";
 import {
   Card,
   CardContent,
@@ -8,12 +9,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { Activity, TrendingDown, TrendingUp, Percent, ClipboardList, Thermometer } from "lucide-react";
+import { Activity, TrendingDown, TrendingUp, ClipboardList } from "lucide-react";
 
 interface JobAnalysisCardProps {
   job: Job;
   settings: GeneralSettings | null;
-  expenses: Expense[] | null;
 }
 
 const StatItem = ({ icon: Icon, label, value, valueColor, subtext }: { icon: React.ElementType, label: string, value: string, valueColor?: string, subtext?: string }) => (
@@ -29,25 +29,31 @@ const StatItem = ({ icon: Icon, label, value, valueColor, subtext }: { icon: Rea
     </div>
 );
 
-export function JobAnalysisCard({ job, settings, expenses }: JobAnalysisCardProps) {
-  // 1. Calculate Total Material Cost from expenses
-  const materialCost = expenses
-    ?.filter((exp) => exp.category === "Materials")
-    .reduce((sum, exp) => sum + exp.amount, 0) ?? 0;
+export function JobAnalysisCard({ job, settings }: JobAnalysisCardProps) {
+  // 1. Calculate Total Material Cost from adjustments
+  const materialCost = job.adjustments
+    ?.filter((adj) => adj.type === "Material")
+    .reduce((sum, adj) => sum + adj.value, 0) ?? 0;
 
-  // 2. Calculate Total Adjustments value
+  // 2. Calculate Total Adjustments value (for profit calculation)
   const globalHourlyRate = settings?.hourlyRate ?? 0;
-  const totalAdjustments = job.adjustments?.reduce((sum, adj) => {
+  const totalAdjustmentsValue = job.adjustments?.reduce((sum, adj) => {
     if (adj.type === "Time") {
       const rate = adj.hourlyRate ?? globalHourlyRate;
       return sum + adj.value * rate;
     }
+    // Note: We only add Material value here if it's meant to be passed on to the client
+    // For profit calculation, we subtract materialCost later.
+    // General adjustments can be positive or negative.
     return sum + adj.value;
   }, 0) ?? 0;
 
   // 3. Calculate Profit
-  const finalValue = job.initialValue + totalAdjustments;
-  const profit = finalValue - materialCost;
+  const finalValue = job.initialValue + totalAdjustmentsValue;
+  // Let's refine profit. It should be what is paid out minus the costs.
+  // Payout includes adjustments. The cost is the material cost that isn't charged back.
+  // The current `materialCost` logic assumes materials are an expense against profit.
+  const profit = (job.initialValue + totalAdjustmentsValue) - materialCost;
 
   // 4. Calculate Daily Profit
   const dailyPayTarget = settings?.dailyPayTarget ?? 0;
@@ -72,7 +78,7 @@ export function JobAnalysisCard({ job, settings, expenses }: JobAnalysisCardProp
         <StatItem 
             icon={Activity} 
             label="Profit" 
-            value={`$${profit.toLocaleString()}`} 
+            value={`$${profit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
         />
         <StatItem
             icon={dailyProfitIcon}
