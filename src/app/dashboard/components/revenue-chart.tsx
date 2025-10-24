@@ -1,3 +1,4 @@
+
 "use client"
 
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
@@ -7,8 +8,10 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart"
 import type { Job } from "@/app/lib/types";
-import { subWeeks, startOfWeek, endOfWeek, isWithinInterval, startOfMonth, endOfMonth, isFuture } from "date-fns"
+import { subWeeks, startOfWeek, endOfWeek, isWithinInterval, startOfMonth, endOfMonth, isFuture, parseISO } from "date-fns"
 import { Skeleton } from "@/components/ui/skeleton";
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { collection, Timestamp } from "firebase/firestore";
 
 const chartConfig = {
   amount: {
@@ -18,8 +21,13 @@ const chartConfig = {
 }
 
 export function RevenueChart() {
-  const isLoading = false;
-  const jobs: Job[] | null = [];
+  const firestore = useFirestore();
+  const jobsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'jobs');
+  }, [firestore]);
+
+  const { data: jobs, isLoading } = useCollection<Job>(jobsQuery);
 
   if (isLoading) {
     return (
@@ -33,12 +41,18 @@ export function RevenueChart() {
 
   const now = new Date();
 
+  const getDate = (date: string | Date | Timestamp) => {
+    if (date instanceof Timestamp) return date.toDate();
+    if (typeof date === 'string') return parseISO(date);
+    return date as Date;
+  }
+
   // 1. Last Week's Revenue
   const lastWeekStart = startOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
   const lastWeekEnd = endOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
   const lastWeekRevenue = jobs
     ?.filter(job => {
-      const jobDate = new Date(job.deadline);
+      const jobDate = getDate(job.deadline);
       const status = job.status as string; // Cast status to string
       return (status === 'Complete' || status === 'Finalized') && isWithinInterval(jobDate, { start: lastWeekStart, end: lastWeekEnd });
     })
@@ -49,14 +63,17 @@ export function RevenueChart() {
   const monthEnd = endOfMonth(now);
   const thisMonthForecast = jobs
     ?.filter(job => {
-      const jobDate = new Date(job.deadline);
+      const jobDate = getDate(job.deadline);
       return isWithinInterval(jobDate, { start: monthStart, end: monthEnd });
     })
     .reduce((sum, job) => sum + job.budget, 0) || 0;
 
   // 3. Future Scheduled Jobs
   const futureJobsValue = jobs
-    ?.filter(job => isFuture(new Date(job.deadline)) && !isWithinInterval(new Date(job.deadline), { start: monthStart, end: monthEnd }))
+    ?.filter(job => {
+        const jobDate = getDate(job.deadline);
+        return isFuture(jobDate) && !isWithinInterval(jobDate, { start: monthStart, end: monthEnd })
+    })
     .reduce((sum, job) => sum + job.budget, 0) || 0;
   
   const chartData = [

@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -22,15 +23,50 @@ import type { Job, Client } from "@/app/lib/types";
 import { Briefcase, DollarSign, CalendarCheck, MapPin } from "lucide-react";
 import { RevenueChart } from "./components/revenue-chart";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { collection, query, where, Timestamp } from "firebase/firestore";
+import { isThisMonth, isAfter, parseISO } from "date-fns";
+
 
 export default function DashboardPage() {
-  const isLoading = false;
-  const totalRevenue = 0;
-  const activeJobs: Job[] = [];
-  const jobsCompletedThisMonth = 0;
-  const percentChange = 0;
-  const upcomingJobs: Job[] = [];
-  const clients: Client[] = [];
+  const firestore = useFirestore();
+
+  const jobsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'jobs');
+  }, [firestore]);
+
+  const clientsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'clients');
+  }, [firestore]);
+
+  const { data: jobs, isLoading: isLoadingJobs } = useCollection<Job>(jobsQuery);
+  const { data: clients, isLoading: isLoadingClients } = useCollection<Client>(clientsQuery);
+  const isLoading = isLoadingJobs || isLoadingClients;
+
+  const totalRevenue = jobs
+    ?.filter(job => job.status === 'Complete' || job.status === 'Finalized')
+    .reduce((sum, job) => sum + job.budget, 0) || 0;
+
+  const activeJobs = jobs?.filter(job => job.status === 'In Progress') || [];
+
+  const jobsCompletedThisMonth = jobs?.filter(job => {
+    const jobDate = typeof job.deadline === 'string' ? parseISO(job.deadline) : (job.deadline as unknown as Timestamp).toDate();
+    return (job.status === 'Complete' || job.status === 'Finalized') && isThisMonth(jobDate);
+  }).length || 0;
+
+  // For now, percent change is a placeholder
+  const percentChange = 0; 
+  
+  const upcomingJobs = jobs
+    ?.filter(job => job.status === 'Not Started' || job.status === 'In Progress')
+    .sort((a, b) => {
+        const dateA = typeof a.deadline === 'string' ? parseISO(a.deadline) : (a.deadline as unknown as Timestamp).toDate();
+        const dateB = typeof b.deadline === 'string' ? parseISO(b.deadline) : (b.deadline as unknown as Timestamp).toDate();
+        return dateA.getTime() - dateB.getTime();
+    })
+    .slice(0, 5) || [];
 
 
   return (
