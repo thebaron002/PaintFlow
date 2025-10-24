@@ -1,26 +1,52 @@
 "use client";
 
-import { notFound } from "next/navigation";
 import { JobDetails } from "./components/job-details";
 import type { Job, Client } from "@/app/lib/types";
-import { jobs as jobsData, clients as clientsData } from "@/app/lib/data";
+import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
+import { doc } from "firebase/firestore";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function JobDetailsPage({ params }: { params: { id: string } }) {
   const { id } = params;
-  const isLoading = false;
+  const firestore = useFirestore();
 
-  // In a real app, you would fetch this data. Here we simulate it.
-  const job = jobsData.find(j => j.id === id);
-  const client = job ? clientsData.find(c => c.id === job.clientId) : undefined;
-  
+  const jobRef = useMemoFirebase(() => {
+    if (!firestore || !id) return null;
+    return doc(firestore, "jobs", id);
+  }, [firestore, id]);
+
+  const { data: job, isLoading: isLoadingJob } = useDoc<Job>(jobRef);
+
+  const clientRef = useMemoFirebase(() => {
+    if (!firestore || !job?.clientId) return null;
+    return doc(firestore, "clients", job.clientId);
+  }, [firestore, job?.clientId]);
+
+  const { data: client, isLoading: isLoadingClient } = useDoc<Client>(clientRef);
+
+  const isLoading = isLoadingJob || isLoadingClient;
+
   if (isLoading) {
-    return <div>Loading...</div>; // TODO: Add a proper skeleton loader
+    return (
+        <div className="p-4 sm:px-6 sm:py-0">
+            <Skeleton className="h-10 w-64 mb-8" />
+            <div className="grid gap-6 lg:grid-cols-3">
+                <div className="lg:col-span-2 grid gap-6">
+                    <Skeleton className="h-48" />
+                    <Skeleton className="h-48" />
+                </div>
+                <div className="lg:col-span-1 grid gap-6">
+                    <Skeleton className="h-24" />
+                    <Skeleton className="h-40" />
+                    <Skeleton className="h-40" />
+                </div>
+            </div>
+      </div>
+    );
   }
 
   if (!job) {
-    // If we still don't have a job, return a not found page.
-    // This can happen if the ID is invalid.
-    const staticJob: Job = {
+     const staticJob: Job = {
         id: 'job-not-found',
         title: "Job Not Found",
         workOrderNumber: "N/A",
