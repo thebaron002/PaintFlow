@@ -8,7 +8,7 @@ import { doc } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function JobDetailsPage({ params }: { params: { id: string } }) {
-  const { id } = params;
+  const id = params.id;
   const firestore = useFirestore();
 
   const jobRef = useMemoFirebase(() => {
