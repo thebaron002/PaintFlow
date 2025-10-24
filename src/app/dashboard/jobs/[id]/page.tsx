@@ -63,7 +63,7 @@ export default function JobDetailsPage() {
     return <JobDetails job={staticJob} jobTitle="Job Not Found" />;
   }
   
-  const clientLastName = job.clientName.split(" ").pop() || "N/A";
+  const clientLastName = (job.clientName || "").split(" ").pop() || "N/A";
   const jobTitle = `${clientLastName} #${job.workOrderNumber}`;
 
   return <JobDetails job={job} jobTitle={jobTitle} />;
