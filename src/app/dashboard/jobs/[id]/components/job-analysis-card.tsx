@@ -9,7 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { Activity, TrendingDown, TrendingUp, ClipboardList } from "lucide-react";
+import { Activity, TrendingDown, TrendingUp } from "lucide-react";
 
 interface JobAnalysisCardProps {
   job: Job;
@@ -44,10 +44,10 @@ export function JobAnalysisCard({ job, settings }: JobAnalysisCardProps) {
     return sum + adj.value;
   }, 0) ?? 0;
 
-  // 3. Calculate Profit. This should be the total amount paid/payable to you minus your costs.
-  // The client pays initialValue + totalAdjustmentsValue.
-  // The cost is materialCost.
-  const totalRevenue = job.initialValue + totalAdjustmentsValue;
+  // 3. Calculate Profit.
+  // If fixed pay, profit is based on initialValue. Otherwise, it's based on budget.
+  const baseValue = job.isFixedPay ? job.initialValue : job.budget;
+  const totalRevenue = baseValue + totalAdjustmentsValue;
   const profit = totalRevenue - materialCost;
 
   // 4. Calculate Daily Profit
@@ -59,6 +59,7 @@ export function JobAnalysisCard({ job, settings }: JobAnalysisCardProps) {
 
   // 5. Calculate Material Usage Percentage
   const idealMaterialCostPercentage = settings?.idealMaterialCostPercentage ?? 0;
+  // Material usage should be compared against the initial value, as that's the base contract.
   const materialUsagePercentage = job.initialValue > 0 ? (materialCost / job.initialValue) * 100 : 0;
   const materialUsageColor = materialUsagePercentage > idealMaterialCostPercentage ? "text-red-600" : "text-green-600";
   const materialUsageIcon = materialUsagePercentage > idealMaterialCostPercentage ? TrendingDown : TrendingUp;
@@ -104,4 +105,3 @@ export function JobAnalysisCard({ job, settings }: JobAnalysisCardProps) {
     </Card>
   );
 }
-

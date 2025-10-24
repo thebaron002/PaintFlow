@@ -34,7 +34,6 @@ import {
   PlusCircle,
   Clock,
   ChevronsUpDown,
-  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -65,7 +64,6 @@ import { AddAdjustmentForm } from "./add-adjustment-form";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { JobAnalysisCard } from "./job-analysis-card";
-import Image from "next/image";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -195,7 +193,8 @@ export function JobDetails({
     return sum + adj.value;
   }, 0) ?? 0;
 
-  const remainingPayout = job.budget - totalInvoiced + totalAdjustments;
+  const baseValue = job.isFixedPay ? job.initialValue : job.budget;
+  const remainingPayout = baseValue - totalInvoiced + totalAdjustments;
 
   return (
     <div>
@@ -578,5 +577,3 @@ export function JobDetails({
     </div>
   );
 }
-
-    
