@@ -24,7 +24,7 @@ export type Job = {
   productionDays: string[]; // Array of ISO date strings
   isFixedPay: boolean;
   // invoice and adjustment types will be simple for now
-  invoices: { id: string; amount: number; date: string; }[];
+  invoices: { id: string; origin: string; amount: number; date: string; notes?: string; }[];
   adjustments: { id: string; reason: string; amount: number; }[];
 };
 

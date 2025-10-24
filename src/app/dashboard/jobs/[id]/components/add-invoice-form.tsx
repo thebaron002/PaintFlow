@@ -1,0 +1,160 @@
+
+"use client";
+
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { v4 as uuidv4 } from 'uuid';
+
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CalendarIcon } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { useFirestore, updateDocumentNonBlocking } from "@/firebase";
+import { doc } from "firebase/firestore";
+import type { Job } from "@/app/lib/types";
+import { Combobox } from "@/components/ui/combobox";
+
+const invoiceSchema = z.object({
+  origin: z.string().min(1, "Origin is required."),
+  date: z.date({ required_error: "Invoice date is required." }),
+  amount: z.coerce.number().min(0.01, "Amount must be greater than 0."),
+  notes: z.string().optional(),
+});
+
+type InvoiceFormValues = z.infer<typeof invoiceSchema>;
+
+interface AddInvoiceFormProps {
+  jobId: string;
+  existingInvoices: Job['invoices'];
+  origins: string[];
+  onSuccess: () => void;
+}
+
+export function AddInvoiceForm({ jobId, existingInvoices, origins, onSuccess }: AddInvoiceFormProps) {
+  const firestore = useFirestore();
+
+  const form = useForm<InvoiceFormValues>({
+    resolver: zodResolver(invoiceSchema),
+    defaultValues: {
+      origin: "",
+      amount: 0,
+      notes: "",
+    },
+  });
+
+  const onSubmit = (data: InvoiceFormValues) => {
+    if (!firestore) return;
+
+    const newInvoice = {
+      id: uuidv4(),
+      ...data,
+      date: data.date.toISOString(),
+    };
+
+    const updatedInvoices = [...existingInvoices, newInvoice];
+
+    const jobRef = doc(firestore, 'jobs', jobId);
+    updateDocumentNonBlocking(jobRef, { invoices: updatedInvoices });
+    
+    onSuccess();
+  };
+
+  const originOptions = origins.map(o => ({ value: o, label: o }));
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4">
+        <FormField
+          control={form.control}
+          name="origin"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Origin</FormLabel>
+              <FormControl>
+                <Combobox
+                    options={originOptions}
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="Select or create origin..."
+                    emptyMessage="No origins found."
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <div className="grid grid-cols-2 gap-4">
+            <FormField
+            control={form.control}
+            name="date"
+            render={({ field }) => (
+                <FormItem className="flex flex-col">
+                <FormLabel>Date</FormLabel>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <FormControl>
+                                <Button variant="outline" className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                    {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50"/>
+                                </Button>
+                            </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus/>
+                        </PopoverContent>
+                    </Popover>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+            <FormField
+            control={form.control}
+            name="amount"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Amount</FormLabel>
+                <FormControl>
+                    <div className="relative">
+                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">$</span>
+                        <Input type="number" placeholder="0.00" className="pl-7" {...field} />
+                    </div>
+                </FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+        </div>
+
+        <FormField
+          control={form.control}
+          name="notes"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Notes (Optional)</FormLabel>
+              <FormControl>
+                <Textarea placeholder="e.g., Initial 50% deposit" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <Button type="submit" className="w-full">Add Invoice</Button>
+      </form>
+    </Form>
+  );
+}

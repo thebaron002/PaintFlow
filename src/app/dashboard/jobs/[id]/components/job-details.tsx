@@ -31,6 +31,7 @@ import {
   CheckCircle,
   Pencil,
   ChevronDown,
+  PlusCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -40,9 +41,18 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import type { Job } from "@/app/lib/types";
-import { useFirestore, updateDocumentNonBlocking } from "@/firebase";
-import { doc } from "firebase/firestore";
+import { useCollection, useFirestore, useMemoFirebase, updateDocumentNonBlocking } from "@/firebase";
+import { collection, doc } from "firebase/firestore";
+import { AddInvoiceForm } from "./add-invoice-form";
+import { useToast } from "@/hooks/use-toast";
 
 export function JobDetails({
   job,
@@ -52,8 +62,18 @@ export function JobDetails({
   jobTitle: string;
 }) {
   const firestore = useFirestore();
+  const { toast } = useToast();
   const [currentStatus, setCurrentStatus] = useState<Job["status"]>(job.status);
+  const [isInvoiceFormOpen, setIsInvoiceFormOpen] = useState(false);
   const jobStatuses: Job["status"][] = ["Not Started", "In Progress", "Complete", "Open Payment", "Finalized"];
+
+  const jobsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'jobs');
+  }, [firestore]);
+  const { data: allJobs } = useCollection<Job>(jobsQuery);
+  const invoiceOrigins = [...new Set(allJobs?.flatMap(j => j.invoices?.map(i => i.origin)).filter(Boolean) ?? [])];
+
 
   useEffect(() => {
     setCurrentStatus(job.status);
@@ -64,18 +84,23 @@ export function JobDetails({
     
     let updatedData: Partial<Job> = { status: newStatus };
 
-    // If status is changed to 'Complete' and it wasn't before, set the deadline.
-    // This preserves the date if moving from 'Complete' to 'Open Payment' or 'Finalized'.
-    if (newStatus === 'Complete' && job.status !== 'Complete') {
+    if (newStatus === 'Complete' && job.status !== 'Complete' && job.status !== 'Open Payment' && job.status !== 'Finalized') {
         updatedData.deadline = new Date().toISOString();
     }
     
-    // Optimistically update the local state to give immediate feedback
     setCurrentStatus(newStatus); 
 
     const jobRef = doc(firestore, 'jobs', job.id);
     updateDocumentNonBlocking(jobRef, updatedData);
   }
+
+  const handleInvoiceAdded = () => {
+    setIsInvoiceFormOpen(false);
+    toast({
+        title: "Invoice Added",
+        description: "The new invoice has been added to this job.",
+    });
+  };
 
   const getEndDateDisplay = () => {
     switch(job.status) {
@@ -259,14 +284,34 @@ export function JobDetails({
             </CardContent>
           </Card>
            <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Invoices</CardTitle>
+               <Dialog open={isInvoiceFormOpen} onOpenChange={setIsInvoiceFormOpen}>
+                <DialogTrigger asChild>
+                    <Button size="sm" variant="outline">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Add
+                    </Button>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Add New Invoice</DialogTitle>
+                    </DialogHeader>
+                    <AddInvoiceForm 
+                        jobId={job.id}
+                        existingInvoices={job.invoices}
+                        origins={invoiceOrigins}
+                        onSuccess={handleInvoiceAdded} 
+                    />
+                </DialogContent>
+            </Dialog>
             </CardHeader>
             <CardContent>
               {job.invoices.length > 0 ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead>Origin</TableHead>
                       <TableHead>Date</TableHead>
                       <TableHead className="text-right">Amount</TableHead>
                     </TableRow>
@@ -274,6 +319,10 @@ export function JobDetails({
                   <TableBody>
                     {job.invoices.map((invoice) => (
                       <TableRow key={invoice.id}>
+                        <TableCell>
+                            <div className="font-medium">{invoice.origin}</div>
+                            {invoice.notes && <div className="text-xs text-muted-foreground">{invoice.notes}</div>}
+                        </TableCell>
                         <TableCell>{format(new Date(invoice.date), "MMM dd, yyyy")}</TableCell>
                         <TableCell className="text-right">${invoice.amount.toLocaleString()}</TableCell>
                       </TableRow>
@@ -281,7 +330,7 @@ export function JobDetails({
                   </TableBody>
                 </Table>
               ) : (
-                <p className="text-sm text-muted-foreground text-center">No invoices yet.</p>
+                <p className="text-sm text-muted-foreground text-center py-4">No invoices yet.</p>
               )}
             </CardContent>
           </Card>
