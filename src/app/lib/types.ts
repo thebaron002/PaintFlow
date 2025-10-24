@@ -31,6 +31,7 @@ export type Job = {
     type: AdjustmentType;
     description: string; 
     value: number; 
+    hourlyRate?: number; // The hourly rate at the time of adjustment for 'Time' type
   }[];
 };
 

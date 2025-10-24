@@ -42,7 +42,8 @@
               "id": {"type": "string"},
               "type": { "type": "string", "enum": ["Time", "Material", "General"]},
               "description": {"type": "string"},
-              "value": {"type": "number"}
+              "value": {"type": "number"},
+              "hourlyRate": {"type": "number", "description": "The hourly rate at the time of a 'Time' adjustment."}
             }
           } 
         }

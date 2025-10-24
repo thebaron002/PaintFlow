@@ -57,6 +57,7 @@ import { collection, doc } from "firebase/firestore";
 import { AddInvoiceForm } from "./add-invoice-form";
 import { AddAdjustmentForm } from "./add-adjustment-form";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 const adjustmentIcons = {
   Time: Clock,
@@ -96,7 +97,7 @@ export function JobDetails({
     return doc(firestore, "settings", "global");
   }, [firestore]);
   const { data: settings } = useDoc<GeneralSettings>(settingsRef);
-  const hourlyRate = settings?.hourlyRate ?? 0;
+  const globalHourlyRate = settings?.hourlyRate ?? 0;
 
   useEffect(() => {
     setCurrentStatus(job.status);
@@ -152,7 +153,8 @@ export function JobDetails({
   
   const totalAdjustments = job.adjustments?.reduce((sum, adj) => {
     if (adj.type === 'Time') {
-      return sum + (adj.value * hourlyRate);
+      const rate = adj.hourlyRate ?? globalHourlyRate;
+      return sum + (adj.value * rate);
     }
     return sum + adj.value;
   }, 0) ?? 0;
@@ -392,6 +394,7 @@ export function JobDetails({
                     </DialogHeader>
                     <AddAdjustmentForm 
                         jobId={job.id}
+                        settings={settings}
                         existingAdjustments={job.adjustments}
                         onSuccess={() => handleAdjustmentSuccess('add')} 
                     />
@@ -410,7 +413,8 @@ export function JobDetails({
                   <TableBody>
                     {job.adjustments.map((adj) => {
                       const Icon = adjustmentIcons[adj.type];
-                      const amount = adj.type === 'Time' ? adj.value * hourlyRate : adj.value;
+                      const rate = adj.hourlyRate ?? globalHourlyRate;
+                      const amount = adj.type === 'Time' ? adj.value * rate : adj.value;
                       const sign = amount >= 0 ? '+' : '-';
                       const color = amount >= 0 ? 'text-green-600' : 'text-red-600';
 
@@ -420,10 +424,10 @@ export function JobDetails({
                            <Icon className="h-4 w-4 text-muted-foreground" />
                            <div>
                             <div className="font-medium">{adj.description}</div>
-                            {adj.type === 'Time' && <div className="text-xs text-muted-foreground">{adj.value} hrs @ ${hourlyRate}/hr</div>}
+                            {adj.type === 'Time' && <div className="text-xs text-muted-foreground">{adj.value} hrs @ ${rate}/hr</div>}
                            </div>
                         </TableCell>
-                        <TableCell className={`text-right font-semibold ${color}`}>{sign} ${Math.abs(amount).toLocaleString()}</TableCell>
+                        <TableCell className={cn("text-right font-semibold", color)}>{sign} ${Math.abs(amount).toLocaleString()}</TableCell>
                       </TableRow>
                     )})}
                   </TableBody>
@@ -460,6 +464,7 @@ export function JobDetails({
                 </DialogHeader>
                 <AddAdjustmentForm 
                     jobId={job.id}
+                    settings={settings}
                     existingAdjustments={job.adjustments}
                     onSuccess={() => handleAdjustmentSuccess(adjustmentModal.item ? 'edit' : 'add')}
                     adjustmentToEdit={adjustmentModal.item!}
