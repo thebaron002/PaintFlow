@@ -193,8 +193,9 @@ export function JobDetails({
     return sum + adj.value;
   }, 0) ?? 0;
 
-  const baseValue = job.isFixedPay ? job.initialValue : job.budget;
-  const remainingPayout = baseValue - totalInvoiced + totalAdjustments;
+  const remainingPayout = job.isFixedPay 
+    ? (job.initialValue || 0) + totalAdjustments
+    : (job.budget || 0) - totalInvoiced + totalAdjustments;
 
   return (
     <div>
@@ -577,3 +578,5 @@ export function JobDetails({
     </div>
   );
 }
+
+    
