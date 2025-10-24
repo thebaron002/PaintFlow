@@ -42,18 +42,15 @@ export function JobAnalysisCard({ job, settings }: JobAnalysisCardProps) {
       const rate = adj.hourlyRate ?? globalHourlyRate;
       return sum + adj.value * rate;
     }
-    // Note: We only add Material value here if it's meant to be passed on to the client
-    // For profit calculation, we subtract materialCost later.
-    // General adjustments can be positive or negative.
+    // General adjustments can be positive or negative. Material adjustments are added to the payout.
     return sum + adj.value;
   }, 0) ?? 0;
 
-  // 3. Calculate Profit
-  const finalValue = job.initialValue + totalAdjustmentsValue;
-  // Let's refine profit. It should be what is paid out minus the costs.
-  // Payout includes adjustments. The cost is the material cost that isn't charged back.
-  // The current `materialCost` logic assumes materials are an expense against profit.
-  const profit = (job.initialValue + totalAdjustmentsValue) - materialCost;
+  // 3. Calculate Profit. This should be the total amount paid/payable to you minus your costs.
+  // The client pays initialValue + totalAdjustmentsValue.
+  // The cost is materialCost (assuming you pay for materials out of pocket initially).
+  const totalRevenue = job.initialValue + totalAdjustmentsValue;
+  const profit = totalRevenue - materialCost;
 
   // 4. Calculate Daily Profit
   const dailyPayTarget = settings?.dailyPayTarget ?? 0;
