@@ -40,8 +40,9 @@
             "type": "object",
             "properties": {
               "id": {"type": "string"},
-              "reason": {"type": "string"},
-              "amount": {"type": "number"}
+              "type": { "type": "string", "enum": ["Time", "Material", "General"]},
+              "description": {"type": "string"},
+              "value": {"type": "number"}
             }
           } 
         }
@@ -81,7 +82,8 @@
       "description": "Global settings for the application.",
       "properties": {
         "dailyPayTarget": { "type": "number", "description": "The target daily pay for profitability calculations." },
-        "idealMaterialCostPercentage": { "type": "number", "description": "The ideal percentage of the job budget to be spent on materials." }
+        "idealMaterialCostPercentage": { "type": "number", "description": "The ideal percentage of the job budget to be spent on materials." },
+        "hourlyRate": { "type": "number", "description": "The default hourly rate for 'Time' adjustments." }
       }
     }
   },

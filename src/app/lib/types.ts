@@ -7,6 +7,8 @@ export type Client = {
   avatarUrl: string;
 };
 
+export type AdjustmentType = 'Time' | 'Material' | 'General';
+
 export type Job = {
   id: string;
   title: string;
@@ -23,9 +25,13 @@ export type Job = {
   idealNumberOfDays: number;
   productionDays: string[]; // Array of ISO date strings
   isFixedPay: boolean;
-  // invoice and adjustment types will be simple for now
   invoices: { id: string; origin: string; amount: number; date: string; notes?: string; }[];
-  adjustments: { id: string; reason: string; amount: number; }[];
+  adjustments: { 
+    id: string; 
+    type: AdjustmentType;
+    description: string; 
+    value: number; 
+  }[];
 };
 
 export type Expense = {
@@ -49,4 +55,5 @@ export type GeneralSettings = {
   id: 'global'; // Singleton document
   dailyPayTarget: number;
   idealMaterialCostPercentage: number;
+  hourlyRate: number;
 };

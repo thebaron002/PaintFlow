@@ -31,6 +31,7 @@ export default function SettingsPage() {
     id: "global",
     dailyPayTarget: 300,
     idealMaterialCostPercentage: 20,
+    hourlyRate: 50,
   };
 
   return (

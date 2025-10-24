@@ -32,6 +32,8 @@ import {
   Pencil,
   ChevronDown,
   PlusCircle,
+  Clock,
+  ChevronsUpDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -48,11 +50,18 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import type { Job } from "@/app/lib/types";
-import { useCollection, useFirestore, useMemoFirebase, updateDocumentNonBlocking } from "@/firebase";
+import type { Job, GeneralSettings } from "@/app/lib/types";
+import { useCollection, useDoc, useFirestore, useMemoFirebase, updateDocumentNonBlocking } from "@/firebase";
 import { collection, doc } from "firebase/firestore";
 import { AddInvoiceForm } from "./add-invoice-form";
+import { AddAdjustmentForm } from "./add-adjustment-form";
 import { useToast } from "@/hooks/use-toast";
+
+const adjustmentIcons = {
+  Time: Clock,
+  Material: Paintbrush,
+  General: ChevronsUpDown,
+};
 
 export function JobDetails({
   job,
@@ -65,6 +74,7 @@ export function JobDetails({
   const { toast } = useToast();
   const [currentStatus, setCurrentStatus] = useState<Job["status"]>(job.status);
   const [isInvoiceFormOpen, setIsInvoiceFormOpen] = useState(false);
+  const [isAdjustmentFormOpen, setIsAdjustmentFormOpen] = useState(false);
   const jobStatuses: Job["status"][] = ["Not Started", "In Progress", "Complete", "Open Payment", "Finalized"];
 
   const jobsQuery = useMemoFirebase(() => {
@@ -73,7 +83,13 @@ export function JobDetails({
   }, [firestore]);
   const { data: allJobs } = useCollection<Job>(jobsQuery);
   const invoiceOrigins = [...new Set(allJobs?.flatMap(j => j.invoices?.map(i => i.origin)).filter(Boolean) ?? [])];
-
+  
+  const settingsRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, "settings", "global");
+  }, [firestore]);
+  const { data: settings } = useDoc<GeneralSettings>(settingsRef);
+  const hourlyRate = settings?.hourlyRate ?? 0;
 
   useEffect(() => {
     setCurrentStatus(job.status);
@@ -102,6 +118,14 @@ export function JobDetails({
     });
   };
 
+  const handleAdjustmentAdded = () => {
+    setIsAdjustmentFormOpen(false);
+    toast({
+        title: "Adjustment Added",
+        description: "The new adjustment has been added to this job.",
+    });
+  };
+
   const getEndDateDisplay = () => {
     switch(job.status) {
       case 'Not Started':
@@ -118,7 +142,15 @@ export function JobDetails({
   };
   
   const totalInvoiced = job.invoices?.reduce((sum, invoice) => sum + invoice.amount, 0) ?? 0;
-  const remainingPayout = job.budget - totalInvoiced;
+  
+  const totalAdjustments = job.adjustments?.reduce((sum, adj) => {
+    if (adj.type === 'Time') {
+      return sum + (adj.value * hourlyRate);
+    }
+    return sum + adj.value;
+  }, 0) ?? 0;
+
+  const remainingPayout = job.budget - totalInvoiced + totalAdjustments;
 
   return (
     <div>
@@ -338,25 +370,55 @@ export function JobDetails({
             </CardContent>
           </Card>
           <Card>
-            <CardHeader>
+             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Adjustments</CardTitle>
+              <Dialog open={isAdjustmentFormOpen} onOpenChange={setIsAdjustmentFormOpen}>
+                <DialogTrigger asChild>
+                    <Button size="sm" variant="outline">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Add
+                    </Button>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Add New Adjustment</DialogTitle>
+                    </DialogHeader>
+                    <AddAdjustmentForm 
+                        jobId={job.id}
+                        existingAdjustments={job.adjustments}
+                        onSuccess={handleAdjustmentAdded} 
+                    />
+                </DialogContent>
+            </Dialog>
             </CardHeader>
             <CardContent>
               {job.adjustments.length > 0 ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Reason</TableHead>
+                      <TableHead>Description</TableHead>
                       <TableHead className="text-right">Amount</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {job.adjustments.map((adj) => (
+                    {job.adjustments.map((adj) => {
+                      const Icon = adjustmentIcons[adj.type];
+                      const amount = adj.type === 'Time' ? adj.value * hourlyRate : adj.value;
+                      const sign = amount >= 0 ? '+' : '-';
+                      const color = amount >= 0 ? 'text-green-600' : 'text-red-600';
+
+                      return (
                       <TableRow key={adj.id}>
-                        <TableCell>{adj.reason}</TableCell>
-                        <TableCell className="text-right">${adj.amount.toLocaleString()}</TableCell>
+                        <TableCell className="flex items-center gap-2">
+                           <Icon className="h-4 w-4 text-muted-foreground" />
+                           <div>
+                            <div className="font-medium">{adj.description}</div>
+                            {adj.type === 'Time' && <div className="text-xs text-muted-foreground">{adj.value} hrs @ ${hourlyRate}/hr</div>}
+                           </div>
+                        </TableCell>
+                        <TableCell className={`text-right font-semibold ${color}`}>{sign} ${Math.abs(amount).toLocaleString()}</TableCell>
                       </TableRow>
-                    ))}
+                    )})}
                   </TableBody>
                 </Table>
               ) : (

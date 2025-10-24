@@ -5,7 +5,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { format } from "date-fns";
-import type { Job } from "@/app/lib/types";
+import type { Job, GeneralSettings } from "@/app/lib/types";
 import { PageHeader } from "@/components/page-header";
 import {
   Table,
@@ -39,11 +39,11 @@ import {
 } from "@/components/ui/dialog";
 import { NewJobForm } from "./components/new-job-form";
 import { useToast } from "@/hooks/use-toast";
-import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
-import { collection, query, where } from "firebase/firestore";
+import { useCollection, useDoc, useFirestore, useMemoFirebase } from "@/firebase";
+import { collection, query, where, doc } from "firebase/firestore";
 
 
-const JobsTable = ({ jobs, isLoading }: { jobs: Job[] | null, isLoading: boolean }) => {
+const JobsTable = ({ jobs, isLoading, hourlyRate }: { jobs: Job[] | null, isLoading: boolean, hourlyRate: number }) => {
   if (isLoading) {
     return (
       <Card>
@@ -118,7 +118,14 @@ const JobsTable = ({ jobs, isLoading }: { jobs: Job[] | null, isLoading: boolean
               const clientLastName = job.clientName.split(" ").pop() || "N/A";
               const jobTitle = `${clientLastName} #${job.workOrderNumber}`;
               const totalInvoiced = job.invoices?.reduce((sum, invoice) => sum + invoice.amount, 0) ?? 0;
-              const remainingPayout = job.budget - totalInvoiced;
+              const totalAdjustments = job.adjustments?.reduce((sum, adj) => {
+                if (adj.type === 'Time') {
+                  return sum + (adj.value * hourlyRate);
+                }
+                return sum + adj.value;
+              }, 0) ?? 0;
+              const remainingPayout = job.budget - totalInvoiced + totalAdjustments;
+
               return (
                 <TableRow key={job.id}>
                   <TableCell className="hidden sm:table-cell">
@@ -173,7 +180,7 @@ const JobsTable = ({ jobs, isLoading }: { jobs: Job[] | null, isLoading: boolean
   )
 };
 
-const JobsTabContent = ({ status }: { status: Job["status"] }) => {
+const JobsTabContent = ({ status, hourlyRate }: { status: Job["status"], hourlyRate: number }) => {
   const firestore = useFirestore();
   
   const jobsQuery = useMemoFirebase(() => {
@@ -185,7 +192,7 @@ const JobsTabContent = ({ status }: { status: Job["status"] }) => {
   
   return (
     <TabsContent value={status}>
-      <JobsTable jobs={filteredJobs} isLoading={isLoadingJobs} />
+      <JobsTable jobs={filteredJobs} isLoading={isLoadingJobs} hourlyRate={hourlyRate} />
     </TabsContent>
   );
 };
@@ -194,6 +201,14 @@ export default function JobsPage() {
   const [isNewJobOpen, setIsNewJobOpen] = useState(false);
   const { toast } = useToast();
   const jobStatuses: Job["status"][] = ["Not Started", "In Progress", "Complete", "Open Payment", "Finalized"];
+  const firestore = useFirestore();
+
+  const settingsRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, "settings", "global");
+  }, [firestore]);
+  const { data: settings } = useDoc<GeneralSettings>(settingsRef);
+  const hourlyRate = settings?.hourlyRate ?? 0;
   
   const handleJobCreated = () => {
     setIsNewJobOpen(false);
@@ -228,7 +243,7 @@ export default function JobsPage() {
             ))}
         </TabsList>
         {jobStatuses.map(status => (
-          <JobsTabContent key={status} status={status} />
+          <JobsTabContent key={status} status={status} hourlyRate={hourlyRate} />
         ))}
       </Tabs>
     </div>

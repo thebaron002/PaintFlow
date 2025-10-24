@@ -22,6 +22,7 @@ import { doc } from "firebase/firestore";
 const settingsSchema = z.object({
   dailyPayTarget: z.coerce.number().min(0, "Daily pay target must be a positive number."),
   idealMaterialCostPercentage: z.coerce.number().min(0, "Percentage must be between 0 and 100.").max(100, "Percentage must be between 0 and 100."),
+  hourlyRate: z.coerce.number().min(0, "Hourly rate must be a positive number."),
 });
 
 type SettingsFormValues = z.infer<typeof settingsSchema>;
@@ -39,6 +40,7 @@ export function SettingsForm({ settings, onSuccess }: SettingsFormProps) {
     defaultValues: {
       dailyPayTarget: settings.dailyPayTarget || 0,
       idealMaterialCostPercentage: settings.idealMaterialCostPercentage || 0,
+      hourlyRate: settings.hourlyRate || 0,
     },
   });
 
@@ -87,6 +89,25 @@ export function SettingsForm({ settings, onSuccess }: SettingsFormProps) {
               </FormControl>
               <FormDescription>
                 The ideal percentage of a job's budget to be spent on materials.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="hourlyRate"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Hourly Rate</FormLabel>
+               <FormControl>
+                  <div className="relative">
+                      <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">$</span>
+                      <Input type="number" placeholder="50" className="pl-7" {...field} />
+                  </div>
+              </FormControl>
+              <FormDescription>
+                The default hourly rate for 'Time' based adjustments.
               </FormDescription>
               <FormMessage />
             </FormItem>
