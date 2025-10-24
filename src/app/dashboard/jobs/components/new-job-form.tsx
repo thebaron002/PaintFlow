@@ -75,7 +75,7 @@ export function NewJobForm({ onSuccess }: NewJobFormProps) {
     const idealMaterialCost = data.initialValue * (idealMaterialCostPercentage / 100);
     const profitTarget = data.initialValue - idealMaterialCost;
     // Calculation based on a single worker (the user)
-    const idealNumberOfDays = profitTarget > 0 && dailyPayTarget > 0 ? Math.ceil(profitTarget / dailyPayTarget) : 0;
+    const idealNumberOfDays = profitTarget > 0 && dailyPayTarget > 0 ? Math.floor(profitTarget / dailyPayTarget) : 0;
     
     const newJob: Omit<Job, 'id'> = {
       title: finalTitle,
