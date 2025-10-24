@@ -44,3 +44,9 @@ export type Income = {
   amount: number;
   date: string; // ISO date string
 };
+
+export type GeneralSettings = {
+  id: 'global'; // Singleton document
+  dailyPayTarget: number;
+  idealMaterialCostPercentage: number;
+};

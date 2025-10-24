@@ -72,6 +72,15 @@
         "date": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "jobId", "amount", "date"]
+    },
+    "GeneralSettings": {
+      "title": "General Settings",
+      "type": "object",
+      "description": "Global settings for the application.",
+      "properties": {
+        "dailyPayTarget": { "type": "number", "description": "The target daily pay for profitability calculations." },
+        "idealMaterialCostPercentage": { "type": "number", "description": "The ideal percentage of the job budget to be spent on materials." }
+      }
     }
   },
   "auth": {
@@ -89,6 +98,10 @@
     "/expenses/{expenseId}": {
       "schema": { "$ref": "#/entities/Expense" },
       "description": "Stores expense records for all jobs."
+    },
+    "/settings/global": {
+      "schema": { "$ref": "#/entities/GeneralSettings" },
+      "description": "Stores the single global settings document for the app."
     }
   }
 }

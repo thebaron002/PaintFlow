@@ -1,0 +1,99 @@
+
+"use client";
+
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormDescription,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import type { GeneralSettings } from "@/app/lib/types";
+import { useFirestore, setDocumentNonBlocking } from "@/firebase";
+import { doc } from "firebase/firestore";
+
+const settingsSchema = z.object({
+  dailyPayTarget: z.coerce.number().min(0, "Daily pay target must be a positive number."),
+  idealMaterialCostPercentage: z.coerce.number().min(0, "Percentage must be between 0 and 100.").max(100, "Percentage must be between 0 and 100."),
+});
+
+type SettingsFormValues = z.infer<typeof settingsSchema>;
+
+interface SettingsFormProps {
+  settings: GeneralSettings;
+  onSuccess: () => void;
+}
+
+export function SettingsForm({ settings, onSuccess }: SettingsFormProps) {
+  const firestore = useFirestore();
+
+  const form = useForm<SettingsFormValues>({
+    resolver: zodResolver(settingsSchema),
+    defaultValues: {
+      dailyPayTarget: settings.dailyPayTarget || 0,
+      idealMaterialCostPercentage: settings.idealMaterialCostPercentage || 0,
+    },
+  });
+
+  const onSubmit = (data: SettingsFormValues) => {
+    if (!firestore) return;
+
+    const settingsRef = doc(firestore, 'settings', 'global');
+    setDocumentNonBlocking(settingsRef, data, { merge: true });
+    
+    onSuccess();
+  };
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-6 max-w-2xl mx-auto">
+        <FormField
+          control={form.control}
+          name="dailyPayTarget"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Daily Pay Target</FormLabel>
+               <FormControl>
+                  <div className="relative">
+                      <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">$</span>
+                      <Input type="number" placeholder="300" className="pl-7" {...field} />
+                  </div>
+              </FormControl>
+              <FormDescription>
+                Set your target daily pay for profitability calculations on jobs.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="idealMaterialCostPercentage"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Ideal Material Cost Percentage</FormLabel>
+              <FormControl>
+                 <div className="relative">
+                      <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground">%</span>
+                      <Input type="number" placeholder="20" className="pr-7" {...field} />
+                  </div>
+              </FormControl>
+              <FormDescription>
+                The ideal percentage of a job's budget to be spent on materials.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type="submit" className="w-full">Save Settings</Button>
+      </form>
+    </Form>
+  );
+}
