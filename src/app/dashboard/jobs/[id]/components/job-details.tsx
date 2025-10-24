@@ -246,6 +246,50 @@ export function JobDetails({
               </div>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Financials</CardTitle>
+            </CardHeader>
+            <CardContent className="grid sm:grid-cols-2 gap-6">
+              <div className="flex items-start gap-3">
+                <div className="bg-muted p-2 rounded-md">
+                  <DollarSign className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Remaining Payout</p>
+                  <p className="text-lg font-semibold">${remainingPayout.toLocaleString()}</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="bg-muted p-2 rounded-md">
+                  <DollarSign className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Initial Value</p>
+                  <p className="text-lg font-semibold">${job.initialValue.toLocaleString()}</p>
+                </div>
+              </div>
+               <div className="flex items-start gap-3">
+                <div className="bg-muted p-2 rounded-md">
+                  <Paintbrush className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Ideal Material Cost</p>
+                  <p className="text-lg font-semibold">${job.idealMaterialCost.toLocaleString()}</p>
+                </div>
+              </div>
+               <div className="flex items-start gap-3">
+                <div className="bg-muted p-2 rounded-md">
+                  <CheckCircle className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Fixed Pay</p>
+                  <p className="text-lg font-semibold">{job.isFixedPay ? 'Yes' : 'No'}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
           
           <Card>
             <CardHeader>
@@ -322,49 +366,7 @@ export function JobDetails({
               </DropdownMenu>
             </CardContent>
           </Card>
-           <Card>
-            <CardHeader>
-              <CardTitle>Financials</CardTitle>
-            </CardHeader>
-            <CardContent className="grid sm:grid-cols-2 gap-6">
-              <div className="flex items-start gap-3">
-                <div className="bg-muted p-2 rounded-md">
-                  <DollarSign className="h-6 w-6 text-muted-foreground" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Remaining Payout</p>
-                  <p className="text-lg font-semibold">${remainingPayout.toLocaleString()}</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="bg-muted p-2 rounded-md">
-                  <DollarSign className="h-6 w-6 text-muted-foreground" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Initial Value</p>
-                  <p className="text-lg font-semibold">${job.initialValue.toLocaleString()}</p>
-                </div>
-              </div>
-               <div className="flex items-start gap-3">
-                <div className="bg-muted p-2 rounded-md">
-                  <Paintbrush className="h-6 w-6 text-muted-foreground" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Ideal Material Cost</p>
-                  <p className="text-lg font-semibold">${job.idealMaterialCost.toLocaleString()}</p>
-                </div>
-              </div>
-               <div className="flex items-start gap-3">
-                <div className="bg-muted p-2 rounded-md">
-                  <CheckCircle className="h-6 w-6 text-muted-foreground" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Fixed Pay</p>
-                  <p className="text-lg font-semibold">{job.isFixedPay ? 'Yes' : 'No'}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+           
            <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Invoices</CardTitle>
@@ -512,5 +514,7 @@ export function JobDetails({
     </div>
   );
 }
+
+    
 
     
