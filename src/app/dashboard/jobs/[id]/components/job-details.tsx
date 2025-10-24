@@ -33,7 +33,8 @@ import {
   ChevronDown,
   PlusCircle,
   Clock,
-  ChevronsUpDown
+  ChevronsUpDown,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -63,6 +64,11 @@ const adjustmentIcons = {
   General: ChevronsUpDown,
 };
 
+type ModalState<T> = {
+    isOpen: boolean;
+    item: T | null;
+}
+
 export function JobDetails({
   job,
   jobTitle,
@@ -73,8 +79,9 @@ export function JobDetails({
   const firestore = useFirestore();
   const { toast } = useToast();
   const [currentStatus, setCurrentStatus] = useState<Job["status"]>(job.status);
-  const [isInvoiceFormOpen, setIsInvoiceFormOpen] = useState(false);
-  const [isAdjustmentFormOpen, setIsAdjustmentFormOpen] = useState(false);
+  const [invoiceModal, setInvoiceModal] = useState<ModalState<Job['invoices'][0]>>({ isOpen: false, item: null });
+  const [adjustmentModal, setAdjustmentModal] = useState<ModalState<Job['adjustments'][0]>>({ isOpen: false, item: null });
+  
   const jobStatuses: Job["status"][] = ["Not Started", "In Progress", "Complete", "Open Payment", "Finalized"];
 
   const jobsQuery = useMemoFirebase(() => {
@@ -110,19 +117,19 @@ export function JobDetails({
     updateDocumentNonBlocking(jobRef, updatedData);
   }
 
-  const handleInvoiceAdded = () => {
-    setIsInvoiceFormOpen(false);
+  const handleInvoiceSuccess = (action: 'add' | 'edit' | 'delete') => {
+    setInvoiceModal({ isOpen: false, item: null });
     toast({
-        title: "Invoice Added",
-        description: "The new invoice has been added to this job.",
+        title: `Invoice ${action === 'add' ? 'Added' : action === 'edit' ? 'Updated' : 'Deleted'}`,
+        description: `The invoice has been successfully ${action === 'add' ? 'added' : action === 'edit' ? 'updated' : 'deleted'}.`,
     });
   };
 
-  const handleAdjustmentAdded = () => {
-    setIsAdjustmentFormOpen(false);
+  const handleAdjustmentSuccess = (action: 'add' | 'edit' | 'delete') => {
+    setAdjustmentModal({ isOpen: false, item: null });
     toast({
-        title: "Adjustment Added",
-        description: "The new adjustment has been added to this job.",
+        title: `Adjustment ${action === 'add' ? 'Added' : action === 'edit' ? 'Updated' : 'Deleted'}`,
+        description: `The adjustment has been successfully ${action === 'add' ? 'added' : action === 'edit' ? 'updated' : 'deleted'}.`,
     });
   };
 
@@ -321,7 +328,7 @@ export function JobDetails({
            <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Invoices</CardTitle>
-               <Dialog open={isInvoiceFormOpen} onOpenChange={setIsInvoiceFormOpen}>
+               <Dialog open={invoiceModal.isOpen && !invoiceModal.item} onOpenChange={(isOpen) => setInvoiceModal(prev => ({ ...prev, isOpen }))}>
                 <DialogTrigger asChild>
                     <Button size="sm" variant="outline">
                         <PlusCircle className="mr-2 h-4 w-4" />
@@ -336,7 +343,7 @@ export function JobDetails({
                         jobId={job.id}
                         existingInvoices={job.invoices}
                         origins={invoiceOrigins}
-                        onSuccess={handleInvoiceAdded} 
+                        onSuccess={() => handleInvoiceSuccess('add')} 
                     />
                 </DialogContent>
             </Dialog>
@@ -353,7 +360,7 @@ export function JobDetails({
                   </TableHeader>
                   <TableBody>
                     {job.invoices.map((invoice) => (
-                      <TableRow key={invoice.id}>
+                      <TableRow key={invoice.id} onClick={() => setInvoiceModal({isOpen: true, item: invoice})} className="cursor-pointer">
                         <TableCell>
                             <div className="font-medium">{invoice.origin}</div>
                             {invoice.notes && <div className="text-xs text-muted-foreground">{invoice.notes}</div>}
@@ -372,7 +379,7 @@ export function JobDetails({
           <Card>
              <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Adjustments</CardTitle>
-              <Dialog open={isAdjustmentFormOpen} onOpenChange={setIsAdjustmentFormOpen}>
+              <Dialog open={adjustmentModal.isOpen && !adjustmentModal.item} onOpenChange={(isOpen) => setAdjustmentModal(prev => ({...prev, isOpen}))}>
                 <DialogTrigger asChild>
                     <Button size="sm" variant="outline">
                         <PlusCircle className="mr-2 h-4 w-4" />
@@ -386,7 +393,7 @@ export function JobDetails({
                     <AddAdjustmentForm 
                         jobId={job.id}
                         existingAdjustments={job.adjustments}
-                        onSuccess={handleAdjustmentAdded} 
+                        onSuccess={() => handleAdjustmentSuccess('add')} 
                     />
                 </DialogContent>
             </Dialog>
@@ -408,7 +415,7 @@ export function JobDetails({
                       const color = amount >= 0 ? 'text-green-600' : 'text-red-600';
 
                       return (
-                      <TableRow key={adj.id}>
+                      <TableRow key={adj.id} onClick={() => setAdjustmentModal({isOpen: true, item: adj})} className="cursor-pointer">
                         <TableCell className="flex items-center gap-2">
                            <Icon className="h-4 w-4 text-muted-foreground" />
                            <div>
@@ -428,6 +435,37 @@ export function JobDetails({
           </Card>
         </div>
       </div>
+      
+        {/* Edit Invoice Modal */}
+        <Dialog open={invoiceModal.isOpen && !!invoiceModal.item} onOpenChange={(isOpen) => setInvoiceModal({ isOpen, item: isOpen ? invoiceModal.item : null })}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Edit Invoice</DialogTitle>
+                </DialogHeader>
+                <AddInvoiceForm 
+                    jobId={job.id}
+                    existingInvoices={job.invoices}
+                    origins={invoiceOrigins}
+                    onSuccess={() => handleInvoiceSuccess(invoiceModal.item ? 'edit' : 'add')} 
+                    invoiceToEdit={invoiceModal.item!}
+                />
+            </DialogContent>
+        </Dialog>
+
+        {/* Edit Adjustment Modal */}
+         <Dialog open={adjustmentModal.isOpen && !!adjustmentModal.item} onOpenChange={(isOpen) => setAdjustmentModal({ isOpen, item: isOpen ? adjustmentModal.item : null })}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Edit Adjustment</DialogTitle>
+                </DialogHeader>
+                <AddAdjustmentForm 
+                    jobId={job.id}
+                    existingAdjustments={job.adjustments}
+                    onSuccess={() => handleAdjustmentSuccess(adjustmentModal.item ? 'edit' : 'add')}
+                    adjustmentToEdit={adjustmentModal.item!}
+                />
+            </DialogContent>
+        </Dialog>
     </div>
   );
 }

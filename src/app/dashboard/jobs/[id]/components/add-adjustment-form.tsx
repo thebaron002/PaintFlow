@@ -21,7 +21,18 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useFirestore, updateDocumentNonBlocking } from "@/firebase";
 import { doc } from "firebase/firestore";
 import type { Job, AdjustmentType } from "@/app/lib/types";
-import { Clock, Paintbrush, ChevronsUpDown } from "lucide-react";
+import { Clock, Paintbrush, ChevronsUpDown, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 const adjustmentSchema = z.object({
   type: z.enum(["Time", "Material", "General"]),
@@ -35,6 +46,7 @@ interface AddAdjustmentFormProps {
   jobId: string;
   existingAdjustments: Job['adjustments'];
   onSuccess: () => void;
+  adjustmentToEdit?: Job['adjustments'][0];
 }
 
 const adjustmentTypes: { value: AdjustmentType, label: string, icon: React.ElementType, unit: string }[] = [
@@ -43,12 +55,13 @@ const adjustmentTypes: { value: AdjustmentType, label: string, icon: React.Eleme
     { value: 'General', label: 'General', icon: ChevronsUpDown, unit: '$' },
 ];
 
-export function AddAdjustmentForm({ jobId, existingAdjustments, onSuccess }: AddAdjustmentFormProps) {
+export function AddAdjustmentForm({ jobId, existingAdjustments, onSuccess, adjustmentToEdit }: AddAdjustmentFormProps) {
   const firestore = useFirestore();
+  const isEditing = !!adjustmentToEdit;
 
   const form = useForm<AdjustmentFormValues>({
     resolver: zodResolver(adjustmentSchema),
-    defaultValues: {
+    defaultValues: isEditing ? adjustmentToEdit : {
       type: "General",
       description: "",
       value: 0,
@@ -58,18 +71,35 @@ export function AddAdjustmentForm({ jobId, existingAdjustments, onSuccess }: Add
   const onSubmit = (data: AdjustmentFormValues) => {
     if (!firestore) return;
 
-    const newAdjustment = {
-      id: uuidv4(),
-      ...data,
-    };
+    let updatedAdjustments: Job['adjustments'];
 
-    const updatedAdjustments = [...(existingAdjustments || []), newAdjustment];
-
+    if(isEditing) {
+        updatedAdjustments = existingAdjustments.map(adj => 
+            adj.id === adjustmentToEdit.id ? { ...adj, ...data } : adj
+        );
+    } else {
+        const newAdjustment = {
+          id: uuidv4(),
+          ...data,
+        };
+        updatedAdjustments = [...(existingAdjustments || []), newAdjustment];
+    }
+    
     const jobRef = doc(firestore, 'jobs', jobId);
     updateDocumentNonBlocking(jobRef, { adjustments: updatedAdjustments });
     
     onSuccess();
   };
+
+  const handleDelete = () => {
+    if (!firestore || !isEditing) return;
+
+    const updatedAdjustments = existingAdjustments.filter(adj => adj.id !== adjustmentToEdit.id);
+    const jobRef = doc(firestore, 'jobs', jobId);
+    updateDocumentNonBlocking(jobRef, { adjustments: updatedAdjustments });
+
+    onSuccess();
+  }
 
   const selectedType = form.watch('type');
   const unit = adjustmentTypes.find(t => t.value === selectedType)?.unit || '$';
@@ -143,7 +173,30 @@ export function AddAdjustmentForm({ jobId, existingAdjustments, onSuccess }: Add
           )}
         />
         
-        <Button type="submit" className="w-full">Add Adjustment</Button>
+         <div className="flex items-center justify-between">
+            {isEditing ? (
+                 <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button type="button" variant="destructive" size="icon">
+                            <Trash2 className="h-4 w-4"/>
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete this adjustment.
+                        </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            ) : <div></div>}
+            <Button type="submit">{isEditing ? "Save Changes" : "Add Adjustment"}</Button>
+        </div>
       </form>
     </Form>
   );

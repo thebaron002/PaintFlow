@@ -18,7 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Trash2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -26,6 +26,17 @@ import { useFirestore, updateDocumentNonBlocking } from "@/firebase";
 import { doc } from "firebase/firestore";
 import type { Job } from "@/app/lib/types";
 import { Combobox } from "@/components/ui/combobox";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 const invoiceSchema = z.object({
   origin: z.string().min(1, "Origin is required."),
@@ -41,14 +52,19 @@ interface AddInvoiceFormProps {
   existingInvoices: Job['invoices'];
   origins: string[];
   onSuccess: () => void;
+  invoiceToEdit?: Job['invoices'][0];
 }
 
-export function AddInvoiceForm({ jobId, existingInvoices, origins, onSuccess }: AddInvoiceFormProps) {
+export function AddInvoiceForm({ jobId, existingInvoices, origins, onSuccess, invoiceToEdit }: AddInvoiceFormProps) {
   const firestore = useFirestore();
+  const isEditing = !!invoiceToEdit;
 
   const form = useForm<InvoiceFormValues>({
     resolver: zodResolver(invoiceSchema),
-    defaultValues: {
+    defaultValues: isEditing ? {
+        ...invoiceToEdit,
+        date: new Date(invoiceToEdit.date),
+    } : {
       origin: "",
       amount: 0,
       notes: "",
@@ -58,19 +74,36 @@ export function AddInvoiceForm({ jobId, existingInvoices, origins, onSuccess }: 
   const onSubmit = (data: InvoiceFormValues) => {
     if (!firestore) return;
 
-    const newInvoice = {
-      id: uuidv4(),
-      ...data,
-      date: data.date.toISOString(),
-    };
+    let updatedInvoices: Job['invoices'];
 
-    const updatedInvoices = [...existingInvoices, newInvoice];
+    if(isEditing) {
+        updatedInvoices = existingInvoices.map(inv => 
+            inv.id === invoiceToEdit.id ? { ...inv, ...data, date: data.date.toISOString() } : inv
+        );
+    } else {
+        const newInvoice = {
+            id: uuidv4(),
+            ...data,
+            date: data.date.toISOString(),
+        };
+        updatedInvoices = [...existingInvoices, newInvoice];
+    }
 
     const jobRef = doc(firestore, 'jobs', jobId);
     updateDocumentNonBlocking(jobRef, { invoices: updatedInvoices });
     
     onSuccess();
   };
+
+  const handleDelete = () => {
+    if (!firestore || !isEditing) return;
+
+    const updatedInvoices = existingInvoices.filter(inv => inv.id !== invoiceToEdit.id);
+    const jobRef = doc(firestore, 'jobs', jobId);
+    updateDocumentNonBlocking(jobRef, { invoices: updatedInvoices });
+
+    onSuccess();
+  }
 
   const originOptions = origins.map(o => ({ value: o, label: o }));
 
@@ -153,7 +186,30 @@ export function AddInvoiceForm({ jobId, existingInvoices, origins, onSuccess }: 
           )}
         />
         
-        <Button type="submit" className="w-full">Add Invoice</Button>
+        <div className="flex items-center justify-between">
+            {isEditing ? (
+                 <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button type="button" variant="destructive" size="icon">
+                            <Trash2 className="h-4 w-4"/>
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete this invoice.
+                        </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            ) : <div></div>}
+            <Button type="submit">{isEditing ? "Save Changes" : "Add Invoice"}</Button>
+        </div>
       </form>
     </Form>
   );
