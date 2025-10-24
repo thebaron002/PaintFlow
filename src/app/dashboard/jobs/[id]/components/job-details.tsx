@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -39,15 +40,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { Job, Client } from "@/app/lib/types";
+import type { Job } from "@/app/lib/types";
 
 export function JobDetails({
   job,
-  client,
   jobTitle,
 }: {
   job: Job;
-  client?: Client;
   jobTitle: string;
 }) {
   const [status, setStatus] = useState<Job["status"]>(job.status);
@@ -83,7 +82,7 @@ export function JobDetails({
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Client</p>
-                  <p className="text-lg font-semibold">{client?.name || "N/A"}</p>
+                  <p className="text-lg font-semibold">{job.clientName || "N/A"}</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">

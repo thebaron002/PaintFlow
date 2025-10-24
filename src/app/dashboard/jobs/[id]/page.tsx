@@ -1,7 +1,8 @@
+
 "use client";
 
 import { JobDetails } from "./components/job-details";
-import type { Job, Client } from "@/app/lib/types";
+import type { Job } from "@/app/lib/types";
 import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,16 +18,7 @@ export default function JobDetailsPage({ params }: { params: { id: string } }) {
 
   const { data: job, isLoading: isLoadingJob } = useDoc<Job>(jobRef);
 
-  const clientRef = useMemoFirebase(() => {
-    if (!firestore || !job?.clientId) return null;
-    return doc(firestore, "clients", job.clientId);
-  }, [firestore, job?.clientId]);
-
-  const { data: client, isLoading: isLoadingClient } = useDoc<Client>(clientRef);
-
-  const isLoading = isLoadingJob || isLoadingClient;
-
-  if (isLoading) {
+  if (isLoadingJob) {
     return (
         <div className="p-4 sm:px-6 sm:py-0">
             <Skeleton className="h-10 w-64 mb-8" />
@@ -51,7 +43,7 @@ export default function JobDetailsPage({ params }: { params: { id: string } }) {
         title: "Job Not Found",
         workOrderNumber: "N/A",
         address: "N/A",
-        clientId: "N/A",
+        clientName: "N/A",
         startDate: new Date().toISOString(),
         deadline: new Date().toISOString(),
         specialRequirements: "N/A",
@@ -65,19 +57,12 @@ export default function JobDetailsPage({ params }: { params: { id: string } }) {
         invoices: [],
         adjustments: []
     }
-     const staticClient: Client = {
-        id: 'client-not-found',
-        name: "Unknown Client",
-        phone: "N/A",
-        email: "N/A",
-        avatarUrl: ""
-    }
 
-    return <JobDetails job={staticJob} client={staticClient} jobTitle="Job Not Found" />;
+    return <JobDetails job={staticJob} jobTitle="Job Not Found" />;
   }
   
-  const clientLastName = client?.name.split(" ").pop() || "N/A";
+  const clientLastName = job.clientName.split(" ").pop() || "N/A";
   const jobTitle = `${clientLastName} #${job.workOrderNumber}`;
 
-  return <JobDetails job={job} client={client} jobTitle={jobTitle} />;
+  return <JobDetails job={job} jobTitle={jobTitle} />;
 }

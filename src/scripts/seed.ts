@@ -3,45 +3,13 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, writeBatch, doc } from 'firebase/firestore';
 import { firebaseConfig } from '@/firebase/config'; // Make sure this path is correct
 
-// Raw data - In a real app, this might come from a JSON file or another source.
-const clientsData = [
-  {
-    id: "client1",
-    name: "Pro Homes LLC",
-    phone: "555-777-8888",
-    email: "contact@prohomes.com",
-    avatarUrl: "https://picsum.photos/seed/client1/200/200",
-  },
-  {
-    id: "client2",
-    name: "Urban Renovators",
-    phone: "555-123-9999",
-    email: "office@urbanrenovators.net",
-    avatarUrl: "https://picsum.photos/seed/client2/200/200",
-  },
-  {
-    id: "client3",
-    name: "Alice Johnson",
-    phone: "555-111-2222",
-    email: "alice.j@email.com",
-    avatarUrl: "https://picsum.photos/seed/client3/200/200",
-  },
-  {
-    id: "client4",
-    name: "Bob Williams",
-    phone: "555-333-4444",
-    email: "bob.w@email.com",
-    avatarUrl: "https://picsum.photos/seed/client4/200/200",
-  },
-];
-
 const jobsData = [
     {
     id: "job1",
     title: "Modern Kitchen Repaint",
     workOrderNumber: "WO-001",
     address: "123 Main St, Anytown, USA",
-    clientId: "client3",
+    clientName: "Alice Johnson",
     startDate: "2024-08-12T00:00:00.000Z",
     deadline: "2024-08-15T00:00:00.000Z",
     specialRequirements: "Low-VOC paint required. Protect granite countertops.",
@@ -60,7 +28,7 @@ const jobsData = [
     title: "Exterior Fence Staining",
     workOrderNumber: "WO-002",
     address: "456 Oak Ave, Anytown, USA",
-    clientId: "client4",
+    clientName: "Bob Williams",
     startDate: "2024-08-18T00:00:00.000Z",
     deadline: "2024-08-20T00:00:00.000Z",
     specialRequirements: "Use weather-resistant stain. Two coats needed.",
@@ -79,7 +47,7 @@ const jobsData = [
     title: "Living Room Accent Wall",
     workOrderNumber: "WO-003",
     address: "789 Pine Ln, Anytown, USA",
-    clientId: "client3",
+    clientName: "Alice Johnson",
     startDate: "2024-07-27T00:00:00.000Z",
     deadline: "2024-07-28T00:00:00.000Z",
     specialRequirements: "Client wants a very specific shade of blue (Benjamin Moore Hale Navy).",
@@ -98,7 +66,7 @@ const jobsData = [
     title: "Full Interior - New Construction",
     workOrderNumber: "WO-004",
     address: "101 Builder's Way, Anytown, USA",
-    clientId: "client1",
+    clientName: "Pro Homes LLC",
     startDate: "2024-09-15T00:00:00.000Z",
     deadline: "2024-09-30T00:00:00.000Z",
     specialRequirements: "Standard builder-grade white for all walls and ceilings.",
@@ -117,7 +85,7 @@ const jobsData = [
     title: "Deck Refinishing",
     workOrderNumber: "WO-005",
     address: "212 Lakeview Dr, Anytown, USA",
-    clientId: "client2",
+    clientName: "Urban Renovators",
     startDate: "2024-08-22T00:00:00.000Z",
     deadline: "2024-08-25T00:00:00.000Z",
     specialRequirements: "Power wash before sanding and staining.",
@@ -136,7 +104,7 @@ const jobsData = [
     title: "Nursery Painting",
     workOrderNumber: "WO-006",
     address: "333 Cradle Rock, Anytown, USA",
-    clientId: "client3",
+    clientName: "Alice Johnson",
     startDate: "2024-08-08T00:00:00.000Z",
     deadline: "2024-08-10T00:00:00.000Z",
     specialRequirements: "Zero-VOC paint only. Two-tone wall with stencil.",
@@ -155,7 +123,7 @@ const jobsData = [
     title: "Garage Floor Epoxy",
     workOrderNumber: "WO-007",
     address: "101 Builder's Way, Anytown, USA",
-    clientId: "client1",
+    clientName: "Pro Homes LLC",
     startDate: "2024-07-18T00:00:00.000Z",
     deadline: "2024-07-20T00:00:00.000Z",
     specialRequirements: "Requires 3-day curing time.",
@@ -196,14 +164,6 @@ async function seedDatabase() {
 
     // Create a new batch
     const batch = writeBatch(db);
-
-    // Add clients
-    const clientsCollection = collection(db, 'clients');
-    clientsData.forEach(client => {
-      const docRef = doc(clientsCollection, client.id);
-      batch.set(docRef, client);
-    });
-    console.log(`${clientsData.length} clients prepared for batch write.`);
 
     // Add jobs
     const jobsCollection = collection(db, 'jobs');

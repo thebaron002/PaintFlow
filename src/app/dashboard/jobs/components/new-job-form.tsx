@@ -19,7 +19,7 @@ import { CalendarIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import type { Client, Job } from "@/app/lib/types";
+import type { Job } from "@/app/lib/types";
 import { Switch } from "@/components/ui/switch";
 import { useFirestore, addDocumentNonBlocking } from "@/firebase";
 import { collection } from "firebase/firestore";
@@ -37,11 +37,10 @@ const jobSchema = z.object({
 type JobFormValues = z.infer<typeof jobSchema>;
 
 interface NewJobFormProps {
-  clients: Client[] | null;
   onSuccess: () => void;
 }
 
-export function NewJobForm({ clients, onSuccess }: NewJobFormProps) {
+export function NewJobForm({ onSuccess }: NewJobFormProps) {
   const firestore = useFirestore();
 
   const form = useForm<JobFormValues>({
@@ -64,21 +63,12 @@ export function NewJobForm({ clients, onSuccess }: NewJobFormProps) {
       const clientLastName = data.clientName.split(" ").pop() || "";
       finalTitle = `${clientLastName} #${data.workOrderNumber}`;
     }
-
-    // This is a placeholder. In a real app you'd have a client creation flow.
-    const newOrExistingClient: Client = {
-        id: `client-${Date.now()}`,
-        name: data.clientName,
-        email: 'placeholder@email.com',
-        phone: '555-555-5555',
-        avatarUrl: `https://picsum.photos/seed/${Date.now()}/200`
-    };
     
     const newJob: Omit<Job, 'id'> = {
       title: finalTitle,
       workOrderNumber: data.workOrderNumber,
       address: data.address,
-      clientId: newOrExistingClient.id, // We need a client ID.
+      clientName: data.clientName,
       startDate: data.startDate.toISOString(),
       deadline: new Date().toISOString(), // Placeholder deadline
       specialRequirements: "",
@@ -94,9 +84,6 @@ export function NewJobForm({ clients, onSuccess }: NewJobFormProps) {
     };
 
     const jobsCollection = collection(firestore, 'jobs');
-    // We should also add the client, but for now we just create the job.
-    const clientsCollection = collection(firestore, 'clients');
-    addDocumentNonBlocking(clientsCollection, newOrExistingClient);
     addDocumentNonBlocking(jobsCollection, newJob);
     
     form.reset();

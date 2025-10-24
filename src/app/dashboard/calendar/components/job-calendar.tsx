@@ -1,8 +1,9 @@
+
 "use client";
 
 import * as React from "react";
 import { format, isSameDay } from "date-fns";
-import type { Job, Client } from "@/app/lib/types";
+import type { Job } from "@/app/lib/types";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +12,6 @@ import { Badge } from "@/components/ui/badge";
 export function JobCalendar({ jobs }: { jobs: Job[] }) {
   const [date, setDate] = React.useState<Date | undefined>(new Date());
   
-  const clients: Client[] = [];
   const isLoading = false;
 
 
@@ -60,7 +60,6 @@ export function JobCalendar({ jobs }: { jobs: Job[] }) {
         <CardContent className="grid gap-4">
           {selectedDayJobs.length > 0 ? (
             selectedDayJobs.map((job) => {
-              const client = clients?.find(c => c.id === job.clientId);
               return (
                 <div key={job.id} className="grid gap-1">
                   <div className="flex items-center justify-between">
@@ -70,7 +69,7 @@ export function JobCalendar({ jobs }: { jobs: Job[] }) {
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Client: {client?.name || 'N/A'}
+                    Client: {job.clientName || 'N/A'}
                   </p>
                   <p className="text-sm text-muted-foreground">
                     Address: {job.address}

@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { Job } from "@/app/lib/types";

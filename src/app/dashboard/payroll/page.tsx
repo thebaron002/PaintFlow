@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useRouter } from "next/navigation";
@@ -20,7 +21,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { Job, Client } from "@/app/lib/types";
+import type { Job } from "@/app/lib/types";
 import { payrollSettings } from "@/app/lib/payroll-data";
 import { Send } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -31,7 +32,6 @@ export default function PayrollPage() {
 
   const isLoading = false;
   const jobsToPay: Job[] | null = [];
-  const clients: Client[] | null = [];
 
   const handleJobClick = (jobId: string) => {
     router.push(`/dashboard/jobs/${jobId}`);
@@ -73,8 +73,7 @@ export default function PayrollPage() {
                       </TableRow>
                     ))
                   ) : jobsToPay && jobsToPay.length > 0 ? jobsToPay.map(job => {
-                     const client = clients?.find(c => c.id === job.clientId);
-                     const clientLastName = client?.name.split(" ").pop() || "N/A";
+                     const clientLastName = job.clientName.split(" ").pop() || "N/A";
                      const jobTitle = `${clientLastName} #${job.workOrderNumber}`;
                      const totalInvoiced = job.invoices.reduce((sum, invoice) => sum + invoice.amount, 0);
                      const payout = job.initialValue - totalInvoiced;

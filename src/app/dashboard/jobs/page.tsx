@@ -5,7 +5,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { format } from "date-fns";
-import type { Job, Client } from "@/app/lib/types";
+import type { Job } from "@/app/lib/types";
 import { PageHeader } from "@/components/page-header";
 import {
   Table,
@@ -43,7 +43,7 @@ import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 import { collection, query, where } from "firebase/firestore";
 
 
-const JobsTable = ({ jobs, clients, isLoading }: { jobs: Job[] | null, clients: Client[] | null, isLoading: boolean }) => {
+const JobsTable = ({ jobs, isLoading }: { jobs: Job[] | null, isLoading: boolean }) => {
   if (isLoading) {
     return (
       <Card>
@@ -115,27 +115,15 @@ const JobsTable = ({ jobs, clients, isLoading }: { jobs: Job[] | null, clients: 
           </TableHeader>
           <TableBody>
             {jobs?.map((job) => {
-              const client = clients?.find((c) => c.id === job.clientId);
-              const clientLastName = client?.name.split(" ").pop() || "N/A";
+              const clientLastName = job.clientName.split(" ").pop() || "N/A";
               const jobTitle = `${clientLastName} #${job.workOrderNumber}`;
               return (
                 <TableRow key={job.id}>
                   <TableCell className="hidden sm:table-cell">
                     <Link href={`/dashboard/jobs/${job.id}`}>
-                      {client ? (
-                        <Image
-                          alt={client.name}
-                          className="aspect-square rounded-md object-cover"
-                          height="64"
-                          src={client.avatarUrl}
-                          width="64"
-                          data-ai-hint="person portrait"
-                        />
-                      ) : (
-                        <div className="w-16 h-16 bg-muted rounded-md flex items-center justify-center">
-                          <User className="w-6 h-6 text-muted-foreground" />
-                        </div>
-                      )}
+                      <div className="w-16 h-16 bg-muted rounded-md flex items-center justify-center">
+                        <User className="w-8 h-8 text-muted-foreground" />
+                      </div>
                     </Link>
                   </TableCell>
                   <TableCell className="font-medium">
@@ -144,6 +132,9 @@ const JobsTable = ({ jobs, clients, isLoading }: { jobs: Job[] | null, clients: 
                     </Link>
                     <div className="text-sm text-muted-foreground">
                       {job.title}
+                    </div>
+                     <div className="text-xs text-muted-foreground pt-1">
+                      <span className="font-semibold">Client:</span> {job.clientName}
                     </div>
                     <div className="text-xs text-muted-foreground flex items-center pt-1">
                       <MapPin className="w-3 h-3 mr-1" /> {job.address}
@@ -180,7 +171,7 @@ const JobsTable = ({ jobs, clients, isLoading }: { jobs: Job[] | null, clients: 
   )
 };
 
-const JobsTabContent = ({ status, clients, isLoadingClients }: { status: Job["status"], clients: Client[] | null, isLoadingClients: boolean }) => {
+const JobsTabContent = ({ status }: { status: Job["status"] }) => {
   const firestore = useFirestore();
   
   const jobsQuery = useMemoFirebase(() => {
@@ -192,7 +183,7 @@ const JobsTabContent = ({ status, clients, isLoadingClients }: { status: Job["st
   
   return (
     <TabsContent value={status}>
-      <JobsTable jobs={filteredJobs} clients={clients} isLoading={isLoadingJobs || isLoadingClients} />
+      <JobsTable jobs={filteredJobs} isLoading={isLoadingJobs} />
     </TabsContent>
   );
 };
@@ -202,15 +193,6 @@ export default function JobsPage() {
   const { toast } = useToast();
   const jobStatuses: Job["status"][] = ["Not Started", "In Progress", "Complete", "Open Payment", "Finalized"];
   
-  const firestore = useFirestore();
-
-  const clientsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'clients');
-  }, [firestore]);
-
-  const { data: clients, isLoading: isLoadingClients } = useCollection<Client>(clientsQuery);
-
   const handleJobCreated = () => {
     setIsNewJobOpen(false);
     toast({
@@ -233,7 +215,7 @@ export default function JobsPage() {
                 <DialogHeader>
                     <DialogTitle>Create New Job</DialogTitle>
                 </DialogHeader>
-                <NewJobForm clients={clients} onSuccess={handleJobCreated} />
+                <NewJobForm onSuccess={handleJobCreated} />
             </DialogContent>
         </Dialog>
       </PageHeader>
@@ -244,7 +226,7 @@ export default function JobsPage() {
             ))}
         </TabsList>
         {jobStatuses.map(status => (
-          <JobsTabContent key={status} status={status} clients={clients} isLoadingClients={isLoadingClients} />
+          <JobsTabContent key={status} status={status} />
         ))}
       </Tabs>
     </div>

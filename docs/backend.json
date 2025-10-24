@@ -1,19 +1,6 @@
 
 {
   "entities": {
-    "Client": {
-      "title": "Client",
-      "type": "object",
-      "description": "Represents a client for whom a job is performed.",
-      "properties": {
-        "id": { "type": "string", "description": "Unique ID for the client." },
-        "name": { "type": "string", "description": "Name of the client." },
-        "phone": { "type": "string", "description": "Client's phone number." },
-        "email": { "type": "string", "format": "email", "description": "Client's email address." },
-        "avatarUrl": { "type": "string", "format": "uri", "description": "URL of the client's avatar image." }
-      },
-      "required": ["id", "name", "email"]
-    },
     "Job": {
       "title": "Job",
       "type": "object",
@@ -23,7 +10,7 @@
         "title": { "type": "string", "description": "Title of the job." },
         "workOrderNumber": { "type": "string", "description": "Work order number for the job." },
         "address": { "type": "string", "description": "Physical address where the job is located." },
-        "clientId": { "type": "string", "description": "The ID of the client this job belongs to." },
+        "clientName": { "type": "string", "description": "The name of the client this job belongs to." },
         "startDate": { "type": "string", "format": "date-time", "description": "The start date of the job." },
         "deadline": { "type": "string", "format": "date-time", "description": "The deadline for the job." },
         "specialRequirements": { "type": "string", "description": "Any special requirements for the job." },
@@ -57,7 +44,7 @@
           } 
         }
       },
-      "required": ["id", "title", "address", "clientId", "deadline", "status", "budget"]
+      "required": ["id", "title", "address", "clientName", "deadline", "status", "budget"]
     },
     "Expense": {
       "title": "Expense",
@@ -89,5 +76,19 @@
   },
   "auth": {
     "providers": ["anonymous"]
+  },
+  "firestore": {
+    "/jobs/{jobId}": {
+      "schema": { "$ref": "#/entities/Job" },
+      "description": "Stores individual job documents."
+    },
+    "/income/{incomeId}": {
+      "schema": { "$ref": "#/entities/Income" },
+      "description": "Stores income records for all jobs."
+    },
+    "/expenses/{expenseId}": {
+      "schema": { "$ref": "#/entities/Expense" },
+      "description": "Stores expense records for all jobs."
+    }
   }
 }

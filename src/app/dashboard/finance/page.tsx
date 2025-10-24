@@ -1,3 +1,4 @@
+
 "use client";
 
 import { PageHeader } from "@/components/page-header";
@@ -25,7 +26,7 @@ import {
 } from "@/components/ui/table";
 import { DollarSign, FileDown, PlusCircle } from "lucide-react";
 import { format } from "date-fns";
-import type { Income, Expense, Job, Client } from "@/app/lib/types";
+import type { Income, Expense, Job } from "@/app/lib/types";
 import { CashFlowChart } from "./components/cash-flow-chart";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -34,7 +35,6 @@ export default function FinancePage() {
   const income: Income[] | null = [];
   const expenses: Expense[] | null = [];
   const jobs: Job[] | null = [];
-  const clients: Client[] | null = [];
 
 
   const totalIncome = income?.reduce((acc, item) => acc + item.amount, 0) ?? 0;
@@ -168,12 +168,11 @@ export default function FinancePage() {
                   ) : expenses?.length > 0 ? (
                     expenses.map((item) => {
                      const job = jobs?.find(j => j.id === item.jobId);
-                     const client = job ? clients?.find(c => c.id === job.clientId) : undefined;
                     return(
                       <TableRow key={item.id}>
                         <TableCell>
                           <div className="font-medium">{item.description}</div>
-                           <div className="text-sm text-muted-foreground">{job?.title} ({client?.name})</div>
+                           <div className="text-sm text-muted-foreground">{job?.title} ({job?.clientName})</div>
                         </TableCell>
                         <TableCell>{item.category}</TableCell>
                         <TableCell>{format(new Date(item.date), "MMM dd, yyyy")}</TableCell>

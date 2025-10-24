@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/page-header";
-import type { Job, Client } from "@/app/lib/types";
+import type { Job } from "@/app/lib/types";
 import { Briefcase, DollarSign, CalendarCheck, MapPin } from "lucide-react";
 import { RevenueChart } from "./components/revenue-chart";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -36,14 +36,9 @@ export default function DashboardPage() {
     return collection(firestore, 'jobs');
   }, [firestore]);
 
-  const clientsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'clients');
-  }, [firestore]);
 
   const { data: jobs, isLoading: isLoadingJobs } = useCollection<Job>(jobsQuery);
-  const { data: clients, isLoading: isLoadingClients } = useCollection<Client>(clientsQuery);
-  const isLoading = isLoadingJobs || isLoadingClients;
+  const isLoading = isLoadingJobs;
 
   const totalRevenue = jobs
     ?.filter(job => job.status === 'Complete' || job.status === 'Finalized')
@@ -139,8 +134,7 @@ export default function DashboardPage() {
                     ))
                   ) : upcomingJobs?.length > 0 ? (
                     upcomingJobs.map(job => {
-                      const client = clients?.find(c => c.id === job.clientId);
-                      const clientLastName = client?.name.split(" ").pop() || "N/A";
+                      const clientLastName = job.clientName.split(" ").pop() || "N/A";
                       const jobTitle = `${clientLastName} #${job.workOrderNumber}`;
                       return (
                         <TableRow key={job.id}>

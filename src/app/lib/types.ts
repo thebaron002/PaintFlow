@@ -12,7 +12,7 @@ export type Job = {
   title: string;
   workOrderNumber: string;
   address: string;
-  clientId: string;
+  clientName: string;
   startDate: string; // ISO date string
   deadline: string; // ISO date string
   specialRequirements: string;
