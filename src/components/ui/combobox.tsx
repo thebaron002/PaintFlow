@@ -45,21 +45,32 @@ export function Combobox({
   const [open, setOpen] = React.useState(false);
   const [inputValue, setInputValue] = React.useState(value);
 
+  // Update internal input value if the external value changes
+  React.useEffect(() => {
+    setInputValue(value);
+  }, [value]);
+
   const handleSelect = (currentValue: string) => {
     const newValue = currentValue === value ? "" : currentValue;
     onChange(newValue);
-    setInputValue(newValue);
+    setInputValue(newValue); // Sync input with selected value
     setOpen(false);
   };
   
   const handleInputChange = (search: string) => {
     setInputValue(search);
-    // Automatically select if it's a perfect match to an existing option
-    const match = options.find(option => option.label.toLowerCase() === search.toLowerCase());
-    if (!match) {
-        onChange(search); // Allow creating new value
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && inputValue) {
+        const match = options.find(option => option.label.toLowerCase() === inputValue.toLowerCase());
+        if (!match) {
+            onChange(inputValue);
+            setOpen(false);
+        }
     }
   };
+
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -82,6 +93,7 @@ export function Combobox({
             placeholder={placeholder}
             value={inputValue}
             onValueChange={handleInputChange}
+            onKeyDown={handleKeyDown}
           />
           <CommandList>
             <CommandEmpty>{emptyMessage}</CommandEmpty>
