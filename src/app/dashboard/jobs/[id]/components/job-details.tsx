@@ -52,26 +52,28 @@ export function JobDetails({
   jobTitle: string;
 }) {
   const firestore = useFirestore();
-  const [status, setStatus] = useState<Job["status"]>(job.status);
+  const [currentStatus, setCurrentStatus] = useState<Job["status"]>(job.status);
   const jobStatuses: Job["status"][] = ["Not Started", "In Progress", "Complete", "Open Payment", "Finalized"];
 
   useEffect(() => {
-    setStatus(job.status);
+    setCurrentStatus(job.status);
   }, [job.status]);
   
   const handleStatusChange = (newStatus: Job["status"]) => {
-    if (!firestore || newStatus === status) return;
+    if (!firestore || newStatus === currentStatus) return;
     
-    setStatus(newStatus); // Optimistic UI update
-
-    const jobRef = doc(firestore, 'jobs', job.id);
     let updatedData: Partial<Job> = { status: newStatus };
 
-    // If status is changed to 'Complete' and it wasn't before, set the deadline
+    // If status is changed to 'Complete' and it wasn't before, set the deadline.
+    // This preserves the date if moving from 'Complete' to 'Open Payment' or 'Finalized'.
     if (newStatus === 'Complete' && job.status !== 'Complete') {
         updatedData.deadline = new Date().toISOString();
     }
     
+    // Optimistically update the local state to give immediate feedback
+    setCurrentStatus(newStatus); 
+
+    const jobRef = doc(firestore, 'jobs', job.id);
     updateDocumentNonBlocking(jobRef, updatedData);
   }
 
@@ -242,7 +244,7 @@ export function JobDetails({
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="w-full capitalize">
-                    {status}
+                    {currentStatus}
                     <ChevronDown className="ml-2 h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
