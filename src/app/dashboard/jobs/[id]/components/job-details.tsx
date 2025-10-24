@@ -302,7 +302,3 @@ export function JobDetails({
     </div>
   );
 }
-
-    
-
-    
