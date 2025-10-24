@@ -51,6 +51,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar as DayPicker } from "@/components/ui/calendar";
 import type { Job, GeneralSettings } from "@/app/lib/types";
 import { useCollection, useDoc, useFirestore, useMemoFirebase, updateDocumentNonBlocking } from "@/firebase";
 import { collection, doc } from "firebase/firestore";
@@ -82,6 +88,7 @@ export function JobDetails({
   const [currentStatus, setCurrentStatus] = useState<Job["status"]>(job.status);
   const [invoiceModal, setInvoiceModal] = useState<ModalState<Job['invoices'][0]>>({ isOpen: false, item: null });
   const [adjustmentModal, setAdjustmentModal] = useState<ModalState<Job['adjustments'][0]>>({ isOpen: false, item: null });
+  const [productionDays, setProductionDays] = useState<Date[]>(job.productionDays.map(d => new Date(d)));
   
   const jobStatuses: Job["status"][] = ["Not Started", "In Progress", "Complete", "Open Payment", "Finalized"];
 
@@ -101,7 +108,8 @@ export function JobDetails({
 
   useEffect(() => {
     setCurrentStatus(job.status);
-  }, [job.status]);
+    setProductionDays(job.productionDays.map(d => new Date(d)))
+  }, [job.status, job.productionDays]);
   
   const handleStatusChange = (newStatus: Job["status"]) => {
     if (!firestore || newStatus === currentStatus) return;
@@ -133,6 +141,15 @@ export function JobDetails({
         description: `The adjustment has been successfully ${action === 'add' ? 'added' : action === 'edit' ? 'updated' : 'deleted'}.`,
     });
   };
+
+  const handleProductionDaysChange = (days: Date[] | undefined) => {
+    if (!firestore) return;
+    const newDays = days || [];
+    setProductionDays(newDays);
+
+    const jobRef = doc(firestore, 'jobs', job.id);
+    updateDocumentNonBlocking(jobRef, { productionDays: newDays.map(d => d.toISOString()) });
+  }
 
   const getEndDateDisplay = () => {
     switch(job.status) {
@@ -290,13 +307,30 @@ export function JobDetails({
                 <div className="bg-muted p-2 rounded-md">
                   <ListChecks className="h-6 w-6 text-muted-foreground" />
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Production Days</p>
+                <div className="w-full">
+                  <div className="flex items-center justify-between">
+                     <p className="text-sm font-medium text-muted-foreground">Production Days</p>
+                     <Popover>
+                        <PopoverTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-6 w-6">
+                                <CalendarDays className="h-4 w-4" />
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                            <DayPicker
+                                mode="multiple"
+                                selected={productionDays}
+                                onSelect={handleProductionDaysChange}
+                                defaultMonth={productionDays[0] || new Date()}
+                            />
+                        </PopoverContent>
+                    </Popover>
+                  </div>
                    <div className="flex flex-wrap gap-1 mt-1">
-                    {job.productionDays.map(day => (
-                      <Badge key={day} variant="secondary">{format(new Date(day), "MMM dd")}</Badge>
+                    {productionDays.sort((a,b) => a.getTime() - b.getTime()).map(day => (
+                      <Badge key={day.toISOString()} variant="secondary">{format(day, "MMM dd")}</Badge>
                     ))}
-                    {job.productionDays.length === 0 && <p className="text-sm text-muted-foreground">No days logged</p>}
+                    {productionDays.length === 0 && <p className="text-sm text-muted-foreground">No days logged</p>}
                   </div>
                 </div>
               </div>
@@ -441,7 +475,7 @@ export function JobDetails({
       </div>
       
         {/* Edit Invoice Modal */}
-        <Dialog open={invoiceModal.isOpen && !!invoiceModal.item} onOpenChange={(isOpen) => setInvoiceModal({ isOpen, item: isOpen ? invoiceModal.item : null })}>
+        <Dialog open={invoiceModal.isOpen && !!invoiceModal.item} onOpenChange={(isOpen) => setInvoiceModal({ isOpen, item: isOpen ? adjustmentModal.item : null })}>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Edit Invoice</DialogTitle>
@@ -474,3 +508,5 @@ export function JobDetails({
     </div>
   );
 }
+
+    
