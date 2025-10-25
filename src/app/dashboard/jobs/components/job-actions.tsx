@@ -12,8 +12,19 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { MoreHorizontal } from "lucide-react";
-import { useFirestore, updateDocumentNonBlocking } from "@/firebase";
+import { useFirestore, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { doc } from "firebase/firestore";
 
 const statusSequence: Job['status'][] = ["Not Started", "In Progress", "Complete", "Open Payment", "Finalized"];
@@ -35,6 +46,12 @@ export function JobActions({ job }: { job: Job }) {
     updateDocumentNonBlocking(jobRef, updatedData);
   }
 
+  const handleDelete = () => {
+    if(!firestore) return;
+    const jobRef = doc(firestore, 'jobs', job.id);
+    deleteDocumentNonBlocking(jobRef);
+  }
+
   const getNextStatus = (): Job["status"] | null => {
     const currentIndex = statusSequence.indexOf(job.status);
     if (currentIndex === -1 || currentIndex >= statusSequence.length - 1) {
@@ -46,33 +63,50 @@ export function JobActions({ job }: { job: Job }) {
   const nextStatus = getNextStatus();
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button aria-haspopup="true" size="icon" variant="ghost">
-          <MoreHorizontal className="h-4 w-4" />
-          <span className="sr-only">Toggle menu</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-        <DropdownMenuItem asChild>
-          <Link href={`/dashboard/jobs/${job.id}`}>View Details</Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-           <Link href={`/dashboard/jobs/${job.id}/edit`}>Edit</Link>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        {nextStatus && (
-           <DropdownMenuItem onSelect={() => handleStatusChange(nextStatus)}>
-            Mark as {nextStatus}
+    <AlertDialog>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button aria-haspopup="true" size="icon" variant="ghost">
+            <MoreHorizontal className="h-4 w-4" />
+            <span className="sr-only">Toggle menu</span>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+          <DropdownMenuItem asChild>
+            <Link href={`/dashboard/jobs/${job.id}`}>View Details</Link>
           </DropdownMenuItem>
-        )}
-        <DropdownMenuItem>Send Invoice</DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem className="text-destructive focus:text-destructive-foreground focus:bg-destructive">
-          Delete
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+          <DropdownMenuItem asChild>
+            <Link href={`/dashboard/jobs/${job.id}/edit`}>Edit</Link>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          {nextStatus && (
+            <DropdownMenuItem onSelect={() => handleStatusChange(nextStatus)}>
+              Mark as {nextStatus}
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuItem>Send Invoice</DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <AlertDialogTrigger asChild>
+            <DropdownMenuItem className="text-destructive focus:text-destructive-foreground focus:bg-destructive">
+              Delete
+            </DropdownMenuItem>
+          </AlertDialogTrigger>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This action cannot be undone. This will permanently delete this job
+            and all of its associated data.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
