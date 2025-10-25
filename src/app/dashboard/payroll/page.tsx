@@ -26,8 +26,8 @@ import type { Job, GeneralSettings } from "@/app/lib/types";
 import { Send } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { useDoc, useFirestore, useMemoFirebase, setDocumentNonBlocking } from "@/firebase";
-import { doc } from "firebase/firestore";
+import { useDoc, useFirestore, useMemoFirebase, setDocumentNonBlocking, useCollection } from "@/firebase";
+import { doc, collection, query, where } from "firebase/firestore";
 
 
 export default function PayrollPage() {
@@ -41,6 +41,13 @@ export default function PayrollPage() {
   }, [firestore]);
 
   const { data: settings, isLoading: isLoadingSettings } = useDoc<GeneralSettings>(settingsRef);
+  
+  const jobsToPayQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'jobs'), where('status', '==', 'Open Payment'));
+  }, [firestore]);
+
+  const { data: jobsToPay, isLoading: isLoadingJobs } = useCollection<Job>(jobsToPayQuery);
 
   const [recipients, setRecipients] = useState<string[]>([]);
 
@@ -51,8 +58,7 @@ export default function PayrollPage() {
   }, [settings]);
 
 
-  const isLoading = false;
-  const jobsToPay: Job[] | null = [];
+  const isLoading = isLoadingJobs;
 
   const handleJobClick = (jobId: string) => {
     router.push(`/dashboard/jobs/${jobId}`);
