@@ -1,7 +1,8 @@
 
 "use client";
 
-import { useState, useEffect, useActionState, useTransition } from "react";
+import { useState, useEffect, useTransition } from "react";
+import { useActionState } from "react";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { 
@@ -191,6 +192,10 @@ export default function PayrollPage() {
   const handleJobClick = (jobId: string) => {
     router.push(`/dashboard/jobs/${jobId}`);
   };
+
+  const handleReportClick = (reportId: string) => {
+    router.push(`/dashboard/payroll/${reportId}`);
+  }
   
   const toggleRow = (jobId: string) => {
     setExpandedJobId(prevId => (prevId === jobId ? null : jobId));
@@ -230,74 +235,74 @@ export default function PayrollPage() {
       return;
     }
 
-    try {
-        const now = new Date();
-        const start = startOfWeek(now);
-        const end = endOfWeek(now);
+    startTransition(async () => {
+        try {
+            const now = new Date();
+            const start = startOfWeek(now);
+            const end = endOfWeek(now);
 
-        const totalPayout = jobsToPay.reduce((acc, job) => {
-            const totalAdjustments = job.adjustments?.reduce((sum, adj) => {
-                if (adj.type === 'Time') {
-                    const rate = adj.hourlyRate ?? settings?.hourlyRate ?? 0;
-                    return sum + (adj.value * rate);
+            const totalPayout = jobsToPay.reduce((acc, job) => {
+                const totalAdjustments = job.adjustments?.reduce((sum, adj) => {
+                    if (adj.type === 'Time') {
+                        const rate = adj.hourlyRate ?? settings?.hourlyRate ?? 0;
+                        return sum + (adj.value * rate);
+                    }
+                    return sum + adj.value;
+                }, 0) ?? 0;
+                const totalInvoiced = job.invoices?.reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
+                return acc + ((job.initialValue ?? 0) - totalInvoiced + totalAdjustments);
+            }, 0);
+
+
+        const reportInput: PayrollReportInput = {
+            jobs: jobsToPay.map(job => {
+                const materialCost = job.invoices?.reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
+                const materialUsage = job.initialValue > 0 ? (materialCost / job.initialValue) * 100 : 0;
+                const totalAdjustments = job.adjustments?.reduce((sum, adj) => {
+                    if (adj.type === 'Time') {
+                        const rate = adj.hourlyRate ?? settings?.hourlyRate ?? 0;
+                        return sum + (adj.value * rate);
+                    }
+                    return sum + adj.value;
+                }, 0) ?? 0;
+                const totalInvoiced = job.invoices?.reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
+                const payout = (job.initialValue ?? 0) - totalInvoiced + totalAdjustments;
+
+                return {
+                    ...job,
+                    startDate: format(new Date(job.startDate), "MM/dd/yyyy"),
+                    deadline: format(new Date(job.deadline), "MM/dd/yyyy"),
+                    payout: parseFloat(payout.toFixed(2)),
+                    materialUsage: parseFloat(materialUsage.toFixed(2)),
+                    notes: job.specialRequirements || "N/A",
                 }
-                return sum + adj.value;
-            }, 0) ?? 0;
-            const totalInvoiced = job.invoices?.reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
-            return acc + ((job.initialValue ?? 0) - totalInvoiced + totalAdjustments);
-        }, 0);
+            }),
+            currentDate: format(now, "MM/dd/yyyy"),
+            weekNumber: getWeek(now),
+            startDate: format(start, "MM/dd/yyyy"),
+            endDate: format(end, "MM/dd/yyyy"),
+            businessName: userProfile?.businessName || "",
+            totalPayout: parseFloat(totalPayout.toFixed(2)),
+        };
+        
+        const report = await generatePayrollReport(reportInput);
+        
+        const formData = new FormData();
+        recipients.filter(r => r).forEach(r => formData.append('to', r));
+        formData.append('subject', report.subject);
+        formData.append('html', report.body);
 
-
-      const reportInput: PayrollReportInput = {
-        jobs: jobsToPay.map(job => {
-            const materialCost = job.invoices?.reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
-            const materialUsage = job.initialValue > 0 ? (materialCost / job.initialValue) * 100 : 0;
-            const totalAdjustments = job.adjustments?.reduce((sum, adj) => {
-                if (adj.type === 'Time') {
-                    const rate = adj.hourlyRate ?? settings?.hourlyRate ?? 0;
-                    return sum + (adj.value * rate);
-                }
-                return sum + adj.value;
-            }, 0) ?? 0;
-            const totalInvoiced = job.invoices?.reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
-            const payout = (job.initialValue ?? 0) - totalInvoiced + totalAdjustments;
-
-            return {
-                ...job,
-                startDate: format(new Date(job.startDate), "MM/dd/yyyy"),
-                deadline: format(new Date(job.deadline), "MM/dd/yyyy"),
-                payout: parseFloat(payout.toFixed(2)),
-                materialUsage: parseFloat(materialUsage.toFixed(2)),
-                notes: job.specialRequirements || "N/A",
-            }
-        }),
-        currentDate: format(now, "MM/dd/yyyy"),
-        weekNumber: getWeek(now),
-        startDate: format(start, "MM/dd/yyyy"),
-        endDate: format(end, "MM/dd/yyyy"),
-        businessName: userProfile?.businessName || "",
-        totalPayout: parseFloat(totalPayout.toFixed(2)),
-      };
-      
-      const report = await generatePayrollReport(reportInput);
-      
-      const formData = new FormData();
-      recipients.filter(r => r).forEach(r => formData.append('to', r));
-      formData.append('subject', report.subject);
-      formData.append('html', report.body);
-
-      startTransition(() => {
         sendEmailAction(formData);
-      });
 
-    } catch (error) {
-      console.error("Failed to generate or send report:", error);
-      toast({
-        variant: "destructive",
-        title: "Process Failed",
-        description: "Could not generate or send the payroll report.",
-      });
-    }
+        } catch (error) {
+        console.error("Failed to generate or send report:", error);
+        toast({
+            variant: "destructive",
+            title: "Process Failed",
+            description: "Could not generate or send the payroll report.",
+        });
+        }
+    });
   };
 
 
@@ -408,7 +413,7 @@ export default function PayrollPage() {
                     ))
                   ) : pastReports && pastReports.length > 0 ? (
                     pastReports.map(report => (
-                      <TableRow key={report.id}>
+                      <TableRow key={report.id} onClick={() => handleReportClick(report.id)} className="cursor-pointer">
                         <TableCell>
                           <div className="font-medium">Week {report.weekNumber}, {report.year}</div>
                         </TableCell>
