@@ -235,6 +235,19 @@ export default function PayrollPage() {
         const start = startOfWeek(now);
         const end = endOfWeek(now);
 
+        const totalPayout = jobsToPay.reduce((acc, job) => {
+            const totalAdjustments = job.adjustments?.reduce((sum, adj) => {
+                if (adj.type === 'Time') {
+                    const rate = adj.hourlyRate ?? settings?.hourlyRate ?? 0;
+                    return sum + (adj.value * rate);
+                }
+                return sum + adj.value;
+            }, 0) ?? 0;
+            const totalInvoiced = job.invoices?.reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
+            return acc + ((job.initialValue ?? 0) - totalInvoiced + totalAdjustments);
+        }, 0);
+
+
       const reportInput: PayrollReportInput = {
         jobs: jobsToPay.map(job => {
             const materialCost = job.invoices?.reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
@@ -263,6 +276,7 @@ export default function PayrollPage() {
         startDate: format(start, "MM/dd/yyyy"),
         endDate: format(end, "MM/dd/yyyy"),
         businessName: userProfile?.businessName || "",
+        totalPayout: parseFloat(totalPayout.toFixed(2)),
       };
       
       const report = await generatePayrollReport(reportInput);

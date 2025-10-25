@@ -25,6 +25,7 @@ const PayrollReportInputSchema = z.object({
   startDate: z.string(),
   endDate: z.string(),
   businessName: z.string().optional().describe("The name of the user's business."),
+  totalPayout: z.number().describe("The sum of all job payouts in this report."),
 });
 
 const PayrollReportOutputSchema = z.object({
@@ -62,6 +63,9 @@ const prompt = ai.definePrompt({
       - Material Usage: [Material Usage Percentage]%
       - Notes: [Notes]
 
+      After listing all the jobs, add a final line with the total payout:
+      "<p><strong>Total Payout:</strong> \${{totalPayout}}</p>"
+
       Here is the job data:
 
       {{#each jobs}}
@@ -75,6 +79,8 @@ const prompt = ai.definePrompt({
       </p>
       {{#unless @last}}<hr>{{/unless}}
       {{/each}}
+      
+      <p><strong>Total Payout:</strong> \${{totalPayout}}</p>
 
       Generate the HTML email now.
     `,
