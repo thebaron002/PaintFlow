@@ -23,18 +23,52 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { Job, GeneralSettings } from "@/app/lib/types";
-import { Send } from "lucide-react";
+import { Send, ChevronDown } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useDoc, useFirestore, useMemoFirebase, setDocumentNonBlocking, useCollection } from "@/firebase";
 import { doc, collection, query, where } from "firebase/firestore";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
+
+const JobDetailsRow = ({ job }: { job: Job }) => {
+    const totalInvoiced = job.invoices?.reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
+    const materialCost = job.invoices
+        ?.reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
+
+    return (
+         <TableRow className="bg-muted hover:bg-muted">
+            <TableCell colSpan={5} className="p-0">
+                <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="space-y-1">
+                        <p className="text-sm font-medium text-muted-foreground">Start Date</p>
+                        <p>{format(new Date(job.startDate), "MMM dd, yyyy")}</p>
+                    </div>
+                     <div className="space-y-1">
+                        <p className="text-sm font-medium text-muted-foreground">Total Material Cost</p>
+                        <p>${materialCost.toLocaleString()}</p>
+                    </div>
+                    <div className="space-y-1">
+                        <p className="text-sm font-medium text-muted-foreground">Total Invoiced</p>
+                        <p>${totalInvoiced.toLocaleString()}</p>
+                    </div>
+                   
+                    <div className="space-y-1 lg:col-span-4">
+                        <p className="text-sm font-medium text-muted-foreground">Notes</p>
+                        <p className="text-sm">{job.specialRequirements || "No notes for this job."}</p>
+                    </div>
+                </div>
+            </TableCell>
+        </TableRow>
+    )
+}
 
 export default function PayrollPage() {
   const router = useRouter();
   const { toast } = useToast();
   const firestore = useFirestore();
+  const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
 
   const settingsRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -64,6 +98,10 @@ export default function PayrollPage() {
   const handleJobClick = (jobId: string) => {
     router.push(`/dashboard/jobs/${jobId}`);
   };
+  
+  const toggleRow = (jobId: string) => {
+    setExpandedJobId(prevId => (prevId === jobId ? null : jobId));
+  }
 
   const handleRecipientChange = (index: number, value: string) => {
     const newRecipients = [...recipients];
@@ -99,8 +137,8 @@ export default function PayrollPage() {
                   <TableRow>
                     <TableHead>Job</TableHead>
                     <TableHead>Completion Date</TableHead>
-                    <TableHead>Invoices</TableHead>
                     <TableHead className="text-right">Payout</TableHead>
+                    <TableHead className="w-[100px]">Details</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -112,8 +150,8 @@ export default function PayrollPage() {
                           <Skeleton className="h-4 w-40" />
                         </TableCell>
                         <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                        <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                         <TableCell className="text-right"><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
+                         <TableCell><Skeleton className="h-8 w-full" /></TableCell>
                       </TableRow>
                     ))
                   ) : jobsToPay && jobsToPay.length > 0 ? jobsToPay.map(job => {
@@ -122,15 +160,26 @@ export default function PayrollPage() {
                      const totalInvoiced = job.invoices.reduce((sum, invoice) => sum + invoice.amount, 0);
                      const payout = job.initialValue - totalInvoiced;
                     return (
-                       <TableRow key={job.id} onClick={() => handleJobClick(job.id)} className="cursor-pointer">
-                        <TableCell>
-                          <div className="font-medium">{jobTitle}</div>
-                          <div className="text-sm text-muted-foreground">{job.address}</div>
-                        </TableCell>
-                        <TableCell>{format(new Date(job.deadline), "MMM dd, yyyy")}</TableCell>
-                        <TableCell>${totalInvoiced.toLocaleString()}</TableCell>
-                        <TableCell className="text-right">${payout.toLocaleString()}</TableCell>
-                      </TableRow>
+                        <>
+                           <TableRow key={job.id} >
+                            <TableCell 
+                                onClick={() => handleJobClick(job.id)}
+                                className="cursor-pointer hover:underline"
+                            >
+                              <div className="font-medium">{jobTitle}</div>
+                              <div className="text-sm text-muted-foreground">{job.address}</div>
+                            </TableCell>
+                            <TableCell>{format(new Date(job.deadline), "MMM dd, yyyy")}</TableCell>
+                            <TableCell className="text-right">${payout.toLocaleString()}</TableCell>
+                            <TableCell className="text-center">
+                                <Button variant="ghost" size="sm" onClick={() => toggleRow(job.id)}>
+                                    <span className="sr-only">Toggle Details</span>
+                                    <ChevronDown className={cn("h-4 w-4 transition-transform", expandedJobId === job.id && "rotate-180")} />
+                                </Button>
+                            </TableCell>
+                          </TableRow>
+                          {expandedJobId === job.id && <JobDetailsRow job={job} />}
+                       </>
                     )
                   }) : (
                     <TableRow>
