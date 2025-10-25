@@ -97,8 +97,8 @@ const prompt = ai.definePrompt({
                 </tr>
                 <!-- Intro -->
                 <tr>
-                  <td style="padding: 20px 0;">
-                    <p style="font-size: 16px; color: #555555; line-height: 1.6;">
+                  <td style="padding: 20px;">
+                    <p style="font-size: 16px; color: #555555; line-height: 1.6; margin: 0;">
                       Here are the jobs with Open Payment status for the period from <strong>{{startDate}}</strong> to <strong>{{endDate}}</strong>:
                     </p>
                   </td>
