@@ -146,7 +146,7 @@
         "jobCount": { "type": "number" },
         "jobIds": { "type": "array", "items": { "type": "string" } }
       },
-      "required": ["id", "weekNumber", "year", "sentDate", "recipientCount", "totalPayout", "jobCount"]
+      "required": ["id", "weekNumber", "year", "sentDate", "recipientCount", "totalPayout", "jobCount", "jobIds"]
     }
   },
   "auth": {
@@ -183,4 +183,3 @@
     }
   }
 }
-
