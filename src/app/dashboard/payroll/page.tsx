@@ -28,6 +28,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useDoc, useFirestore, useMemoFirebase, setDocumentNonBlocking, useCollection } from "@/firebase";
 import { doc, collection, query, where } from "firebase/firestore";
+import { format } from "date-fns";
 
 
 export default function PayrollPage() {
@@ -58,7 +59,7 @@ export default function PayrollPage() {
   }, [settings]);
 
 
-  const isLoading = isLoadingJobs;
+  const isLoading = isLoadingJobs || isLoadingSettings;
 
   const handleJobClick = (jobId: string) => {
     router.push(`/dashboard/jobs/${jobId}`);
@@ -97,7 +98,7 @@ export default function PayrollPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Job</TableHead>
-                    <TableHead>Initial Payment</TableHead>
+                    <TableHead>Completion Date</TableHead>
                     <TableHead>Invoices</TableHead>
                     <TableHead className="text-right">Payout</TableHead>
                   </TableRow>
@@ -124,9 +125,9 @@ export default function PayrollPage() {
                        <TableRow key={job.id} onClick={() => handleJobClick(job.id)} className="cursor-pointer">
                         <TableCell>
                           <div className="font-medium">{jobTitle}</div>
-                          <div className="text-sm text-muted-foreground">{job.title}</div>
+                          <div className="text-sm text-muted-foreground">{job.address}</div>
                         </TableCell>
-                        <TableCell>${job.initialValue.toLocaleString()}</TableCell>
+                        <TableCell>{format(new Date(job.deadline), "MMM dd, yyyy")}</TableCell>
                         <TableCell>${totalInvoiced.toLocaleString()}</TableCell>
                         <TableCell className="text-right">${payout.toLocaleString()}</TableCell>
                       </TableRow>
