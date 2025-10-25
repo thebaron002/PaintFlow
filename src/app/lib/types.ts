@@ -1,5 +1,6 @@
 
 
+
 export type Client = {
   id: string;
   name: string;
@@ -75,4 +76,12 @@ export type GeneralSettings = {
   idealMaterialCostPercentage: number;
   hourlyRate: number;
   reportRecipients?: string[];
+};
+
+export type UserProfile = {
+    id: string;
+    name: string;
+    email: string;
+    avatarUrl?: string;
+    businessName?: string;
 };

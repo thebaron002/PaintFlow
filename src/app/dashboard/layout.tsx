@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -12,6 +13,7 @@ import {
   LoaderCircle,
   Settings,
   Users,
+  User,
 } from "lucide-react";
 import {
   SidebarProvider,
@@ -30,7 +32,7 @@ import { UserNav } from "@/components/user-nav";
 import { Logo } from "@/components/logo";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
-import { useUser } from "@/firebase";
+import { useUser as useFirebaseUser } from "@/firebase";
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -39,6 +41,7 @@ const navItems = [
   { href: "/dashboard/finance", icon: DollarSign, label: "Finance" },
   { href: "/dashboard/payroll", icon: Landmark, label: "Payroll" },
   { href: "/dashboard/crew", icon: Users, label: "Crew" },
+  { href: "/dashboard/profile", icon: User, label: "Profile" },
   { href: "/dashboard/settings", icon: Settings, label: "Settings" },
 ];
 
@@ -46,7 +49,7 @@ const BottomNavBar = () => {
   const pathname = usePathname();
   return (
     <div className="md:hidden fixed bottom-0 left-0 z-50 w-full h-16 bg-background border-t">
-      <div className="grid h-full max-w-lg grid-cols-7 mx-auto font-medium">
+      <div className="grid h-full max-w-lg grid-cols-8 mx-auto font-medium">
         {navItems.map(({ href, icon: Icon, label }) => (
           <Link
             key={label}
@@ -73,7 +76,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const isMobile = useIsMobile();
-  const { isUserLoading, user } = useUser();
+  const { isUserLoading, user } = useFirebaseUser();
 
   const renderLoadingState = () => (
     <div className="flex-1 flex items-center justify-center">
