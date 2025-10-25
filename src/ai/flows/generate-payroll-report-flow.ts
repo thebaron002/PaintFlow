@@ -2,7 +2,7 @@
 'use server';
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
 import { Job as JobType } from '@/app/lib/types'; 
 
 // Zod schema based on the desired email output
@@ -53,7 +53,8 @@ const prompt = ai.definePrompt({
       The email body should be in simple HTML. Start with the following sentence:
       "Here are the jobs with Open Payment status for the period from {{startDate}} to {{endDate}}:"
 
-      Then, for each job provided in the data, list the following details in this exact order and format:
+      Then, for each job provided in the data, create a section separated by a horizontal rule (<hr>). Each section should list the following details in this exact order and format using <p> and <strong> tags:
+
       - Job Name: [Client Name] #[Work Order Number]
       - Start Date: [Start Date]
       - Conclusion Date: [Completion Date]
@@ -65,14 +66,14 @@ const prompt = ai.definePrompt({
 
       {{#each jobs}}
       <p>
-        <strong>Job Name:</strong> {{clientName}} #{{workOrderNumber}}<br>
-        <strong>Start Date:</strong> {{startDate}}<br>
-        <strong>Conclusion Date:</strong> {{deadline}}<br>
-        <strong>Payout:</strong> \${{payout}}<br>
-        <strong>Material Usage:</strong> {{materialUsage}}%<br>
-        <strong>Notes:</strong> {{notes}}
+        <strong>Job Name:</strong> {{this.clientName}} #{{this.workOrderNumber}}<br>
+        <strong>Start Date:</strong> {{this.startDate}}<br>
+        <strong>Conclusion Date:</strong> {{this.deadline}}<br>
+        <strong>Payout:</strong> \${{this.payout}}<br>
+        <strong>Material Usage:</strong> {{this.materialUsage}}%<br>
+        <strong>Notes:</strong> {{this.notes}}
       </p>
-      ---
+      {{#unless @last}}<hr>{{/unless}}
       {{/each}}
 
       Generate the HTML email now.
