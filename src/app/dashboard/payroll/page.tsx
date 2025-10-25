@@ -36,6 +36,8 @@ const JobDetailsRow = ({ job }: { job: Job }) => {
     const totalInvoiced = job.invoices?.reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
     const materialCost = job.invoices
         ?.reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
+    const materialUsagePercentage = job.initialValue > 0 ? (materialCost / job.initialValue) * 100 : 0;
+
 
     return (
          <TableRow className="bg-muted hover:bg-muted">
@@ -46,8 +48,8 @@ const JobDetailsRow = ({ job }: { job: Job }) => {
                         <p>{format(new Date(job.startDate), "MMM dd, yyyy")}</p>
                     </div>
                      <div className="space-y-1">
-                        <p className="text-sm font-medium text-muted-foreground">Material Cost</p>
-                        <p>${materialCost.toLocaleString()}</p>
+                        <p className="text-sm font-medium text-muted-foreground">Material Usage</p>
+                        <p>{materialUsagePercentage.toFixed(1)}%</p>
                     </div>
                     <div className="space-y-1">
                         <p className="text-sm font-medium text-muted-foreground">Total Invoiced</p>
