@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition, useActionState } from "react";
 import { useParams, useRouter } from 'next/navigation';
 import { useDoc, useFirestore, useMemoFirebase, useCollection, useUser } from "@/firebase";
 import { doc, collection, query, where } from "firebase/firestore";
@@ -10,18 +10,27 @@ import { PageHeader } from "@/components/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Send, LoaderCircle } from "lucide-react";
 import Link from "next/link";
 import { generatePayrollReport, PayrollReportInput } from "@/ai/flows/generate-payroll-report-flow";
-import { format, getWeek } from "date-fns";
+import { format } from "date-fns";
+import { sendEmail } from "@/app/actions/send-email";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ReportDetailsPage() {
     const params = useParams();
     const reportId = params.reportId as string;
     const firestore = useFirestore();
     const { user } = useUser();
-    const [generatedEmail, setGeneratedEmail] = useState<{ subject: string; body: string } | null>(null);
+    const { toast } = useToast();
     const [isGenerating, setIsGenerating] = useState(true);
+    const [generatedEmail, setGeneratedEmail] = useState<{ subject: string; body: string } | null>(null);
+    const [isResending, startResendTransition] = useTransition();
+
+    const [sendEmailState, sendEmailAction] = useActionState(sendEmail, {
+        error: null,
+        success: false,
+    });
 
     const reportRef = useMemoFirebase(() => {
         if (!firestore || !reportId) return null;
@@ -100,18 +109,60 @@ export default function ReportDetailsPage() {
         regenerateEmail();
     }, [report, jobs, userProfile, settings]);
 
+    useEffect(() => {
+        if (sendEmailState.success) {
+            toast({
+                title: "Report Resent!",
+                description: "The payroll report has been successfully resent.",
+            });
+        }
+        if (sendEmailState.error) {
+            toast({
+                variant: "destructive",
+                title: "Resend Failed",
+                description: `Could not resend the report: ${sendEmailState.error}`,
+            });
+        }
+    }, [sendEmailState, toast]);
+
+
+    const handleResend = () => {
+        if (!generatedEmail || !settings?.reportRecipients || settings.reportRecipients.length === 0) {
+            toast({
+                variant: "destructive",
+                title: "Cannot Resend",
+                description: "Email content is not available or no recipients are configured in settings.",
+            });
+            return;
+        }
+
+        startResendTransition(() => {
+            const formData = new FormData();
+            settings.reportRecipients!.filter(r => r).forEach(r => formData.append('to', r));
+            formData.append('subject', generatedEmail.subject);
+            formData.append('html', generatedEmail.body);
+            sendEmailAction(formData);
+        });
+    };
+
     const isLoading = isLoadingReport || isLoadingJobs || isLoadingProfile || isGenerating;
     const pageTitle = report ? `Report: Week ${report.weekNumber}, ${report.year}` : "Report Details";
 
     return (
         <div>
             <PageHeader title={pageTitle}>
-                <Button variant="outline" asChild>
-                    <Link href="/dashboard/payroll">
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Back to Payroll
-                    </Link>
-                </Button>
+                <div className="flex items-center gap-2">
+                    <Button variant="outline" asChild>
+                        <Link href="/dashboard/payroll">
+                            <ArrowLeft className="mr-2 h-4 w-4" />
+                            Back to Payroll
+                        </Link>
+                    </Button>
+                     <Button onClick={handleResend} disabled={isResending || isLoading}>
+                        {isResending ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                        {isResending ? 'Resending...' : 'Resend Report'}
+                    </Button>
+                </div>
             </PageHeader>
 
             <Card>
@@ -136,7 +187,7 @@ export default function ReportDetailsPage() {
                                 <p>{generatedEmail.subject}</p>
                              </div>
                              <div className="border rounded-lg p-4 bg-muted/20">
-                                <div dangerouslySetInnerHTML={{ __html: generatedEmail.body }} className="prose-sm max-w-none" />
+                                <div dangerouslySetInnerHTML={{ __html: generatedEmail.body }} />
                              </div>
                         </div>
                     ) : (
@@ -147,7 +198,3 @@ export default function ReportDetailsPage() {
         </div>
     );
 }
-
-    
-
-    
