@@ -30,6 +30,7 @@ import { useDoc, useFirestore, useMemoFirebase, setDocumentNonBlocking, useColle
 import { doc, collection, query, where } from "firebase/firestore";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import React from "react";
 
 
 const JobDetailsRow = ({ job }: { job: Job }) => {
@@ -41,7 +42,6 @@ const JobDetailsRow = ({ job }: { job: Job }) => {
     const { data: settings } = useDoc<GeneralSettings>(settingsRef);
     const globalHourlyRate = settings?.hourlyRate ?? 0;
 
-    const totalInvoiced = job.invoices?.reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
     const materialCost = job.invoices
         ?.reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
     const materialUsagePercentage = job.initialValue > 0 ? (materialCost / job.initialValue) * 100 : 0;
@@ -53,6 +53,8 @@ const JobDetailsRow = ({ job }: { job: Job }) => {
         }
         return sum + adj.value;
     }, 0) ?? 0;
+
+    const totalInvoiced = job.invoices?.reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
 
 
     return (
@@ -182,8 +184,8 @@ export default function PayrollPage() {
                      const totalInvoiced = job.invoices.reduce((sum, invoice) => sum + invoice.amount, 0);
                      const payout = job.initialValue - totalInvoiced;
                     return (
-                        <>
-                           <TableRow key={job.id} >
+                        <React.Fragment key={job.id}>
+                           <TableRow>
                             <TableCell 
                                 onClick={() => handleJobClick(job.id)}
                                 className="cursor-pointer hover:underline"
@@ -201,7 +203,7 @@ export default function PayrollPage() {
                             </TableCell>
                           </TableRow>
                           {expandedJobId === job.id && <JobDetailsRow job={job} />}
-                       </>
+                       </React.Fragment>
                     )
                   }) : (
                     <TableRow>
