@@ -6,6 +6,7 @@ import { FirebaseClientProvider } from '@/firebase';
 export const metadata: Metadata = {
   title: 'PaintFlow',
   description: 'Manage your painting business with ease.',
+  manifest: '/manifest.webmanifest',
 };
 
 export default function RootLayout({
