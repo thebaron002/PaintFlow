@@ -1,6 +1,7 @@
 
 
 
+
 export type Client = {
   id: string;
   name: string;
@@ -84,4 +85,6 @@ export type UserProfile = {
     email: string;
     avatarUrl?: string;
     businessName?: string;
+    businessLogoUrl?: string;
 };
+
