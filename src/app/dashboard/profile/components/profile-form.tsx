@@ -22,6 +22,7 @@ import { doc } from "firebase/firestore";
 const profileSchema = z.object({
   name: z.string().min(1, "Name is required."),
   email: z.string().email("Please enter a valid email address."),
+  phone: z.string().optional(),
   businessName: z.string().optional(),
   businessLogoUrl: z.string().url().optional().or(z.literal('')),
 });
@@ -42,6 +43,7 @@ export function ProfileForm({ profile, onSuccess }: ProfileFormProps) {
     defaultValues: {
       name: profile.name || "",
       email: profile.email || "",
+      phone: profile.phone || "",
       businessName: profile.businessName || "",
       businessLogoUrl: profile.businessLogoUrl || "",
     },
@@ -72,19 +74,34 @@ export function ProfileForm({ profile, onSuccess }: ProfileFormProps) {
             </FormItem>
           )}
         />
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email Address</FormLabel>
-              <FormControl>
-                 <Input type="email" placeholder="e.g. john.doe@example.com" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+           <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email Address</FormLabel>
+                <FormControl>
+                   <Input type="email" placeholder="e.g. john.doe@example.com" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+           <FormField
+            control={form.control}
+            name="phone"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Phone Number</FormLabel>
+                <FormControl>
+                   <Input type="tel" placeholder="e.g. (123) 456-7890" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
         <FormField
           control={form.control}
           name="businessName"

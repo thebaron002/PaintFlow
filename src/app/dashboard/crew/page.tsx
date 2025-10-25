@@ -65,13 +65,13 @@ const CrewList = ({ members, isLoading, type }: { members: CrewMember[], isLoadi
                        {member.email && (
                          <div className="text-sm text-muted-foreground flex items-center justify-center gap-2 mb-2">
                             <Mail className="w-4 h-4"/>
-                            <span>{member.email}</span>
+                            <a href={`mailto:${member.email}`} className="hover:underline">{member.email}</a>
                        </div>
                        )}
                         {member.phone && (
                            <div className="text-sm text-muted-foreground flex items-center justify-center gap-2">
                             <Phone className="w-4 h-4"/>
-                            <span>{member.phone}</span>
+                            <a href={`tel:${member.phone}`} className="hover:underline">{member.phone}</a>
                        </div>
                         )}
                     </CardContent>
