@@ -96,7 +96,7 @@ export default function PayrollPage() {
   const { user } = useUser();
   const firestore = useFirestore();
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
-  const [isSending, setIsSending] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
   const [sendEmailState, sendEmailAction] = useActionState(sendEmail, {
     error: null,
@@ -183,7 +183,6 @@ export default function PayrollPage() {
         description: `Could not send the payroll report: ${sendEmailState.error}`,
       });
     }
-    setIsSending(false); // Reset sending state regardless of outcome
   }, [sendEmailState, toast, jobsToPay, firestore, recipients, settings?.hourlyRate]);
 
 
@@ -231,8 +230,6 @@ export default function PayrollPage() {
       return;
     }
 
-    setIsSending(true);
-
     try {
         const now = new Date();
         const start = startOfWeek(now);
@@ -275,7 +272,9 @@ export default function PayrollPage() {
       formData.append('subject', report.subject);
       formData.append('html', report.body);
 
-      sendEmailAction(formData);
+      startTransition(() => {
+        sendEmailAction(formData);
+      });
 
     } catch (error) {
       console.error("Failed to generate or send report:", error);
@@ -284,7 +283,6 @@ export default function PayrollPage() {
         title: "Process Failed",
         description: "Could not generate or send the payroll report.",
       });
-      setIsSending(false);
     }
   };
 
@@ -450,9 +448,9 @@ export default function PayrollPage() {
                 </>
                )}
                <Button variant="outline" onClick={handleSaveRecipients} disabled={isLoadingSettings}>Save Recipients</Button>
-               <Button onClick={handleGenerateAndSend} disabled={isSending || isLoading}>
-                    {isSending ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-                    {isSending ? 'Sending...' : 'Send Report Now'}
+               <Button onClick={handleGenerateAndSend} disabled={isPending || isLoading}>
+                    {isPending ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                    {isPending ? 'Sending...' : 'Send Report Now'}
                 </Button>
             </CardContent>
           </Card>
