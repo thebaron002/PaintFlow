@@ -83,6 +83,7 @@ export default function ReportDetailsPage() {
                         startDate: format(new Date(report.startDate), "MM/dd/yyyy"),
                         endDate: format(new Date(report.endDate), "MM/dd/yyyy"),
                         businessName: userProfile.businessName || "",
+                        businessLogoUrl: userProfile.businessLogoUrl || "",
                         totalPayout: report.totalPayout,
                     };
 
@@ -135,7 +136,7 @@ export default function ReportDetailsPage() {
                                 <p>{generatedEmail.subject}</p>
                              </div>
                              <div className="border rounded-lg p-4 bg-muted/20">
-                                <div dangerouslySetInnerHTML={{ __html: generatedEmail.body }} className="prose prose-sm max-w-none" />
+                                <div dangerouslySetInnerHTML={{ __html: generatedEmail.body }} className="prose-sm max-w-none" />
                              </div>
                         </div>
                     ) : (
@@ -146,5 +147,7 @@ export default function ReportDetailsPage() {
         </div>
     );
 }
+
+    
 
     

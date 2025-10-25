@@ -282,6 +282,7 @@ export default function PayrollPage() {
             startDate: format(start, "MM/dd/yyyy"),
             endDate: format(end, "MM/dd/yyyy"),
             businessName: userProfile?.businessName || "",
+            businessLogoUrl: userProfile?.businessLogoUrl || "",
             totalPayout: parseFloat(totalPayout.toFixed(2)),
         };
         
@@ -478,5 +479,7 @@ export default function PayrollPage() {
     </div>
   );
 }
+
+    
 
     
