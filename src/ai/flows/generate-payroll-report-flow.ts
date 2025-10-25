@@ -48,7 +48,7 @@ const prompt = ai.definePrompt({
       You are an assistant for a painting contractor.
       Your task is to generate a professional weekly payroll summary email listing jobs with an "Open Payment" status.
 
-      The subject line should be: "{{#if businessName}}{{businessName}}: {{else}}PaintFlow: {{/if}}Weekly Payroll Report - Week {{weekNumber}}".
+      The subject line should be: "{{#if businessName}}{{businessName}}: {{/if}}Weekly Payroll Report - Week {{weekNumber}}".
 
       The email body should be in simple HTML. Start with the following sentence:
       "Here are the jobs with Open Payment status for the period from {{startDate}} to {{endDate}}:"
@@ -64,12 +64,14 @@ const prompt = ai.definePrompt({
       Here is the job data:
 
       {{#each jobs}}
-      - Job Name: {{clientName}} #{{workOrderNumber}}
-        Start Date: {{startDate}}
-        Conclusion Date: {{deadline}}
-        Payout: \${{payout}}
-        Material Usage: {{materialUsage}}%
-        Notes: {{notes}}
+      <p>
+        <strong>Job Name:</strong> {{clientName}} #{{workOrderNumber}}<br>
+        <strong>Start Date:</strong> {{startDate}}<br>
+        <strong>Conclusion Date:</strong> {{deadline}}<br>
+        <strong>Payout:</strong> \${{payout}}<br>
+        <strong>Material Usage:</strong> {{materialUsage}}%<br>
+        <strong>Notes:</strong> {{notes}}
+      </p>
       ---
       {{/each}}
 
