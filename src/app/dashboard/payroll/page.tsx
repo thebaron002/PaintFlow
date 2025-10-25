@@ -1,8 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
-import { useActionState } from "react";
+import { useState, useEffect, useTransition, useActionState } from "react";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { 
@@ -217,7 +216,7 @@ export default function PayrollPage() {
     });
   };
 
-  const handleGenerateAndSend = async () => {
+  const handleGenerateAndSend = () => {
     if (!jobsToPay || jobsToPay.length === 0) {
       toast({
         variant: "destructive",
@@ -326,7 +325,7 @@ export default function PayrollPage() {
                     <TableHead>Job</TableHead>
                     <TableHead>Completion Date</TableHead>
                     <TableHead className="text-right">Payout</TableHead>
-                    <TableHead className="w-[100px]">Details</TableHead>
+                    <TableHead className="w-[100px] text-center">Details</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -357,11 +356,13 @@ export default function PayrollPage() {
                     return (
                         <React.Fragment key={job.id}>
                            <TableRow>
-                            <TableCell 
+                            <TableCell>
+                              <div 
+                                className="font-medium cursor-pointer hover:underline"
                                 onClick={() => handleJobClick(job.id)}
-                                className="cursor-pointer hover:underline"
-                            >
-                              <div className="font-medium">{jobTitle}</div>
+                              >
+                                {jobTitle}
+                              </div>
                               <div className="text-sm text-muted-foreground">{job.address}</div>
                             </TableCell>
                             <TableCell>{format(new Date(job.deadline), "MMM dd, yyyy")}</TableCell>
@@ -479,7 +480,3 @@ export default function PayrollPage() {
     </div>
   );
 }
-
-    
-
-    
