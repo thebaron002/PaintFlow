@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { Job, GeneralSettings } from "@/app/lib/types";
-import { Send, ChevronDown } from "lucide-react";
+import { Send, ChevronDown, LoaderCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useDoc, useFirestore, useMemoFirebase, setDocumentNonBlocking, useCollection } from "@/firebase";
@@ -31,6 +31,16 @@ import { doc, collection, query, where } from "firebase/firestore";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import React from "react";
+import { generatePayrollReport } from "@/ai/flows/generate-payroll-report-flow";
+import { 
+    AlertDialog, 
+    AlertDialogContent, 
+    AlertDialogHeader, 
+    AlertDialogTitle, 
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogCancel
+} from "@/components/ui/alert-dialog";
 
 
 const JobDetailsRow = ({ job }: { job: Job }) => {
@@ -93,6 +103,8 @@ export default function PayrollPage() {
   const { toast } = useToast();
   const firestore = useFirestore();
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedReport, setGeneratedReport] = useState<{ subject: string, body: string } | null>(null);
 
   const settingsRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -142,6 +154,36 @@ export default function PayrollPage() {
       description: "The weekly report recipients have been updated.",
     });
   };
+
+    const handleSendReport = async () => {
+    if (!jobsToPay || jobsToPay.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "No Jobs for Payroll",
+        description: "There are no jobs with 'Open Payment' status to include in the report.",
+      });
+      return;
+    }
+    setIsGenerating(true);
+    try {
+      const report = await generatePayrollReport({
+        jobs: jobsToPay,
+        currentDate: format(new Date(), "MMMM dd, yyyy"),
+        globalHourlyRate: settings?.hourlyRate ?? 0,
+      });
+      setGeneratedReport(report);
+    } catch (error) {
+      console.error("Failed to generate report:", error);
+      toast({
+        variant: "destructive",
+        title: "Generation Failed",
+        description: "Could not generate the payroll report.",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
 
   return (
     <div>
@@ -250,14 +292,41 @@ export default function PayrollPage() {
                 </>
                )}
                <Button variant="outline" onClick={handleSaveRecipients}>Save Recipients</Button>
-               <Button>
-                 <Send className="mr-2 h-4 w-4" />
-                 Send Report Now
+                <Button onClick={handleSendReport} disabled={isGenerating}>
+                 {isGenerating ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                 {isGenerating ? "Generating..." : "Send Report Now"}
                 </Button>
             </CardContent>
           </Card>
         </div>
       </div>
+       <AlertDialog open={!!generatedReport} onOpenChange={(open) => !open && setGeneratedReport(null)}>
+        <AlertDialogContent className="max-w-3xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Generated Payroll Report</AlertDialogTitle>
+            <AlertDialogDescription>
+              Here is the generated email. You can copy the subject and body to send it.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="subject">Subject</Label>
+              <Input id="subject" readOnly value={generatedReport?.subject} />
+            </div>
+            <div className="grid gap-2">
+              <Label>Body</Label>
+              <div 
+                className="prose prose-sm max-w-none h-64 overflow-y-auto rounded-md border p-4"
+                dangerouslySetInnerHTML={{ __html: generatedReport?.body || "" }}
+              />
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Close</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
+
