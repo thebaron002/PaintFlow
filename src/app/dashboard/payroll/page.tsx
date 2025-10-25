@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useFormState, useFormStatus } from 'react-dom';
 import { PageHeader } from "@/components/page-header";
 import { 
   Card, 
@@ -32,15 +33,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import React from "react";
 import { generatePayrollReport } from "@/ai/flows/generate-payroll-report-flow";
-import { 
-    AlertDialog, 
-    AlertDialogContent, 
-    AlertDialogHeader, 
-    AlertDialogTitle, 
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogCancel
-} from "@/components/ui/alert-dialog";
+import { sendEmail } from "@/app/actions/send-email";
 
 
 const JobDetailsRow = ({ job }: { job: Job }) => {
@@ -98,6 +91,17 @@ const JobDetailsRow = ({ job }: { job: Job }) => {
     )
 }
 
+function SendReportButton({ disabled }: { disabled: boolean }) {
+  const { pending } = useFormStatus();
+
+  return (
+    <Button type="submit" disabled={disabled || pending}>
+      {pending ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+      {pending ? "Sending..." : "Send Report Now"}
+    </Button>
+  );
+}
+
 export default function PayrollPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -105,6 +109,11 @@ export default function PayrollPage() {
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedReport, setGeneratedReport] = useState<{ subject: string, body: string } | null>(null);
+
+  const [sendEmailState, sendEmailAction] = useFormState(sendEmail, {
+    error: null,
+    success: false,
+  });
 
   const settingsRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -127,6 +136,23 @@ export default function PayrollPage() {
       setRecipients(settings.reportRecipients);
     }
   }, [settings]);
+  
+  useEffect(() => {
+    if(sendEmailState.success) {
+      toast({
+        title: "Report Sent!",
+        description: "The payroll report has been successfully sent.",
+      });
+      setGeneratedReport(null);
+    }
+    if (sendEmailState.error) {
+       toast({
+        variant: "destructive",
+        title: "Sending Failed",
+        description: `Could not send the payroll report: ${sendEmailState.error}`,
+      });
+    }
+  }, [sendEmailState, toast])
 
 
   const isLoading = isLoadingJobs || isLoadingSettings;
@@ -155,7 +181,7 @@ export default function PayrollPage() {
     });
   };
 
-    const handleSendReport = async () => {
+    const handleGenerateReport = async () => {
     if (!jobsToPay || jobsToPay.length === 0) {
       toast({
         variant: "destructive",
@@ -292,41 +318,21 @@ export default function PayrollPage() {
                 </>
                )}
                <Button variant="outline" onClick={handleSaveRecipients}>Save Recipients</Button>
-                <Button onClick={handleSendReport} disabled={isGenerating}>
-                 {isGenerating ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-                 {isGenerating ? "Generating..." : "Send Report Now"}
-                </Button>
+                <form action={sendEmailAction}>
+                  {recipients.filter(r => r).map(r => <input key={r} type="hidden" name="to" value={r} />)}
+                  <input type="hidden" name="subject" value={generatedReport?.subject} />
+                  <input type="hidden" name="html" value={generatedReport?.body} />
+
+                  <Button onClick={handleGenerateReport} type="button" className="w-full mb-2" disabled={isGenerating}>
+                      {isGenerating ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                      {isGenerating ? "Generating..." : "Generate Report"}
+                  </Button>
+                  <SendReportButton disabled={!generatedReport || recipients.length === 0} />
+              </form>
             </CardContent>
           </Card>
         </div>
       </div>
-       <AlertDialog open={!!generatedReport} onOpenChange={(open) => !open && setGeneratedReport(null)}>
-        <AlertDialogContent className="max-w-3xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Generated Payroll Report</AlertDialogTitle>
-            <AlertDialogDescription>
-              Here is the generated email. You can copy the subject and body to send it.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="subject">Subject</Label>
-              <Input id="subject" readOnly value={generatedReport?.subject} />
-            </div>
-            <div className="grid gap-2">
-              <Label>Body</Label>
-              <div 
-                className="prose prose-sm max-w-none h-64 overflow-y-auto rounded-md border p-4"
-                dangerouslySetInnerHTML={{ __html: generatedReport?.body || "" }}
-              />
-            </div>
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Close</AlertDialogCancel>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
-
