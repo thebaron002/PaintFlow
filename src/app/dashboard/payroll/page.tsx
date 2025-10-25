@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { 
@@ -22,17 +22,34 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { Job } from "@/app/lib/types";
-import { payrollSettings as defaultPayrollSettings } from "@/app/lib/payroll-data";
+import type { Job, GeneralSettings } from "@/app/lib/types";
 import { Send } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import { useDoc, useFirestore, useMemoFirebase, setDocumentNonBlocking } from "@/firebase";
+import { doc } from "firebase/firestore";
 
 
 export default function PayrollPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [payrollSettings, setPayrollSettings] = useState(defaultPayrollSettings);
+  const firestore = useFirestore();
+
+  const settingsRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, "settings", "global");
+  }, [firestore]);
+
+  const { data: settings, isLoading: isLoadingSettings } = useDoc<GeneralSettings>(settingsRef);
+
+  const [recipients, setRecipients] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (settings?.reportRecipients) {
+      setRecipients(settings.reportRecipients);
+    }
+  }, [settings]);
+
 
   const isLoading = false;
   const jobsToPay: Job[] | null = [];
@@ -42,14 +59,15 @@ export default function PayrollPage() {
   };
 
   const handleRecipientChange = (index: number, value: string) => {
-    const newRecipients = [...payrollSettings.reportRecipients];
+    const newRecipients = [...recipients];
     newRecipients[index] = value;
-    setPayrollSettings({ ...payrollSettings, reportRecipients: newRecipients });
+    setRecipients(newRecipients);
   };
 
   const handleSaveRecipients = () => {
-    // In a real app, you'd save this to a backend.
-    console.log("Saving recipients:", payrollSettings.reportRecipients);
+    if (!firestore) return;
+    const settingsRef = doc(firestore, 'settings', 'global');
+    setDocumentNonBlocking(settingsRef, { reportRecipients: recipients }, { merge: true });
     toast({
       title: "Recipients Saved",
       description: "The weekly report recipients have been updated.",
@@ -129,24 +147,28 @@ export default function PayrollPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="email1">Primary Recipient</Label>
-                <Input 
-                  id="email1" 
-                  type="email" 
-                  value={payrollSettings.reportRecipients[0] || ""}
-                  onChange={(e) => handleRecipientChange(0, e.target.value)}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="email2">Secondary Recipient</Label>
-                <Input 
-                  id="email2" 
-                  type="email" 
-                  value={payrollSettings.reportRecipients[1] || ""}
-                  onChange={(e) => handleRecipientChange(1, e.target.value)}
-                />
-              </div>
+               {isLoadingSettings ? <Skeleton className="h-24 w-full" /> : (
+                <>
+                  <div className="grid gap-2">
+                    <Label htmlFor="email1">Primary Recipient</Label>
+                    <Input 
+                      id="email1" 
+                      type="email" 
+                      value={recipients[0] || ""}
+                      onChange={(e) => handleRecipientChange(0, e.target.value)}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="email2">Secondary Recipient</Label>
+                    <Input 
+                      id="email2" 
+                      type="email" 
+                      value={recipients[1] || ""}
+                      onChange={(e) => handleRecipientChange(1, e.target.value)}
+                    />
+                  </div>
+                </>
+               )}
                <Button variant="outline" onClick={handleSaveRecipients}>Save Recipients</Button>
                <Button>
                  <Send className="mr-2 h-4 w-4" />

@@ -111,7 +111,8 @@
       "properties": {
         "dailyPayTarget": { "type": "number", "description": "The target daily pay for profitability calculations." },
         "idealMaterialCostPercentage": { "type": "number", "description": "The ideal percentage of the job budget to be spent on materials." },
-        "hourlyRate": { "type": "number", "description": "The default hourly rate for 'Time' adjustments." }
+        "hourlyRate": { "type": "number", "description": "The default hourly rate for 'Time' adjustments." },
+        "reportRecipients": { "type": "array", "items": { "type": "string", "format": "email" }, "description": "A list of email addresses to send the weekly payroll report to."}
       }
     }
   },

@@ -74,4 +74,5 @@ export type GeneralSettings = {
   dailyPayTarget: number;
   idealMaterialCostPercentage: number;
   hourlyRate: number;
+  reportRecipients?: string[];
 };
