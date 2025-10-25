@@ -23,11 +23,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { Job, GeneralSettings } from "@/app/lib/types";
+import type { Job, GeneralSettings, UserProfile } from "@/app/lib/types";
 import { Send, ChevronDown, LoaderCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { useDoc, useFirestore, useMemoFirebase, setDocumentNonBlocking, useCollection } from "@/firebase";
+import { useDoc, useFirestore, useMemoFirebase, setDocumentNonBlocking, useCollection, useUser } from "@/firebase";
 import { doc, collection, query, where } from "firebase/firestore";
 import { format, getWeek, startOfWeek, endOfWeek } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -105,6 +105,7 @@ function SendReportButton({ disabled }: { disabled: boolean }) {
 export default function PayrollPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { user } = useUser();
   const firestore = useFirestore();
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -122,6 +123,12 @@ export default function PayrollPage() {
 
   const { data: settings, isLoading: isLoadingSettings } = useDoc<GeneralSettings>(settingsRef);
   
+  const userProfileRef = useMemoFirebase(() => {
+      if (!firestore || !user) return null;
+      return doc(firestore, "users", user.uid);
+  }, [firestore, user]);
+  const { data: userProfile, isLoading: isLoadingProfile } = useDoc<UserProfile>(userProfileRef);
+
   const jobsToPayQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'jobs'), where('status', '==', 'Open Payment'));
@@ -155,7 +162,7 @@ export default function PayrollPage() {
   }, [sendEmailState, toast])
 
 
-  const isLoading = isLoadingJobs || isLoadingSettings;
+  const isLoading = isLoadingJobs || isLoadingSettings || isLoadingProfile;
 
   const handleJobClick = (jobId: string) => {
     router.push(`/dashboard/jobs/${jobId}`);
@@ -223,6 +230,7 @@ export default function PayrollPage() {
         weekNumber: getWeek(now),
         startDate: format(start, "MM/dd/yyyy"),
         endDate: format(end, "MM/dd/yyyy"),
+        businessName: userProfile?.businessName || "",
       };
       
       const report = await generatePayrollReport(reportInput);
@@ -289,7 +297,7 @@ export default function PayrollPage() {
                         }
                         return sum + adj.value;
                     }, 0) ?? 0;
-                     const totalInvoiced = job.invoices.reduce((sum, invoice) => sum + invoice.amount, 0);
+                     const totalInvoiced = (job.invoices || []).reduce((sum, invoice) => sum + invoice.amount, 0);
                      const payout = job.initialValue - totalInvoiced + totalAdjustments;
                     return (
                         <React.Fragment key={job.id}>

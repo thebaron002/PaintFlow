@@ -24,6 +24,7 @@ const PayrollReportInputSchema = z.object({
   weekNumber: z.number(),
   startDate: z.string(),
   endDate: z.string(),
+  businessName: z.string().optional().describe("The name of the user's business."),
 });
 
 const PayrollReportOutputSchema = z.object({
@@ -44,10 +45,10 @@ const prompt = ai.definePrompt({
     input: { schema: PayrollReportInputSchema },
     output: { schema: PayrollReportOutputSchema },
     prompt: `
-      You are an assistant for a painting contractor named "PaintFlow". 
+      You are an assistant for a painting contractor.
       Your task is to generate a professional weekly payroll summary email listing jobs with an "Open Payment" status.
 
-      The subject line should be: "PaintFlow: Open Payment Jobs - Week {{weekNumber}}".
+      The subject line should be: "{{#if businessName}}{{businessName}}: {{else}}PaintFlow: {{/if}}Weekly Payroll Report - Week {{weekNumber}}".
 
       The email body should be in simple HTML. Start with the following sentence:
       "Here are the jobs with Open Payment status for the period from {{startDate}} to {{endDate}}:"
