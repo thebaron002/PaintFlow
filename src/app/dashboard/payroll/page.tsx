@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { 
@@ -22,19 +23,37 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { Job } from "@/app/lib/types";
-import { payrollSettings } from "@/app/lib/payroll-data";
+import { payrollSettings as defaultPayrollSettings } from "@/app/lib/payroll-data";
 import { Send } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
 
 
 export default function PayrollPage() {
   const router = useRouter();
+  const { toast } = useToast();
+  const [payrollSettings, setPayrollSettings] = useState(defaultPayrollSettings);
 
   const isLoading = false;
   const jobsToPay: Job[] | null = [];
 
   const handleJobClick = (jobId: string) => {
     router.push(`/dashboard/jobs/${jobId}`);
+  };
+
+  const handleRecipientChange = (index: number, value: string) => {
+    const newRecipients = [...payrollSettings.reportRecipients];
+    newRecipients[index] = value;
+    setPayrollSettings({ ...payrollSettings, reportRecipients: newRecipients });
+  };
+
+  const handleSaveRecipients = () => {
+    // In a real app, you'd save this to a backend.
+    console.log("Saving recipients:", payrollSettings.reportRecipients);
+    toast({
+      title: "Recipients Saved",
+      description: "The weekly report recipients have been updated.",
+    });
   };
 
   return (
@@ -112,13 +131,23 @@ export default function PayrollPage() {
             <CardContent className="grid gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="email1">Primary Recipient</Label>
-                <Input id="email1" type="email" defaultValue={payrollSettings.reportRecipients[0]} />
+                <Input 
+                  id="email1" 
+                  type="email" 
+                  value={payrollSettings.reportRecipients[0] || ""}
+                  onChange={(e) => handleRecipientChange(0, e.target.value)}
+                />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="email2">Secondary Recipient</Label>
-                <Input id="email2" type="email" defaultValue={payrollSettings.reportRecipients[1]} />
+                <Input 
+                  id="email2" 
+                  type="email" 
+                  value={payrollSettings.reportRecipients[1] || ""}
+                  onChange={(e) => handleRecipientChange(1, e.target.value)}
+                />
               </div>
-               <Button variant="outline">Save Recipients</Button>
+               <Button variant="outline" onClick={handleSaveRecipients}>Save Recipients</Button>
                <Button>
                  <Send className="mr-2 h-4 w-4" />
                  Send Report Now
