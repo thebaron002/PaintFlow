@@ -91,25 +91,13 @@ const JobDetailsRow = ({ job }: { job: Job }) => {
     )
 }
 
-function SendReportButton({ disabled }: { disabled: boolean }) {
-  const { pending } = useFormStatus();
-
-  return (
-    <Button type="submit" disabled={disabled || pending}>
-      {pending ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-      {pending ? "Sending..." : "Send Report Now"}
-    </Button>
-  );
-}
-
 export default function PayrollPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { user } = useUser();
   const firestore = useFirestore();
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedReport, setGeneratedReport] = useState<{ subject: string, body: string } | null>(null);
+  const [isSending, setIsSending] = useState(false);
 
   const [sendEmailState, sendEmailAction] = useActionState(sendEmail, {
     error: null,
@@ -145,12 +133,11 @@ export default function PayrollPage() {
   }, [settings]);
   
   useEffect(() => {
-    if(sendEmailState.success) {
+    if (sendEmailState.success) {
       toast({
         title: "Report Sent!",
         description: "The payroll report has been successfully sent.",
       });
-      setGeneratedReport(null);
     }
     if (sendEmailState.error) {
        toast({
@@ -159,7 +146,8 @@ export default function PayrollPage() {
         description: `Could not send the payroll report: ${sendEmailState.error}`,
       });
     }
-  }, [sendEmailState, toast])
+    setIsSending(false); // Reset sending state regardless of outcome
+  }, [sendEmailState, toast]);
 
 
   const isLoading = isLoadingJobs || isLoadingSettings || isLoadingProfile;
@@ -188,7 +176,7 @@ export default function PayrollPage() {
     });
   };
 
-    const handleGenerateReport = async () => {
+  const handleGenerateAndSend = async () => {
     if (!jobsToPay || jobsToPay.length === 0) {
       toast({
         variant: "destructive",
@@ -197,7 +185,17 @@ export default function PayrollPage() {
       });
       return;
     }
-    setIsGenerating(true);
+     if (recipients.filter(r => r).length === 0) {
+      toast({
+        variant: "destructive",
+        title: "No Recipients",
+        description: "Please add at least one recipient to send the report.",
+      });
+      return;
+    }
+
+    setIsSending(true);
+
     try {
         const now = new Date();
         const start = startOfWeek(now);
@@ -234,20 +232,22 @@ export default function PayrollPage() {
       };
       
       const report = await generatePayrollReport(reportInput);
-      setGeneratedReport(report);
-      toast({
-          title: "Report Generated",
-          description: "The email content is ready to be sent.",
-      })
+      
+      const formData = new FormData();
+      recipients.filter(r => r).forEach(r => formData.append('to', r));
+      formData.append('subject', report.subject);
+      formData.append('html', report.body);
+
+      sendEmailAction(formData);
+
     } catch (error) {
-      console.error("Failed to generate report:", error);
+      console.error("Failed to generate or send report:", error);
       toast({
         variant: "destructive",
-        title: "Generation Failed",
-        description: "Could not generate the payroll report.",
+        title: "Process Failed",
+        description: "Could not generate or send the payroll report.",
       });
-    } finally {
-      setIsGenerating(false);
+      setIsSending(false);
     }
   };
 
@@ -365,18 +365,11 @@ export default function PayrollPage() {
                   </div>
                 </>
                )}
-               <Button variant="outline" onClick={handleSaveRecipients}>Save Recipients</Button>
-                <form action={sendEmailAction}>
-                  {recipients.filter(r => r).map(r => <input key={r} type="hidden" name="to" value={r} />)}
-                  <input type="hidden" name="subject" value={generatedReport?.subject} />
-                  <input type="hidden" name="html" value={generatedReport?.body} />
-
-                  <Button onClick={handleGenerateReport} type="button" className="w-full mb-2" disabled={isGenerating}>
-                      {isGenerating ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-                      {isGenerating ? "Generating..." : "Generate Report"}
-                  </Button>
-                  <SendReportButton disabled={!generatedReport || recipients.filter(r => r).length === 0} />
-              </form>
+               <Button variant="outline" onClick={handleSaveRecipients} disabled={isLoadingSettings}>Save Recipients</Button>
+               <Button onClick={handleGenerateAndSend} disabled={isSending || isLoading}>
+                    {isSending ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                    {isSending ? 'Sending...' : 'Send Report Now'}
+                </Button>
             </CardContent>
           </Card>
         </div>
