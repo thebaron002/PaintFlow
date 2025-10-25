@@ -29,10 +29,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useDoc, useFirestore, useMemoFirebase, setDocumentNonBlocking, useCollection } from "@/firebase";
 import { doc, collection, query, where } from "firebase/firestore";
-import { format } from "date-fns";
+import { format, getWeek, startOfWeek, endOfWeek } from "date-fns";
 import { cn } from "@/lib/utils";
 import React from "react";
-import { generatePayrollReport } from "@/ai/flows/generate-payroll-report-flow";
+import { generatePayrollReport, PayrollReportInput } from "@/ai/flows/generate-payroll-report-flow";
 import { sendEmail } from "@/app/actions/send-email";
 
 
@@ -70,7 +70,7 @@ const JobDetailsRow = ({ job }: { job: Job }) => {
                     </div>
                      <div className="space-y-1">
                         <p className="text-sm font-medium text-muted-foreground">Material Usage</p>
-                        <p>{materialUsagePercentage.toFixed(1)}%</p>
+                        <p>{materialUsagePercentage.toFixed(2)}%</p>
                     </div>
                     <div className="space-y-1">
                         <p className="text-sm font-medium text-muted-foreground">Total Invoiced</p>
@@ -192,12 +192,45 @@ export default function PayrollPage() {
     }
     setIsGenerating(true);
     try {
-      const report = await generatePayrollReport({
-        jobs: jobsToPay,
-        currentDate: format(new Date(), "MMMM dd, yyyy"),
-        globalHourlyRate: settings?.hourlyRate ?? 0,
-      });
+        const now = new Date();
+        const start = startOfWeek(now);
+        const end = endOfWeek(now);
+
+      const reportInput: PayrollReportInput = {
+        jobs: jobsToPay.map(job => {
+            const materialCost = job.invoices?.reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
+            const materialUsage = job.initialValue > 0 ? (materialCost / job.initialValue) * 100 : 0;
+            const totalAdjustments = job.adjustments?.reduce((sum, adj) => {
+                if (adj.type === 'Time') {
+                    const rate = adj.hourlyRate ?? settings?.hourlyRate ?? 0;
+                    return sum + (adj.value * rate);
+                }
+                return sum + adj.value;
+            }, 0) ?? 0;
+            const totalInvoiced = job.invoices?.reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
+            const payout = (job.initialValue ?? 0) - totalInvoiced + totalAdjustments;
+
+            return {
+                ...job,
+                startDate: format(new Date(job.startDate), "MM/dd/yyyy"),
+                deadline: format(new Date(job.deadline), "MM/dd/yyyy"),
+                payout: parseFloat(payout.toFixed(2)),
+                materialUsage: parseFloat(materialUsage.toFixed(2)),
+                notes: job.specialRequirements || "N/A",
+            }
+        }),
+        currentDate: format(now, "MM/dd/yyyy"),
+        weekNumber: getWeek(now),
+        startDate: format(start, "MM/dd/yyyy"),
+        endDate: format(end, "MM/dd/yyyy"),
+      };
+      
+      const report = await generatePayrollReport(reportInput);
       setGeneratedReport(report);
+      toast({
+          title: "Report Generated",
+          description: "The email content is ready to be sent.",
+      })
     } catch (error) {
       console.error("Failed to generate report:", error);
       toast({
@@ -249,8 +282,15 @@ export default function PayrollPage() {
                   ) : jobsToPay && jobsToPay.length > 0 ? jobsToPay.map(job => {
                      const clientLastName = job.clientName.split(" ").pop() || "N/A";
                      const jobTitle = `${clientLastName} #${job.workOrderNumber}`;
+                     const totalAdjustments = job.adjustments?.reduce((sum, adj) => {
+                        if (adj.type === 'Time') {
+                            const rate = adj.hourlyRate ?? settings?.hourlyRate ?? 0;
+                            return sum + (adj.value * rate);
+                        }
+                        return sum + adj.value;
+                    }, 0) ?? 0;
                      const totalInvoiced = job.invoices.reduce((sum, invoice) => sum + invoice.amount, 0);
-                     const payout = job.initialValue - totalInvoiced;
+                     const payout = job.initialValue - totalInvoiced + totalAdjustments;
                     return (
                         <React.Fragment key={job.id}>
                            <TableRow>
@@ -327,7 +367,7 @@ export default function PayrollPage() {
                       {isGenerating ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
                       {isGenerating ? "Generating..." : "Generate Report"}
                   </Button>
-                  <SendReportButton disabled={!generatedReport || recipients.length === 0} />
+                  <SendReportButton disabled={!generatedReport || recipients.filter(r => r).length === 0} />
               </form>
             </CardContent>
           </Card>
