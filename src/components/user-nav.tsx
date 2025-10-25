@@ -37,8 +37,8 @@ export function UserNav() {
   
   const name = userProfile?.name || 'User';
   const email = userProfile?.email || user?.email || 'No email';
-  const avatarUrl = userProfile?.avatarUrl || user?.photoURL;
-  const fallback = name.charAt(0).toUpperCase();
+  const avatarUrl = userProfile?.businessLogoUrl || userProfile?.avatarUrl || user?.photoURL;
+  const fallback = userProfile?.businessName?.charAt(0).toUpperCase() || name.charAt(0).toUpperCase();
 
   return (
     <DropdownMenu>
