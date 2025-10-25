@@ -33,10 +33,26 @@ import { cn } from "@/lib/utils";
 
 
 const JobDetailsRow = ({ job }: { job: Job }) => {
+    const firestore = useFirestore();
+    const settingsRef = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return doc(firestore, "settings", "global");
+    }, [firestore]);
+    const { data: settings } = useDoc<GeneralSettings>(settingsRef);
+    const globalHourlyRate = settings?.hourlyRate ?? 0;
+
     const totalInvoiced = job.invoices?.reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
     const materialCost = job.invoices
         ?.reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
     const materialUsagePercentage = job.initialValue > 0 ? (materialCost / job.initialValue) * 100 : 0;
+    
+    const totalAdjustments = job.adjustments?.reduce((sum, adj) => {
+        if (adj.type === 'Time') {
+            const rate = adj.hourlyRate ?? globalHourlyRate;
+            return sum + (adj.value * rate);
+        }
+        return sum + adj.value;
+    }, 0) ?? 0;
 
 
     return (
@@ -54,6 +70,10 @@ const JobDetailsRow = ({ job }: { job: Job }) => {
                     <div className="space-y-1">
                         <p className="text-sm font-medium text-muted-foreground">Total Invoiced</p>
                         <p>${totalInvoiced.toLocaleString()}</p>
+                    </div>
+                     <div className="space-y-1">
+                        <p className="text-sm font-medium text-muted-foreground">Total Adjustments</p>
+                        <p>${totalAdjustments.toLocaleString()}</p>
                     </div>
                    
                     <div className="space-y-1 lg:col-span-4">
