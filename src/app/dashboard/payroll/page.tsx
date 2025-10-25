@@ -1,9 +1,9 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useActionState } from "react";
 import { useRouter } from "next/navigation";
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
 import { PageHeader } from "@/components/page-header";
 import { 
   Card, 
@@ -110,7 +110,7 @@ export default function PayrollPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedReport, setGeneratedReport] = useState<{ subject: string, body: string } | null>(null);
 
-  const [sendEmailState, sendEmailAction] = useFormState(sendEmail, {
+  const [sendEmailState, sendEmailAction] = useActionState(sendEmail, {
     error: null,
     success: false,
   });
