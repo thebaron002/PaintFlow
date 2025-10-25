@@ -23,13 +23,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { Job, GeneralSettings, UserProfile } from "@/app/lib/types";
-import { Send, ChevronDown, LoaderCircle } from "lucide-react";
+import type { Job, GeneralSettings, UserProfile, PayrollReport } from "@/app/lib/types";
+import { Send, ChevronDown, LoaderCircle, History } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { useDoc, useFirestore, useMemoFirebase, setDocumentNonBlocking, useCollection, useUser } from "@/firebase";
-import { doc, collection, query, where } from "firebase/firestore";
-import { format, getWeek, startOfWeek, endOfWeek } from "date-fns";
+import { useDoc, useFirestore, useMemoFirebase, setDocumentNonBlocking, useCollection, useUser, addDocumentNonBlocking } from "@/firebase";
+import { collection, query, where, orderBy, limit, doc } from "firebase/firestore";
+import { format, getWeek, startOfWeek, endOfWeek, getYear } from "date-fns";
 import { cn } from "@/lib/utils";
 import React from "react";
 import { generatePayrollReport, PayrollReportInput } from "@/ai/flows/generate-payroll-report-flow";
@@ -123,6 +123,13 @@ export default function PayrollPage() {
   }, [firestore]);
 
   const { data: jobsToPay, isLoading: isLoadingJobs } = useCollection<Job>(jobsToPayQuery);
+  
+  const reportsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'payrollReports'), orderBy('sentDate', 'desc'), limit(10));
+  }, [firestore]);
+
+  const { data: pastReports, isLoading: isLoadingReports } = useCollection<PayrollReport>(reportsQuery);
 
   const [recipients, setRecipients] = useState<string[]>([]);
 
@@ -138,6 +145,37 @@ export default function PayrollPage() {
         title: "Report Sent!",
         description: "The payroll report has been successfully sent.",
       });
+
+      // Save report to history
+      if (jobsToPay && jobsToPay.length > 0) {
+        const now = new Date();
+        const start = startOfWeek(now);
+        const end = endOfWeek(now);
+        const totalPayout = jobsToPay.reduce((acc, job) => {
+            const totalAdjustments = job.adjustments?.reduce((sum, adj) => {
+                if (adj.type === 'Time') {
+                    const rate = adj.hourlyRate ?? settings?.hourlyRate ?? 0;
+                    return sum + (adj.value * rate);
+                }
+                return sum + adj.value;
+            }, 0) ?? 0;
+            const totalInvoiced = (job.invoices || []).reduce((sum, invoice) => sum + invoice.amount, 0);
+            return acc + (job.initialValue - totalInvoiced + totalAdjustments);
+        }, 0);
+
+        const newReport: Omit<PayrollReport, 'id'> = {
+            weekNumber: getWeek(now),
+            year: getYear(now),
+            startDate: start.toISOString(),
+            endDate: end.toISOString(),
+            sentDate: now.toISOString(),
+            recipientCount: recipients.filter(r => r).length,
+            totalPayout,
+            jobCount: jobsToPay.length,
+            jobIds: jobsToPay.map(j => j.id),
+        };
+        addDocumentNonBlocking(collection(firestore!, 'payrollReports'), newReport);
+      }
     }
     if (sendEmailState.error) {
        toast({
@@ -147,10 +185,10 @@ export default function PayrollPage() {
       });
     }
     setIsSending(false); // Reset sending state regardless of outcome
-  }, [sendEmailState, toast]);
+  }, [sendEmailState, toast, jobsToPay, firestore, recipients, settings?.hourlyRate]);
 
 
-  const isLoading = isLoadingJobs || isLoadingSettings || isLoadingProfile;
+  const isLoading = isLoadingJobs || isLoadingSettings || isLoadingProfile || isLoadingReports;
 
   const handleJobClick = (jobId: string) => {
     router.push(`/dashboard/jobs/${jobId}`);
@@ -256,7 +294,7 @@ export default function PayrollPage() {
     <div>
       <PageHeader title="Payroll" />
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 grid gap-6">
            <Card>
             <CardHeader>
               <CardTitle>Jobs Ready for Payout</CardTitle>
@@ -275,7 +313,7 @@ export default function PayrollPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {isLoading ? (
+                  {isLoadingJobs ? (
                     [...Array(3)].map((_, i) => (
                       <TableRow key={i}>
                         <TableCell>
@@ -332,6 +370,53 @@ export default function PayrollPage() {
               </Table>
             </CardContent>
           </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Report History</CardTitle>
+              <CardDescription>A log of your past sent payroll reports.</CardDescription>
+            </CardHeader>
+            <CardContent>
+               <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Week</TableHead>
+                    <TableHead>Date Sent</TableHead>
+                    <TableHead>Jobs</TableHead>
+                    <TableHead className="text-right">Total Payout</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoadingReports ? (
+                     [...Array(3)].map((_, i) => (
+                      <TableRow key={i}>
+                        <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                        <TableCell><Skeleton className="h-5 w-28" /></TableCell>
+                        <TableCell><Skeleton className="h-5 w-12" /></TableCell>
+                        <TableCell className="text-right"><Skeleton className="h-5 w-24 ml-auto" /></TableCell>
+                      </TableRow>
+                    ))
+                  ) : pastReports && pastReports.length > 0 ? (
+                    pastReports.map(report => (
+                      <TableRow key={report.id}>
+                        <TableCell>
+                          <div className="font-medium">Week {report.weekNumber}, {report.year}</div>
+                        </TableCell>
+                        <TableCell>{format(new Date(report.sentDate), "MMM dd, yyyy")}</TableCell>
+                        <TableCell>{report.jobCount}</TableCell>
+                        <TableCell className="text-right">${report.totalPayout.toLocaleString()}</TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={4} className="h-24 text-center">
+                        No reports have been sent yet.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
         </div>
 
         <div className="lg:col-span-1">
@@ -377,3 +462,4 @@ export default function PayrollPage() {
     </div>
   );
 }
+

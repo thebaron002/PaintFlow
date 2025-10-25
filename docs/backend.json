@@ -129,6 +129,24 @@
             "businessLogoUrl": { "type": "string", "format": "uri", "description": "URL for the user's business logo." }
         },
         "required": ["id", "email"]
+    },
+    "PayrollReport": {
+      "title": "Payroll Report",
+      "type": "object",
+      "description": "Represents a sent weekly payroll report.",
+      "properties": {
+        "id": { "type": "string" },
+        "weekNumber": { "type": "number" },
+        "year": { "type": "number" },
+        "startDate": { "type": "string", "format": "date-time" },
+        "endDate": { "type": "string", "format": "date-time" },
+        "sentDate": { "type": "string", "format": "date-time" },
+        "recipientCount": { "type": "number" },
+        "totalPayout": { "type": "number" },
+        "jobCount": { "type": "number" },
+        "jobIds": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["id", "weekNumber", "year", "sentDate", "recipientCount", "totalPayout", "jobCount"]
     }
   },
   "auth": {
@@ -158,6 +176,11 @@
     "/users/{userId}": {
         "schema": { "$ref": "#/entities/UserProfile" },
         "description": "Stores user profile data, keyed by user ID."
+    },
+    "/payrollReports/{reportId}": {
+      "schema": { "$ref": "#/entities/PayrollReport" },
+      "description": "Stores records of sent payroll reports."
     }
   }
 }
+

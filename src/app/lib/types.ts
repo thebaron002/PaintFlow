@@ -3,6 +3,7 @@
 
 
 
+
 export type Client = {
   id: string;
   name: string;
@@ -90,4 +91,15 @@ export type UserProfile = {
     businessLogoUrl?: string;
 };
 
-
+export type PayrollReport = {
+  id: string;
+  weekNumber: number;
+  year: number;
+  startDate: string; // ISO
+  endDate: string; // ISO
+  sentDate: string; // ISO
+  recipientCount: number;
+  totalPayout: number;
+  jobCount: number;
+  jobIds: string[];
+};
