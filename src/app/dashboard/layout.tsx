@@ -83,33 +83,44 @@ export default function DashboardLayout({
   const router = useRouter();
   const [isProcessingRedirect, setIsProcessingRedirect] = useState(true);
 
-  // This effect runs once on mount to handle the redirect result from Google.
+  // This unified effect handles both the redirect result and the subsequent user state check.
   useEffect(() => {
-    // This function will attempt to process the redirect result.
-    // If there's no redirect to process, it resolves quickly.
-    // If there is, it signs the user in.
-    handleRedirectResult()
-      .catch((error) => console.error("Error processing redirect result:", error))
-      .finally(() => {
-        // We set this to false regardless of the outcome.
-        // After this, the second useEffect will handle the logic.
+    // This function will run once on mount.
+    const processAuth = async () => {
+      try {
+        // First, attempt to process the redirect result from Google.
+        // This function will resolve with a user object if successful, or null otherwise.
+        await handleRedirectResult();
+      } catch (error) {
+        console.error("Error processing redirect result:", error);
+      } finally {
+        // After the attempt, we mark the redirect processing as complete.
+        // This is crucial for the next step.
         setIsProcessingRedirect(false);
-      });
-  }, []);
+      }
+    };
 
-  // This effect waits for both redirect processing and user loading to be complete.
+    processAuth();
+  }, []); // Empty dependency array ensures this runs only once on mount.
+
+
+  // This effect is responsible for routing decisions.
+  // It waits for both the redirect processing and the initial user loading to be finished.
   useEffect(() => {
-    // The authentication process is ready to be checked only when
-    // both the redirect attempt is finished AND the initial user state has been loaded.
+    // The authentication process is only considered "ready" when we are no longer
+    // processing a redirect AND the initial user state has been loaded by `onAuthStateChanged`.
     const isAuthReady = !isProcessingRedirect && !isUserLoading;
 
+    // Only make a routing decision when authentication is ready.
     if (isAuthReady) {
-      // If, after all checks, there is no user, then we must redirect to login.
+      // If, after all checks, there is no authenticated user,
+      // then it's safe to redirect to the login page.
       if (!user) {
         router.push('/login');
       }
     }
   }, [isProcessingRedirect, isUserLoading, user, router]);
+
 
   const renderLoadingState = () => (
     <div className="flex-1 flex items-center justify-center">
@@ -120,7 +131,8 @@ export default function DashboardLayout({
     </div>
   );
 
-  // Show loading screen while we are processing the redirect OR while the initial user state is loading.
+  // Show the loading screen while we are processing the redirect OR while the initial user state is loading.
+  // This prevents the screen from flashing or prematurely redirecting.
   const showLoading = isProcessingRedirect || isUserLoading;
 
   return (
