@@ -12,15 +12,20 @@ export default function RootPage() {
   const { user, isUserLoading } = useUser();
 
   useEffect(() => {
+    // Only redirect when the user loading state is resolved.
     if (!isUserLoading) {
       if (user) {
+        // If user is logged in, go to dashboard.
         router.push('/dashboard');
       } else {
+        // If no user, go to login.
         router.push('/login');
       }
     }
+    // This effect should run whenever the loading state or user object changes.
   }, [user, isUserLoading, router]);
 
+  // Render a loading state while we determine the user's auth status.
   return (
     <div className="flex flex-col min-h-screen items-center justify-center bg-background p-4">
        <div className="flex flex-col items-center justify-center text-center space-y-4">
@@ -35,5 +40,3 @@ export default function RootPage() {
     </div>
   );
 }
-
-    

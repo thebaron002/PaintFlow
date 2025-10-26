@@ -2,7 +2,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import { useUser } from '@/firebase';
@@ -20,33 +20,22 @@ function GoogleIcon() {
 export default function LoginPage() {
     const { user, isUserLoading } = useUser();
     const router = useRouter();
-    const [isProcessingLogin, setIsProcessingLogin] = useState(true);
 
     useEffect(() => {
-        // If a user session already exists, redirect immediately.
+        // If a user session is detected at any point, redirect to the dashboard.
         if (!isUserLoading && user) {
             router.push('/dashboard');
-            return;
-        }
-
-        // If no user session, process the potential redirect result.
-        // This runs only once when the component mounts.
-        if (!isUserLoading && !user) {
-            handleRedirectResult().then((redirectUser) => {
-                if (redirectUser) {
-                    // If the redirect result gives us a user, redirect to dashboard.
-                    router.push('/dashboard');
-                } else {
-                    // If there's no redirect user, it means the user needs to log in.
-                    // We can now show the login button.
-                    setIsProcessingLogin(false);
-                }
-            });
         }
     }, [user, isUserLoading, router]);
 
-    // Show a loading state while checking for a user session or processing the redirect.
-    if (isProcessingLogin) {
+    // This effect runs once on mount to handle the redirect result from Google.
+    useEffect(() => {
+        handleRedirectResult();
+    }, []);
+
+    // Show a loading state while Firebase is determining the auth state.
+    // This prevents the login button from flashing while a redirect is being processed.
+    if (isUserLoading) {
         return (
              <div className="flex flex-col min-h-screen items-center justify-center bg-background p-4">
                 <div className="flex flex-col items-center justify-center text-center space-y-4">
@@ -60,13 +49,14 @@ export default function LoginPage() {
         );
     }
 
-  // Only show the login page if we are done loading and there is no user.
+  // Only show the login page content if we are done loading and there is NO user.
+  // The useEffect above will handle redirecting if a user exists.
   return (
     <div className="flex flex-col min-h-screen items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center text-center mb-8">
             <Logo />
-            <h1 className="text-2xl font-semibold mt-4">Welcome Back</h1>
+            <h1 className="text-2xl font-semibold mt-4">Welcome</h1>
             <p className="text-muted-foreground">Sign in to manage your painting business.</p>
         </div>
         <div className="grid gap-4">
