@@ -116,7 +116,9 @@ const JobsTable = ({ jobs, isLoading, hourlyRate }: { jobs: Job[] | null, isLoad
           <TableBody>
             {jobs?.map((job) => {
               const clientLastName = job.clientName.split(" ").pop() || "N/A";
-              const jobTitle = `${clientLastName} #${job.workOrderNumber}`;
+              const generatedTitle = `${clientLastName} #${job.workOrderNumber}`;
+              const jobTitle = job.title || generatedTitle;
+
               const totalInvoiced = job.invoices?.reduce((sum, invoice) => sum + invoice.amount, 0) ?? 0;
               const totalAdjustments = job.adjustments?.reduce((sum, adj) => {
                 if (adj.type === 'Time') {
@@ -139,10 +141,7 @@ const JobsTable = ({ jobs, isLoading, hourlyRate }: { jobs: Job[] | null, isLoad
                     <Link href={`/dashboard/jobs/${job.id}`} className="font-bold hover:underline">
                       {jobTitle}
                     </Link>
-                    <div className="text-sm text-muted-foreground">
-                      {job.title}
-                    </div>
-                     <div className="text-xs text-muted-foreground pt-1">
+                    <div className="text-xs text-muted-foreground pt-1">
                       <span className="font-semibold">Client:</span> {job.clientName}
                     </div>
                     <div className="text-xs text-muted-foreground flex items-center pt-1">

@@ -136,14 +136,17 @@ export default function DashboardPage() {
                   ) : upcomingJobs?.length > 0 ? (
                     upcomingJobs.map(job => {
                       const clientLastName = job.clientName.split(" ").pop() || "N/A";
-                      const jobTitle = `${clientLastName} #${job.workOrderNumber}`;
+                      const generatedTitle = `${clientLastName} #${job.workOrderNumber}`;
+                      const jobTitle = job.title || generatedTitle;
                       return (
                         <TableRow key={job.id}>
                           <TableCell>
                             <Link href={`/dashboard/jobs/${job.id}`} className="font-medium hover:underline">
                               {jobTitle}
                             </Link>
-                             <div className="text-sm text-muted-foreground">{job.title}</div>
+                            <div className="text-sm text-muted-foreground">
+                                {job.clientName}
+                            </div>
                           </TableCell>
                           <TableCell className="hidden sm:table-cell">
                             <a 
