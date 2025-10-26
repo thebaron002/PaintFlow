@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { v4 as uuidv4 } from 'uuid';
+import { useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -76,6 +77,14 @@ export function AddInvoiceForm({ jobId, existingInvoices, origins, onSuccess, in
       isPayoutDiscount: false,
     },
   });
+
+  const originValue = form.watch("origin");
+
+  useEffect(() => {
+    if (originValue === 'Sherwin-Williams') {
+        form.setValue('isPayoutDiscount', true);
+    }
+  }, [originValue, form.setValue])
 
   const onSubmit = (data: InvoiceFormValues) => {
     if (!firestore || !user) return;
