@@ -2,11 +2,11 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import { useUser } from '@/firebase';
-import { handleSignInWithGoogle, handleRedirectResult } from './actions';
+import { handleSignInWithGoogle } from './actions';
 import { LoaderCircle } from 'lucide-react';
 
 function GoogleIcon() {
@@ -20,47 +20,31 @@ function GoogleIcon() {
 export default function LoginPage() {
     const { user, isUserLoading } = useUser();
     const router = useRouter();
-    // A separate loading state to manage the redirect processing.
-    const [isProcessingRedirect, setIsProcessingRedirect] = useState(true);
 
     useEffect(() => {
-        // This effect runs once on mount to handle the redirect result from Google.
-        handleRedirectResult()
-            .then(() => {
-                // Once the redirect is processed (or if there was none),
-                // we can rely on the useUser hook.
-                setIsProcessingRedirect(false);
-            });
-    }, []);
-
-
-    useEffect(() => {
-        // This effect waits for BOTH redirect processing and user loading to be false.
-        if (!isProcessingRedirect && !isUserLoading) {
-            if (user) {
-                // If a user session is detected, redirect to the dashboard.
-                router.push('/dashboard');
-            }
+        // If the user is already logged in, redirect them to the dashboard.
+        if (!isUserLoading && user) {
+            router.push('/dashboard');
         }
-    }, [user, isUserLoading, isProcessingRedirect, router]);
+    }, [user, isUserLoading, router]);
 
-    // Show a loading state while we are processing the redirect or waiting for Firebase auth state.
-    if (isProcessingRedirect || isUserLoading) {
+    // Show a loading state while we check for an existing session.
+    if (isUserLoading) {
         return (
              <div className="flex flex-col min-h-screen items-center justify-center bg-background p-4">
                 <div className="flex flex-col items-center justify-center text-center space-y-4">
                     <Logo />
                     <p className="text-muted-foreground">
-                      Authenticating...
+                      Loading...
                     </p>
                     <LoaderCircle className="h-6 w-6 animate-spin" />
                 </div>
             </div>
         );
     }
-
-  // Only show the login page content if we are done loading and there is NO user.
-  return (
+  
+  // Only render the login page if there's no user.
+  return !user && (
     <div className="flex flex-col min-h-screen items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center text-center mb-8">

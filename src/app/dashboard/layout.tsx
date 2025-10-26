@@ -34,7 +34,8 @@ import { Logo } from "@/components/logo";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { useUser as useFirebaseUser } from "@/firebase";
-import { useEffect } from "react";
+import { handleRedirectResult } from "@/app/login/actions";
+import { useEffect, useState } from "react";
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -80,12 +81,24 @@ export default function DashboardLayout({
   const isMobile = useIsMobile();
   const { isUserLoading, user } = useFirebaseUser();
   const router = useRouter();
+  const [isProcessingRedirect, setIsProcessingRedirect] = useState(true);
 
+  // This effect runs once on mount to handle the redirect result from Google.
   useEffect(() => {
-    if (!isUserLoading && !user) {
+    handleRedirectResult()
+      .catch((error) => console.error("Error processing redirect result:", error))
+      .finally(() => {
+        setIsProcessingRedirect(false);
+      });
+  }, []);
+
+  // This effect waits for both redirect processing and user loading to be false.
+  useEffect(() => {
+    const isAuthReady = !isProcessingRedirect && !isUserLoading;
+    if (isAuthReady && !user) {
       router.push('/login');
     }
-  }, [isUserLoading, user, router]);
+  }, [isProcessingRedirect, isUserLoading, user, router]);
 
   const renderLoadingState = () => (
     <div className="flex-1 flex items-center justify-center">
@@ -95,6 +108,8 @@ export default function DashboardLayout({
       </div>
     </div>
   );
+
+  const showLoading = isUserLoading || isProcessingRedirect;
 
   return (
     <SidebarProvider>
@@ -128,11 +143,10 @@ export default function DashboardLayout({
           </div>
         </header>
         <main className="flex-1 p-4 sm:px-6 sm:py-0 pb-20 md:pb-4 flex flex-col">
-          {isUserLoading || !user ? renderLoadingState() : children}
+          {showLoading ? renderLoadingState() : children}
         </main>
       </SidebarInset>
       {isMobile && <BottomNavBar />}
     </SidebarProvider>
   );
 }
-    
