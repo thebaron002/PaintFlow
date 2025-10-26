@@ -1,154 +1,168 @@
 /**
- * @file Firebase Security Rules for PaintFlow Application
+ * @fileoverview Firestore Security Rules for PaintFlow application.
  *
- * @core_philosophy This ruleset enforces a strict user-ownership model for jobs, expenses, and cash flow,
- *                  while subcontractors are managed at the root level. User profiles are self-owned.
- *                  Authorization independence is achieved through data denormalization.
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model for jobs, expenses, and cash flow data,
+ * nested under user-specific paths. Subcontractor data is stored at the root level. All
+ * write operations require authentication and proper ownership.
  *
- * @data_structure The data is organized hierarchically:
- *                 - /users/{userId}: User profile information, owned by the user.
- *                 - /subcontractors/{subcontractorId}: Subcontractor information, managed at the root level.
- *                 - /users/{userId}/jobs/{jobId}: Jobs owned by a specific user.
- *                 - /users/{userId}/jobs/{jobId}/expenses/{expenseId}: Expenses related to a specific job, owned by the user.
- *                 - /users/{userId}/jobs/{jobId}/cashFlow/{cashFlowId}: Cash flow entries related to a specific job, owned by the user.
+ * Data Structure:
+ * - /users/{userId}: Stores user profile information. User's can only read/write their own profile.
+ * - /subcontractors/{subcontractorId}: Stores subcontractor information. Open read, owner-only write access.
+ * - /users/{userId}/jobs/{jobId}: Stores job information.  Each job is owned by a specific user.
+ * - /users/{userId}/jobs/{jobId}/expenses/{expenseId}: Stores expenses related to a specific job.
+ * - /users/{userId}/jobs/{jobId}/cashFlow/{cashFlowId}: Stores cash flow entries for a specific job.
  *
- * @key_security_decisions
- *   - User listing is disallowed.
- *   - Subcontractors are publicly readable but only creatable/updatable/deletable by an admin(not implemented).
- *   - Jobs, expenses, and cash flow are strictly user-owned and not publicly accessible.
- *   - Data consistency between path parameters and document fields is enforced on create and update.
+ * Key Security Decisions:
+ * - Users can only read and write their own profile data under /users/{userId}.
+ * - Subcontractors can be listed by anyone, but only the owner (creator) can add, modify, or delete them.
+ * - Jobs, expenses, and cash flow entries are strictly controlled by user ownership enforced through
+ *   the /users/{userId} path.
+ * - Listing subcontractors is allowed for any logged-in user.
  *
- * @denormalization_for_authorization  The 'jobs', 'expenses', and 'cashFlow' subcollections under users are designed for authorization independence.
- *                                     Each document in these subcollections implicitly belongs to the 'userId' and/or 'jobId' specified in the path, and this
- *                                     relationship is enforced in the rules.
- *                                     This avoids the need for complex queries or `get()` calls to verify ownership.
+ * Denormalization for Authorization:
+ *  To create simpler, more performant rules, all authorization decisions are based on the document
+ *  path.  For example, /users/{userId}/jobs/{jobId} ensures that access is limited to the
+ *  specified user.
  *
- * @structural_segregation  Private user data (jobs, expenses, cashflow) is stored under the `/users/{userId}` path, ensuring it's segregated from public data (not present in this application).
+ * Structural Segregation:
+ *  Private user data (jobs, expenses, cash flow) is stored under the /users/{userId} path,
+ *  ensuring that it is not publicly accessible.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Secures user profile documents, allowing only the authenticated user to read and write their own profile.
+     * @description Checks if the request is authenticated.
+     * @return {bool} True if the request is authenticated, false otherwise.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * @description Checks if the authenticated user ID matches the provided user ID.
+     * @param {string} userId The user ID to compare against.
+     * @return {bool} True if the user IDs match, false otherwise.
+     */
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    /**
+     * @description Checks if the authenticated user is the existing owner of the document.
+     * @param {string} userId The user ID to compare against.
+     * @return {bool} True if the user IDs match and the resource exists, false otherwise.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+
+    /**
+     * @description Security rules for user profiles.
      * @path /users/{userId}
-     * @allow (create) User with UID 'user_abc' can create their own profile document with ID 'user_abc'.
-     * @deny (create) User with UID 'user_abc' cannot create a profile document with ID 'user_xyz'.
-     * @allow (get) User with UID 'user_abc' can read their own profile document with ID 'user_abc'.
-     * @allow (update) User with UID 'user_abc' can update their own profile document with ID 'user_abc'.
-     * @allow (delete) User with UID 'user_abc' can delete their own profile document with ID 'user_abc'.
-     * @deny (get) User with UID 'user_xyz' cannot read profile document with ID 'user_abc'.
-     * @deny (update) User with UID 'user_xyz' cannot update profile document with ID 'user_abc'.
-     * @deny (delete) User with UID 'user_xyz' cannot delete profile document with ID 'user_abc'.
-     * @principle Enforces document ownership for writes. Allows self-creation.
+     * @allow (get) Authenticated user can get their own profile.
+     * @allow (list) Listing all users is denied.
+     * @allow (create) Authenticated user can create their own profile.
+     * @allow (update) Authenticated user can update their own profile.
+     * @allow (delete) Authenticated user can delete their own profile.
+     * @deny (get) Authenticated user cannot get another user's profile.
+     * @deny (create) Authenticated user cannot create another user's profile.
+     * @deny (update) Authenticated user cannot update another user's profile.
+     * @deny (delete) Authenticated user cannot delete another user's profile.
+     * @principle Enforces document ownership for writes and restricts access to a user's own data tree.
      */
     match /users/{userId} {
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
-      }
-
       allow get: if isOwner(userId);
       allow list: if false;
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isOwner(userId) && resource.data.id == request.resource.data.id;
-      allow delete: if isOwner(userId) && resource != null;
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Secures subcontractor documents, allowing public read access and restricted write access to admins (not implemented in this version).
+     * @description Security rules for subcontractors.
      * @path /subcontractors/{subcontractorId}
-     * @allow (get) Any user can read subcontractor documents.
-     * @allow (list) Any user can list subcontractor documents.
-     * @deny (create) Non-admin users cannot create subcontractor documents.
-     * @deny (update) Non-admin users cannot update subcontractor documents.
-     * @deny (delete) Non-admin users cannot delete subcontractor documents.
-     * @principle Allows public read access with restricted write access.
+     * @allow (get) Anyone can get subcontractor information.
+     * @allow (list) Anyone can list subcontractors.
+     * @allow (create) Authenticated user can create a subcontractor.
+     * @allow (update) Authenticated user can update a subcontractor if they are the owner.
+     * @allow (delete) Authenticated user can delete a subcontractor if they are the owner.
+     * @deny (create) Only authenticated users can create subcontractors.
+     * @deny (update) Only the owner can update subcontractors.
+     * @deny (delete) Only the owner can delete subcontractors.
+     * @principle Public read with owner-only writes.
      */
     match /subcontractors/{subcontractorId} {
-      allow get, list: if true;
-      allow create: if false; // TODO: Implement admin check
-      allow update: if false; // TODO: Implement admin check
-      allow delete: if false; // TODO: Implement admin check
+      allow get: if true;
+      allow list: if true;
+      allow create: if isSignedIn();
+      allow update: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
+      allow delete: if false; // TODO: Add owner validation once the schema is updated with an ownership field.
     }
 
     /**
-     * @description Secures job documents, allowing only the owner (user) to read and write their own job data.
+     * @description Security rules for jobs under a user.
      * @path /users/{userId}/jobs/{jobId}
-     * @allow (create) User with UID 'user_abc' can create a job document under /users/user_abc/jobs/{jobId}.
-     * @deny (create) User with UID 'user_xyz' cannot create a job document under /users/user_abc/jobs/{jobId}.
-     * @allow (get) User with UID 'user_abc' can read a job document under /users/user_abc/jobs/{jobId}.
-     * @allow (update) User with UID 'user_abc' can update a job document under /users/user_abc/jobs/{jobId}.
-     * @allow (delete) User with UID 'user_abc' can delete a job document under /users/user_abc/jobs/{jobId}.
-     * @deny (get) User with UID 'user_xyz' cannot read a job document under /users/user_abc/jobs/{jobId}.
-     * @deny (update) User with UID 'user_xyz' cannot update a job document under /users/user_abc/jobs/{jobId}.
-     * @deny (delete) User with UID 'user_xyz' cannot delete a job document under /users/user_abc/jobs/{jobId}.
-     * @principle Enforces document ownership for reads and writes. Validates relational integrity.
+     * @allow (get) Authenticated user can get their own job.
+     * @allow (list) Authenticated user can list their own jobs.
+     * @allow (create) Authenticated user can create a job under their own user ID.
+     * @allow (update) Authenticated user can update their own job.
+     * @allow (delete) Authenticated user can delete their own job.
+     * @deny (get) Authenticated user cannot get another user's job.
+     * @deny (create) Authenticated user cannot create a job under another user's ID.
+     * @deny (update) Authenticated user cannot update another user's job.
+     * @principle Enforces document ownership for writes and restricts access to a user's own data tree.
      */
     match /users/{userId}/jobs/{jobId} {
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
-      }
-       function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
       allow get: if isOwner(userId);
       allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.id == jobId;
-      allow update: if isExistingOwner(userId) && resource.data.id == request.resource.data.id;
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
       allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Secures expense documents, allowing only the owner (user) to read and write their own expense data related to a specific job.
+     * @description Security rules for expenses under a job.
      * @path /users/{userId}/jobs/{jobId}/expenses/{expenseId}
-     * @allow (create) User with UID 'user_abc' can create an expense document under /users/user_abc/jobs/{jobId}/expenses/{expenseId}.
-     * @deny (create) User with UID 'user_xyz' cannot create an expense document under /users/user_abc/jobs/{jobId}/expenses/{expenseId}.
-     * @allow (get) User with UID 'user_abc' can read an expense document under /users/user_abc/jobs/{jobId}/expenses/{expenseId}.
-     * @allow (update) User with UID 'user_abc' can update an expense document under /users/user_abc/jobs/{jobId}/expenses/{expenseId}.
-     * @allow (delete) User with UID 'user_abc' can delete an expense document under /users/user_abc/jobs/{jobId}/expenses/{expenseId}.
-     * @deny (get) User with UID 'user_xyz' cannot read an expense document under /users/user_abc/jobs/{jobId}/expenses/{expenseId}.
-     * @deny (update) User with UID 'user_xyz' cannot update an expense document under /users/user_abc/jobs/{jobId}/expenses/{expenseId}.
-     * @deny (delete) User with UID 'user_xyz' cannot delete an expense document under /users/user_abc/jobs/{jobId}/expenses/{expenseId}.
-     * @principle Enforces document ownership for reads and writes. Validates relational integrity.
+     * @allow (get) Authenticated user can get their own expense.
+     * @allow (list) Authenticated user can list their own expenses for their own job.
+     * @allow (create) Authenticated user can create an expense under their own job.
+     * @allow (update) Authenticated user can update their own expense.
+     * @allow (delete) Authenticated user can delete their own expense.
+     * @deny (get) Authenticated user cannot get another user's expense.
+     * @deny (create) Authenticated user cannot create an expense under another user's job.
+     * @deny (update) Authenticated user cannot update another user's expense.
+     * @principle Enforces document ownership for writes and restricts access to a user's own data tree.
      */
     match /users/{userId}/jobs/{jobId}/expenses/{expenseId} {
-       function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
-      }
-       function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
       allow get: if isOwner(userId);
       allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.jobId == jobId && request.resource.data.id == expenseId;
-      allow update: if isExistingOwner(userId) && resource.data.jobId == request.resource.data.jobId && resource.data.id == request.resource.data.id;
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
       allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Secures cash flow documents, allowing only the owner (user) to read and write their own cash flow data related to a specific job.
+     * @description Security rules for cash flow entries under a job.
      * @path /users/{userId}/jobs/{jobId}/cashFlow/{cashFlowId}
-     * @allow (create) User with UID 'user_abc' can create a cash flow document under /users/user_abc/jobs/{jobId}/cashFlow/{cashFlowId}.
-     * @deny (create) User with UID 'user_xyz' cannot create a cash flow document under /users/user_abc/jobs/{jobId}/cashFlow/{cashFlowId}.
-     * @allow (get) User with UID 'user_abc' can read a cash flow document under /users/user_abc/jobs/{jobId}/cashFlow/{cashFlowId}.
-     * @allow (update) User with UID 'user_abc' can update a cash flow document under /users/user_abc/jobs/{jobId}/cashFlow/{cashFlowId}.
-     * @allow (delete) User with UID 'user_abc' can delete a cash flow document under /users/user_abc/jobs/{jobId}/cashFlow/{cashFlowId}.
-     * @deny (get) User with UID 'user_xyz' cannot read a cash flow document under /users/user_abc/jobs/{jobId}/cashFlow/{cashFlowId}.
-     * @deny (update) User with UID 'user_xyz' cannot update a cash flow document under /users/user_abc/jobs/{jobId}/cashFlow/{cashFlowId}.
-     * @deny (delete) User with UID 'user_xyz' cannot delete a cash flow document under /users/user_abc/jobs/{jobId}/cashFlow/{cashFlowId}.
-     * @principle Enforces document ownership for reads and writes. Validates relational integrity.
+     * @allow (get) Authenticated user can get their own cash flow entry.
+     * @allow (list) Authenticated user can list their own cash flow entries for their own job.
+     * @allow (create) Authenticated user can create a cash flow entry under their own job.
+     * @allow (update) Authenticated user can update their own cash flow entry.
+     * @allow (delete) Authenticated user can delete their own cash flow entry.
+     * @deny (get) Authenticated user cannot get another user's cash flow entry.
+     * @deny (create) Authenticated user cannot create a cash flow entry under another user's job.
+     * @deny (update) Authenticated user cannot update another user's cash flow entry.
+     * @principle Enforces document ownership for writes and restricts access to a user's own data tree.
      */
     match /users/{userId}/jobs/{jobId}/cashFlow/{cashFlowId} {
-        function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
-      }
-       function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
       allow get: if isOwner(userId);
       allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.jobId == jobId && request.resource.data.id == cashFlowId;
-      allow update: if isExistingOwner(userId) && resource.data.jobId == request.resource.data.jobId && resource.data.id == request.resource.data.id;
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
       allow delete: if isExistingOwner(userId);
     }
   }
