@@ -2,6 +2,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { usePathname } from "next/navigation";
 import {
   Briefcase,
@@ -33,6 +34,7 @@ import { Logo } from "@/components/logo";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { useUser as useFirebaseUser } from "@/firebase";
+import { useEffect } from "react";
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -77,6 +79,13 @@ export default function DashboardLayout({
 }) {
   const isMobile = useIsMobile();
   const { isUserLoading, user } = useFirebaseUser();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.push('/login');
+    }
+  }, [isUserLoading, user, router]);
 
   const renderLoadingState = () => (
     <div className="flex-1 flex items-center justify-center">
@@ -126,3 +135,4 @@ export default function DashboardLayout({
     </SidebarProvider>
   );
 }
+    

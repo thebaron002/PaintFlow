@@ -17,10 +17,13 @@ import type { UserProfile } from "@/app/lib/types";
 import { doc } from "firebase/firestore";
 import Link from "next/link";
 import { Skeleton } from "./ui/skeleton";
+import { getAuth, signOut } from "firebase/auth";
+import { useRouter } from "next/navigation";
 
 export function UserNav() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
+  const router = useRouter();
 
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -31,6 +34,12 @@ export function UserNav() {
 
   const isLoading = isUserLoading || isProfileLoading;
 
+  const handleLogout = async () => {
+    const auth = getAuth();
+    await signOut(auth);
+    router.push('/login');
+  };
+
   if (isLoading) {
     return <Skeleton className="h-9 w-9 rounded-full" />;
   }
@@ -39,6 +48,14 @@ export function UserNav() {
   const email = userProfile?.email || user?.email || 'No email';
   const avatarUrl = userProfile?.businessLogoUrl || userProfile?.avatarUrl || user?.photoURL;
   const fallback = userProfile?.businessName?.charAt(0).toUpperCase() || name.charAt(0).toUpperCase();
+
+  if (!user) {
+    return (
+      <Button asChild>
+        <Link href="/login">Sign In</Link>
+      </Button>
+    )
+  }
 
   return (
     <DropdownMenu>
@@ -70,8 +87,9 @@ export function UserNav() {
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>Log out</DropdownMenuItem>
+        <DropdownMenuItem onSelect={handleLogout}>Log out</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
+    
