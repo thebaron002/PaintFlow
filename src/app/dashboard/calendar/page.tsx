@@ -5,10 +5,19 @@ import type { Job } from "@/app/lib/types";
 import { PageHeader } from "@/components/page-header";
 import { JobCalendar } from "./components/job-calendar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
+import { collection } from "firebase/firestore";
 
 export default function CalendarPage() {
-  const isLoading = false;
-  const jobs: Job[] = [];
+  const firestore = useFirestore();
+  const { user } = useUser();
+
+  const jobsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return collection(firestore, 'users', user.uid, 'jobs');
+  }, [firestore, user]);
+
+  const { data: jobs, isLoading } = useCollection<Job>(jobsQuery);
 
   if (isLoading) {
     return (

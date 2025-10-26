@@ -10,7 +10,7 @@ import {
 import type { Job } from "@/app/lib/types";
 import { subWeeks, startOfWeek, endOfWeek, isWithinInterval, startOfMonth, endOfMonth, isFuture, parseISO } from "date-fns"
 import { Skeleton } from "@/components/ui/skeleton";
-import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { collection, Timestamp } from "firebase/firestore";
 
 const chartConfig = {
@@ -22,10 +22,11 @@ const chartConfig = {
 
 export function RevenueChart() {
   const firestore = useFirestore();
+  const { user } = useUser();
   const jobsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'jobs');
-  }, [firestore]);
+    if (!firestore || !user) return null;
+    return collection(firestore, 'users', user.uid, 'jobs');
+  }, [firestore, user]);
 
   const { data: jobs, isLoading } = useCollection<Job>(jobsQuery);
 

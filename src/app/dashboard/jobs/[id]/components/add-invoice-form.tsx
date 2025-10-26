@@ -22,7 +22,7 @@ import { CalendarIcon, Trash2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { useFirestore, updateDocumentNonBlocking } from "@/firebase";
+import { useFirestore, updateDocumentNonBlocking, useUser } from "@/firebase";
 import { doc } from "firebase/firestore";
 import type { Job } from "@/app/lib/types";
 import { Combobox } from "@/components/ui/combobox";
@@ -57,6 +57,7 @@ interface AddInvoiceFormProps {
 
 export function AddInvoiceForm({ jobId, existingInvoices, origins, onSuccess, invoiceToEdit }: AddInvoiceFormProps) {
   const firestore = useFirestore();
+  const { user } = useUser();
   const isEditing = !!invoiceToEdit;
 
   const form = useForm<InvoiceFormValues>({
@@ -72,7 +73,7 @@ export function AddInvoiceForm({ jobId, existingInvoices, origins, onSuccess, in
   });
 
   const onSubmit = (data: InvoiceFormValues) => {
-    if (!firestore) return;
+    if (!firestore || !user) return;
 
     let updatedInvoices: Job['invoices'];
 
@@ -89,17 +90,17 @@ export function AddInvoiceForm({ jobId, existingInvoices, origins, onSuccess, in
         updatedInvoices = [...existingInvoices, newInvoice];
     }
 
-    const jobRef = doc(firestore, 'jobs', jobId);
+    const jobRef = doc(firestore, 'users', user.uid, 'jobs', jobId);
     updateDocumentNonBlocking(jobRef, { invoices: updatedInvoices });
     
     onSuccess();
   };
 
   const handleDelete = () => {
-    if (!firestore || !isEditing) return;
+    if (!firestore || !user || !isEditing) return;
 
     const updatedInvoices = existingInvoices.filter(inv => inv.id !== invoiceToEdit.id);
-    const jobRef = doc(firestore, 'jobs', jobId);
+    const jobRef = doc(firestore, 'users', user.uid, 'jobs', jobId);
     updateDocumentNonBlocking(jobRef, { invoices: updatedInvoices });
 
     onSuccess();

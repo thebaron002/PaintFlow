@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import type { Job, GeneralSettings } from "@/app/lib/types";
 import { Switch } from "@/components/ui/switch";
-import { useFirestore, addDocumentNonBlocking } from "@/firebase";
+import { useFirestore, addDocumentNonBlocking, useUser } from "@/firebase";
 import { collection, doc, getDoc } from "firebase/firestore";
 
 const jobSchema = z.object({
@@ -42,6 +42,7 @@ interface NewJobFormProps {
 
 export function NewJobForm({ onSuccess }: NewJobFormProps) {
   const firestore = useFirestore();
+  const { user } = useUser();
 
   const form = useForm<JobFormValues>({
     resolver: zodResolver(jobSchema),
@@ -56,7 +57,7 @@ export function NewJobForm({ onSuccess }: NewJobFormProps) {
   });
 
   const onSubmit = async (data: JobFormValues) => {
-    if (!firestore) return;
+    if (!firestore || !user) return;
 
     let finalTitle = data.title;
     if (!finalTitle) {
@@ -97,7 +98,7 @@ export function NewJobForm({ onSuccess }: NewJobFormProps) {
       crew: [],
     };
 
-    const jobsCollection = collection(firestore, 'jobs');
+    const jobsCollection = collection(firestore, 'users', user.uid, 'jobs');
     addDocumentNonBlocking(jobsCollection, newJob);
     
     form.reset();

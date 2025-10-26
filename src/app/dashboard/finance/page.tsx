@@ -29,13 +29,35 @@ import { format } from "date-fns";
 import type { Income, Expense, Job } from "@/app/lib/types";
 import { CashFlowChart } from "./components/cash-flow-chart";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
+import { collection } from "firebase/firestore";
 
 export default function FinancePage() {
-  const isLoading = false;
-  const income: Income[] | null = [];
-  const expenses: Expense[] | null = [];
-  const jobs: Job[] | null = [];
+  const firestore = useFirestore();
+  const { user } = useUser();
 
+  const incomeQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return collection(firestore, 'users', user.uid, 'income');
+  }, [firestore, user]);
+
+  const { data: income, isLoading: isLoadingIncome } = useCollection<Income>(incomeQuery);
+
+  const expensesQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return collection(firestore, 'users', user.uid, 'expenses');
+  }, [firestore, user]);
+
+  const { data: expenses, isLoading: isLoadingExpenses } = useCollection<Expense>(expensesQuery);
+
+  const jobsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return collection(firestore, 'users', user.uid, 'jobs');
+  }, [firestore, user]);
+  
+  const { data: jobs, isLoading: isLoadingJobs } = useCollection<Job>(jobsQuery);
+  
+  const isLoading = isLoadingIncome || isLoadingExpenses || isLoadingJobs;
 
   const totalIncome = income?.reduce((acc, item) => acc + item.amount, 0) ?? 0;
   const totalExpenses = expenses?.reduce((acc, item) => acc + item.amount, 0) ?? 0;

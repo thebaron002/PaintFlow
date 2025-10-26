@@ -24,16 +24,17 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { MoreHorizontal } from "lucide-react";
-import { useFirestore, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
+import { useFirestore, updateDocumentNonBlocking, deleteDocumentNonBlocking, useUser } from "@/firebase";
 import { doc } from "firebase/firestore";
 
 const statusSequence: Job['status'][] = ["Not Started", "In Progress", "Complete", "Open Payment", "Finalized"];
 
 export function JobActions({ job }: { job: Job }) {
   const firestore = useFirestore();
+  const { user } = useUser();
 
   const handleStatusChange = (newStatus: Job["status"]) => {
-    if (!firestore) return;
+    if (!firestore || !user) return;
 
     let updatedData: Partial<Job> = { status: newStatus };
 
@@ -42,13 +43,13 @@ export function JobActions({ job }: { job: Job }) {
         updatedData.deadline = new Date().toISOString();
     }
 
-    const jobRef = doc(firestore, 'jobs', job.id);
+    const jobRef = doc(firestore, 'users', user.uid, 'jobs', job.id);
     updateDocumentNonBlocking(jobRef, updatedData);
   }
 
   const handleDelete = () => {
-    if(!firestore) return;
-    const jobRef = doc(firestore, 'jobs', job.id);
+    if(!firestore || !user) return;
+    const jobRef = doc(firestore, 'users', user.uid, 'jobs', job.id);
     deleteDocumentNonBlocking(jobRef);
   }
 

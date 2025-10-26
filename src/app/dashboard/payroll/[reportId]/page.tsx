@@ -33,16 +33,16 @@ export default function ReportDetailsPage() {
     });
 
     const reportRef = useMemoFirebase(() => {
-        if (!firestore || !reportId) return null;
-        return doc(firestore, "payrollReports", reportId);
-    }, [firestore, reportId]);
+        if (!firestore || !user || !reportId) return null;
+        return doc(firestore, "users", user.uid, "payrollReports", reportId);
+    }, [firestore, user, reportId]);
 
     const { data: report, isLoading: isLoadingReport } = useDoc<PayrollReport>(reportRef);
 
     const jobsQuery = useMemoFirebase(() => {
-        if (!firestore || !report?.jobIds || report.jobIds.length === 0) return null;
-        return query(collection(firestore, 'jobs'), where('__name__', 'in', report.jobIds));
-    }, [firestore, report?.jobIds]);
+        if (!firestore || !user || !report?.jobIds || report.jobIds.length === 0) return null;
+        return query(collection(firestore, 'users', user.uid, 'jobs'), where('__name__', 'in', report.jobIds));
+    }, [firestore, user, report?.jobIds]);
 
     const { data: jobs, isLoading: isLoadingJobs } = useCollection<Job>(jobsQuery);
     

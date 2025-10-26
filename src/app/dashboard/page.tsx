@@ -23,18 +23,19 @@ import type { Job } from "@/app/lib/types";
 import { Briefcase, DollarSign, CalendarCheck, MapPin } from "lucide-react";
 import { RevenueChart } from "./components/revenue-chart";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { collection, query, where, Timestamp } from "firebase/firestore";
 import { isThisMonth, isAfter, parseISO } from "date-fns";
 
 
 export default function DashboardPage() {
   const firestore = useFirestore();
+  const { user } = useUser();
 
   const jobsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'jobs');
-  }, [firestore]);
+    if (!firestore || !user) return null;
+    return collection(firestore, 'users', user.uid, 'jobs');
+  }, [firestore, user]);
 
 
   const { data: jobs, isLoading: isLoadingJobs } = useCollection<Job>(jobsQuery);

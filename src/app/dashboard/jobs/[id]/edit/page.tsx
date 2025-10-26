@@ -2,7 +2,7 @@
 "use client";
 
 import { useParams, useRouter } from 'next/navigation';
-import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
+import { useDoc, useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { doc } from "firebase/firestore";
 import type { Job } from "@/app/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,11 +17,12 @@ export default function EditJobPage() {
   const id = params.id as string;
   const router = useRouter();
   const firestore = useFirestore();
+  const { user } = useUser();
 
   const jobRef = useMemoFirebase(() => {
-    if (!firestore || !id) return null;
-    return doc(firestore, "jobs", id);
-  }, [firestore, id]);
+    if (!firestore || !user || !id) return null;
+    return doc(firestore, "users", user.uid, "jobs", id);
+  }, [firestore, user, id]);
 
   const { data: job, isLoading: isLoadingJob } = useDoc<Job>(jobRef);
   

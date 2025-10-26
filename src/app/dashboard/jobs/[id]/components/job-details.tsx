@@ -57,7 +57,7 @@ import {
 } from "@/components/ui/popover";
 import { Calendar as DayPicker } from "@/components/ui/calendar";
 import type { Job, GeneralSettings, CrewMember } from "@/app/lib/types";
-import { useCollection, useDoc, useFirestore, useMemoFirebase, updateDocumentNonBlocking } from "@/firebase";
+import { useCollection, useDoc, useFirestore, useMemoFirebase, updateDocumentNonBlocking, useUser } from "@/firebase";
 import { collection, doc, } from "firebase/firestore";
 import { AddInvoiceForm } from "./add-invoice-form";
 import { AddAdjustmentForm } from "./add-adjustment-form";
@@ -88,6 +88,7 @@ export function JobDetails({
   jobTitle: string;
 }) {
   const firestore = useFirestore();
+  const { user } = useUser();
   const { toast } = useToast();
   const [currentStatus, setCurrentStatus] = useState<Job["status"]>(job.status);
   const [invoiceModal, setInvoiceModal] = useState<ModalState<Job['invoices'][0]>>({ isOpen: false, item: null });
@@ -98,9 +99,9 @@ export function JobDetails({
   const jobStatuses: Job["status"][] = ["Not Started", "In Progress", "Complete", "Open Payment", "Finalized"];
 
   const jobsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'jobs');
-  }, [firestore]);
+    if (!firestore || !user) return null;
+    return collection(firestore, 'users', user.uid, 'jobs');
+  }, [firestore, user]);
   const { data: allJobs } = useCollection<Job>(jobsQuery);
   const invoiceOrigins = [...new Set(allJobs?.flatMap(j => j.invoices?.map(i => i.origin)).filter(Boolean) ?? [])];
   
@@ -120,7 +121,7 @@ export function JobDetails({
   }, [job.status, job.productionDays, job.specialRequirements]);
   
   const handleStatusChange = (newStatus: Job["status"]) => {
-    if (!firestore || newStatus === currentStatus) return;
+    if (!firestore || !user || newStatus === currentStatus) return;
     
     let updatedData: Partial<Job> = { status: newStatus };
 
@@ -130,7 +131,7 @@ export function JobDetails({
     
     setCurrentStatus(newStatus); 
 
-    const jobRef = doc(firestore, 'jobs', job.id);
+    const jobRef = doc(firestore, 'users', user.uid, 'jobs', job.id);
     updateDocumentNonBlocking(jobRef, updatedData);
   }
 
@@ -151,17 +152,17 @@ export function JobDetails({
   };
 
   const handleProductionDaysChange = (days: Date[] | undefined) => {
-    if (!firestore) return;
+    if (!firestore || !user) return;
     const newDays = days || [];
     setProductionDays(newDays);
 
-    const jobRef = doc(firestore, 'jobs', job.id);
+    const jobRef = doc(firestore, 'users', user.uid, 'jobs', job.id);
     updateDocumentNonBlocking(jobRef, { productionDays: newDays.map(d => d.toISOString()) });
   }
 
    const handleNotesBlur = () => {
-    if (!firestore || notes === job.specialRequirements) return;
-    const jobRef = doc(firestore, 'jobs', job.id);
+    if (!firestore || !user || notes === job.specialRequirements) return;
+    const jobRef = doc(firestore, 'users', user.uid, 'jobs', job.id);
     updateDocumentNonBlocking(jobRef, { specialRequirements: notes });
     toast({
         title: "Notes Saved",
@@ -578,5 +579,3 @@ export function JobDetails({
     </div>
   );
 }
-
-    

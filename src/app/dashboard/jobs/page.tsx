@@ -39,7 +39,7 @@ import {
 } from "@/components/ui/dialog";
 import { NewJobForm } from "./components/new-job-form";
 import { useToast } from "@/hooks/use-toast";
-import { useCollection, useDoc, useFirestore, useMemoFirebase } from "@/firebase";
+import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { collection, query, where, doc } from "firebase/firestore";
 
 
@@ -182,11 +182,12 @@ const JobsTable = ({ jobs, isLoading, hourlyRate }: { jobs: Job[] | null, isLoad
 
 const JobsTabContent = ({ status, hourlyRate }: { status: Job["status"], hourlyRate: number }) => {
   const firestore = useFirestore();
+  const { user } = useUser();
   
   const jobsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(collection(firestore, 'jobs'), where('status', '==', status));
-  }, [firestore, status]);
+    if (!firestore || !user) return null;
+    return query(collection(firestore, 'users', user.uid, 'jobs'), where('status', '==', status));
+  }, [firestore, user, status]);
 
   const { data: filteredJobs, isLoading: isLoadingJobs } = useCollection<Job>(jobsQuery);
   

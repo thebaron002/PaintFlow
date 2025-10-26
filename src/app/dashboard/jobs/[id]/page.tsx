@@ -4,7 +4,7 @@
 import { useParams } from 'next/navigation';
 import { JobDetails } from "./components/job-details";
 import type { Job, CrewMember } from "@/app/lib/types";
-import { useDoc, useFirestore, useMemoFirebase, useCollection } from "@/firebase";
+import { useDoc, useFirestore, useMemoFirebase, useCollection, useUser } from "@/firebase";
 import { doc, collection } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -12,11 +12,12 @@ export default function JobDetailsPage() {
   const params = useParams();
   const id = params.id as string;
   const firestore = useFirestore();
+  const { user } = useUser();
 
   const jobRef = useMemoFirebase(() => {
-    if (!firestore || !id) return null;
-    return doc(firestore, "jobs", id);
-  }, [firestore, id]);
+    if (!firestore || !user || !id) return null;
+    return doc(firestore, "users", user.uid, "jobs", id);
+  }, [firestore, user, id]);
 
   const { data: job, isLoading: isLoadingJob } = useDoc<Job>(jobRef);
   

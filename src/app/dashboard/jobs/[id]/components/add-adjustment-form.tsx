@@ -18,7 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useFirestore, updateDocumentNonBlocking } from "@/firebase";
+import { useFirestore, updateDocumentNonBlocking, useUser } from "@/firebase";
 import { doc } from "firebase/firestore";
 import type { Job, AdjustmentType, GeneralSettings } from "@/app/lib/types";
 import { Clock, Paintbrush, ChevronsUpDown, Trash2 } from "lucide-react";
@@ -32,7 +32,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+} from "@/components/ui/alert-dialog";
+import { cn } from "@/lib/utils";
 
 const adjustmentSchema = z.object({
   type: z.enum(["Time", "Material", "General"]),
@@ -59,6 +60,7 @@ const adjustmentTypes: { value: AdjustmentType, label: string, icon: React.Eleme
 
 export function AddAdjustmentForm({ jobId, settings, existingAdjustments, onSuccess, adjustmentToEdit }: AddAdjustmentFormProps) {
   const firestore = useFirestore();
+  const { user } = useUser();
   const isEditing = !!adjustmentToEdit;
 
   const form = useForm<AdjustmentFormValues>({
@@ -71,7 +73,7 @@ export function AddAdjustmentForm({ jobId, settings, existingAdjustments, onSucc
   });
 
   const onSubmit = (data: AdjustmentFormValues) => {
-    if (!firestore) return;
+    if (!firestore || !user) return;
 
     let updatedAdjustments: Job['adjustments'];
     
@@ -92,17 +94,17 @@ export function AddAdjustmentForm({ jobId, settings, existingAdjustments, onSucc
         updatedAdjustments = [...(existingAdjustments || []), newAdjustment];
     }
     
-    const jobRef = doc(firestore, 'jobs', jobId);
+    const jobRef = doc(firestore, 'users', user.uid, 'jobs', jobId);
     updateDocumentNonBlocking(jobRef, { adjustments: updatedAdjustments });
     
     onSuccess();
   };
 
   const handleDelete = () => {
-    if (!firestore || !isEditing) return;
+    if (!firestore || !user || !isEditing) return;
 
     const updatedAdjustments = existingAdjustments.filter(adj => adj.id !== adjustmentToEdit.id);
-    const jobRef = doc(firestore, 'jobs', jobId);
+    const jobRef = doc(firestore, 'users', user.uid, 'jobs', jobId);
     updateDocumentNonBlocking(jobRef, { adjustments: updatedAdjustments });
 
     onSuccess();

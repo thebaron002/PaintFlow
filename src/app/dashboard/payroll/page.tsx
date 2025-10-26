@@ -117,16 +117,16 @@ export default function PayrollPage() {
   const { data: userProfile, isLoading: isLoadingProfile } = useDoc<UserProfile>(userProfileRef);
 
   const jobsToPayQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(collection(firestore, 'jobs'), where('status', '==', 'Open Payment'));
-  }, [firestore]);
+    if (!firestore || !user) return null;
+    return query(collection(firestore, 'users', user.uid, 'jobs'), where('status', '==', 'Open Payment'));
+  }, [firestore, user]);
 
   const { data: jobsToPay, isLoading: isLoadingJobs } = useCollection<Job>(jobsToPayQuery);
   
   const reportsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(collection(firestore, 'payrollReports'), orderBy('sentDate', 'desc'), limit(10));
-  }, [firestore]);
+    if (!firestore || !user) return null;
+    return query(collection(firestore, 'users', user.uid, 'payrollReports'), orderBy('sentDate', 'desc'), limit(10));
+  }, [firestore, user]);
 
   const { data: pastReports, isLoading: isLoadingReports } = useCollection<PayrollReport>(reportsQuery);
 
@@ -146,7 +146,7 @@ export default function PayrollPage() {
       });
 
       // Save report to history
-      if (jobsToPay && jobsToPay.length > 0) {
+      if (jobsToPay && jobsToPay.length > 0 && user) {
         const now = new Date();
         const start = startOfWeek(now);
         const end = endOfWeek(now);
@@ -173,7 +173,7 @@ export default function PayrollPage() {
             jobCount: jobsToPay.length,
             jobIds: jobsToPay.map(j => j.id),
         };
-        addDocumentNonBlocking(collection(firestore!, 'payrollReports'), newReport);
+        addDocumentNonBlocking(collection(firestore!, 'users', user.uid, 'payrollReports'), newReport);
       }
     }
     if (sendEmailState.error) {
@@ -183,7 +183,7 @@ export default function PayrollPage() {
         description: `Could not send the payroll report: ${sendEmailState.error}`,
       });
     }
-  }, [sendEmailState, toast, jobsToPay, firestore, recipients, settings?.hourlyRate]);
+  }, [sendEmailState, toast, jobsToPay, firestore, recipients, settings?.hourlyRate, user]);
 
 
   const isLoading = isLoadingJobs || isLoadingSettings || isLoadingProfile || isLoadingReports;
