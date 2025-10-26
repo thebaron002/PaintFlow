@@ -20,12 +20,12 @@ export async function handleRedirectResult() {
       // User successfully signed in.
       const user = result.user;
       await createUserProfile(firestore, user);
-      return user;
+      return user; // Return the user object on success
     }
   } catch (error) {
     console.error('Error during Google sign-in redirect:', error);
   }
-  return null;
+  return null; // Return null if no user or an error occurs
 }
 
 async function createUserProfile(firestore: any, user: User) {

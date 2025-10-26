@@ -20,34 +20,39 @@ function GoogleIcon() {
 export default function LoginPage() {
     const { user, isUserLoading } = useUser();
     const router = useRouter();
-    const [isProcessingRedirect, setIsProcessingRedirect] = useState(true);
+    const [isProcessingLogin, setIsProcessingLogin] = useState(true);
 
     useEffect(() => {
-        // When the page loads, check for a redirect result. This should only run once.
-        handleRedirectResult().finally(() => {
-            setIsProcessingRedirect(false);
-        });
-    }, []);
-
-
-    useEffect(() => {
-        // This effect waits for the redirect processing to finish AND for the user state to be confirmed.
-        if (!isProcessingRedirect && !isUserLoading) {
-            if (user) {
-                router.push('/dashboard');
-            }
+        // If a user session already exists, redirect immediately.
+        if (!isUserLoading && user) {
+            router.push('/dashboard');
+            return;
         }
-    }, [user, isUserLoading, isProcessingRedirect, router]);
 
-    // Show a loading state while processing redirect or waiting for initial user state.
-    // If the user is already logged in, this state will persist until the redirect to dashboard happens.
-    if (isProcessingRedirect || isUserLoading || user) {
+        // If no user session, process the potential redirect result.
+        // This runs only once when the component mounts.
+        if (!isUserLoading && !user) {
+            handleRedirectResult().then((redirectUser) => {
+                if (redirectUser) {
+                    // If the redirect result gives us a user, redirect to dashboard.
+                    router.push('/dashboard');
+                } else {
+                    // If there's no redirect user, it means the user needs to log in.
+                    // We can now show the login button.
+                    setIsProcessingLogin(false);
+                }
+            });
+        }
+    }, [user, isUserLoading, router]);
+
+    // Show a loading state while checking for a user session or processing the redirect.
+    if (isProcessingLogin) {
         return (
              <div className="flex flex-col min-h-screen items-center justify-center bg-background p-4">
                 <div className="flex flex-col items-center justify-center text-center space-y-4">
                     <Logo />
                     <p className="text-muted-foreground">
-                      {user ? 'Redirecting to dashboard...' : 'Processing authentication...'}
+                      Authenticating...
                     </p>
                     <LoaderCircle className="h-6 w-6 animate-spin" />
                 </div>
