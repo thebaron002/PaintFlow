@@ -86,7 +86,7 @@ export function EditJobForm({ job, onSuccess }: EditJobFormProps) {
       workOrderNumber: data.workOrderNumber,
       address: data.address,
       clientName: data.clientName,
-      startDate: data.startDate.toISOString(),
+      startDate: format(data.startDate, "yyyy-MM-dd"),
       budget: data.initialValue, // budget is payout
       initialValue: data.initialValue,
       isFixedPay: data.isFixedPay,

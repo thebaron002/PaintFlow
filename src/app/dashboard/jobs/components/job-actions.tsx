@@ -26,6 +26,7 @@ import {
 import { MoreHorizontal } from "lucide-react";
 import { useFirestore, updateDocumentNonBlocking, deleteDocumentNonBlocking, useUser } from "@/firebase";
 import { doc } from "firebase/firestore";
+import { format } from "date-fns";
 
 const statusSequence: Job['status'][] = ["Not Started", "In Progress", "Complete", "Open Payment", "Finalized"];
 
@@ -40,7 +41,7 @@ export function JobActions({ job }: { job: Job }) {
 
     // If marking as Complete, update deadline to today if it wasn't already completed/finalized
     if (newStatus === 'Complete' && !['Complete', 'Open Payment', 'Finalized'].includes(job.status)) {
-        updatedData.deadline = new Date().toISOString();
+        updatedData.deadline = format(new Date(), "yyyy-MM-dd");
     }
 
     const jobRef = doc(firestore, 'users', user.uid, 'jobs', job.id);

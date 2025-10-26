@@ -19,10 +19,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Trash2 } from "lucide-react";
-import { Calendar } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
+import { Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { useFirestore, updateDocumentNonBlocking, useUser } from "@/firebase";
 import { doc } from "firebase/firestore";
@@ -40,6 +37,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Switch } from "@/components/ui/switch";
+import { ResponsiveDatePicker } from "@/components/ui/responsive-date-picker";
 
 const invoiceSchema = z.object({
   origin: z.string().min(1, "Origin is required."),
@@ -93,13 +91,13 @@ export function AddInvoiceForm({ jobId, existingInvoices, origins, onSuccess, in
 
     if(isEditing) {
         updatedInvoices = existingInvoices.map(inv => 
-            inv.id === invoiceToEdit.id ? { ...inv, ...data, date: data.date.toISOString() } : inv
+            inv.id === invoiceToEdit.id ? { ...inv, ...data, date: format(data.date, "yyyy-MM-dd") } : inv
         );
     } else {
         const newInvoice = {
             id: uuidv4(),
             ...data,
-            date: data.date.toISOString(),
+            date: format(data.date, "yyyy-MM-dd"),
         };
         updatedInvoices = [...existingInvoices, newInvoice];
     }
@@ -152,19 +150,13 @@ export function AddInvoiceForm({ jobId, existingInvoices, origins, onSuccess, in
             render={({ field }) => (
                 <FormItem className="flex flex-col">
                 <FormLabel>Date</FormLabel>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <FormControl>
-                                <Button variant="outline" className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                    {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50"/>
-                                </Button>
-                            </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus/>
-                        </PopoverContent>
-                    </Popover>
+                   <FormControl>
+                        <ResponsiveDatePicker
+                            value={field.value}
+                            onChange={field.onChange}
+                            placeholder="Pick a date"
+                        />
+                   </FormControl>
                 <FormMessage />
                 </FormItem>
             )}

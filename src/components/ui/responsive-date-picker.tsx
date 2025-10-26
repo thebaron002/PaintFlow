@@ -90,13 +90,27 @@ export function ResponsiveDatePicker({
         </Button>
 
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent className="p-0 gap-0 w-auto">
-            <Calendar
-                mode="single"
-                selected={value}
-                onSelect={handleSelect}
-                initialFocus
-              />
+           <DialogContent
+                className="p-0 gap-0 w-full max-w-none sm:max-w-[425px] sm:rounded-lg rounded-none h-[85vh] sm:h-auto data-[state=open]:animate-in"
+            >
+                <DialogHeader className="p-4 pb-2">
+                <DialogTitle>Selecione a data</DialogTitle>
+                </DialogHeader>
+
+                <div className="p-2 max-h-[65vh] overflow-y-auto sm:max-h-none">
+                    <Calendar
+                        mode="single"
+                        selected={value}
+                        onSelect={handleSelect}
+                        initialFocus
+                    />
+                </div>
+
+                <DialogFooter className="p-3 pt-0">
+                <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+                    Fechar
+                </Button>
+                </DialogFooter>
           </DialogContent>
         </Dialog>
       </>
@@ -119,7 +133,8 @@ export function ResponsiveDatePicker({
         <PopoverContent
           align="start"
           sideOffset={8}
-          className="w-auto p-0"
+          collisionPadding={8}
+          className="w-auto p-0 z-50"
         >
           <Calendar
             mode="single"
@@ -134,4 +149,3 @@ export function ResponsiveDatePicker({
       </Popover>
   );
 }
-

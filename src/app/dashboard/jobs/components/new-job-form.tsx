@@ -19,6 +19,7 @@ import { Switch } from "@/components/ui/switch";
 import { useFirestore, addDocumentNonBlocking, useUser } from "@/firebase";
 import { collection, doc, getDoc } from "firebase/firestore";
 import { ResponsiveDatePicker } from "@/components/ui/responsive-date-picker";
+import { format } from "date-fns";
 
 const jobSchema = z.object({
   title: z.string().optional(),
@@ -79,8 +80,8 @@ export function NewJobForm({ onSuccess }: NewJobFormProps) {
       workOrderNumber: data.workOrderNumber,
       address: data.address,
       clientName: data.clientName,
-      startDate: data.startDate.toISOString(),
-      deadline: new Date().toISOString(), // Placeholder deadline
+      startDate: format(data.startDate, "yyyy-MM-dd"),
+      deadline: format(new Date(), "yyyy-MM-dd"), // Placeholder deadline
       specialRequirements: "",
       status: "Not Started",
       budget: data.initialValue, // budget is payout
