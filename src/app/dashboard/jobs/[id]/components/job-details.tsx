@@ -34,7 +34,7 @@ import {
   PlusCircle,
   Clock,
   ChevronsUpDown,
-  Landmark,
+  TrendingDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -195,8 +195,12 @@ export function JobDetails({
     return sum + adj.value;
   }, 0) ?? 0;
 
+  const totalDiscountedFromPayout = job.invoices
+    ?.filter(inv => inv.isPayoutDiscount)
+    .reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
+
   const remainingPayout = job.isFixedPay 
-    ? (job.initialValue || 0) + totalAdjustments
+    ? (job.initialValue || 0) + totalAdjustments - totalDiscountedFromPayout
     : (job.budget || 0) - totalInvoiced + totalAdjustments;
 
   return (
@@ -472,7 +476,7 @@ export function JobDetails({
                         <TableCell>
                             <div className="font-medium flex items-center gap-2">
                                 {invoice.origin}
-                                {invoice.chargedOnCompanyAccount && <Landmark className="h-3 w-3 text-muted-foreground" title="Charged on company account" />}
+                                {invoice.isPayoutDiscount && <TrendingDown className="h-3 w-3 text-destructive" title="Discounted from payout" />}
                             </div>
                             {invoice.notes && <div className="text-xs text-muted-foreground">{invoice.notes}</div>}
                         </TableCell>

@@ -14,6 +14,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -38,14 +39,13 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Switch } from "@/components/ui/switch";
-import { FormDescription } from "@/components/ui/form";
 
 const invoiceSchema = z.object({
   origin: z.string().min(1, "Origin is required."),
   date: z.date({ required_error: "Invoice date is required." }),
   amount: z.coerce.number().min(0.01, "Amount must be greater than 0."),
   notes: z.string().optional(),
-  chargedOnCompanyAccount: z.boolean().default(false),
+  isPayoutDiscount: z.boolean().default(false),
 });
 
 type InvoiceFormValues = z.infer<typeof invoiceSchema>;
@@ -68,12 +68,12 @@ export function AddInvoiceForm({ jobId, existingInvoices, origins, onSuccess, in
     defaultValues: isEditing ? {
         ...invoiceToEdit,
         date: new Date(invoiceToEdit.date),
-        chargedOnCompanyAccount: invoiceToEdit.chargedOnCompanyAccount || false,
+        isPayoutDiscount: invoiceToEdit.isPayoutDiscount || false,
     } : {
       origin: "",
       amount: 0,
       notes: "",
-      chargedOnCompanyAccount: false,
+      isPayoutDiscount: false,
     },
   });
 
@@ -194,13 +194,13 @@ export function AddInvoiceForm({ jobId, existingInvoices, origins, onSuccess, in
 
         <FormField
           control={form.control}
-          name="chargedOnCompanyAccount"
+          name="isPayoutDiscount"
           render={({ field }) => (
             <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
               <div className="space-y-0.5">
-                <FormLabel>It was charged on the company account?</FormLabel>
+                <FormLabel>Needs to be discounted on the payout?</FormLabel>
                 <FormDescription>
-                    Enable if this was paid with company funds.
+                    Enable if this amount should be subtracted from the final payout.
                 </FormDescription>
               </div>
               <FormControl>

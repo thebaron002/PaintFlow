@@ -122,11 +122,19 @@ const JobsTable = ({ jobs, isLoading, hourlyRate }: { jobs: Job[] | null, isLoad
               const totalInvoiced = job.invoices?.reduce((sum, invoice) => sum + invoice.amount, 0) ?? 0;
               const totalAdjustments = job.adjustments?.reduce((sum, adj) => {
                 if (adj.type === 'Time') {
-                  return sum + (adj.value * hourlyRate);
+                  const rate = adj.hourlyRate ?? hourlyRate;
+                  return sum + (adj.value * rate);
                 }
                 return sum + adj.value;
               }, 0) ?? 0;
-              const remainingPayout = job.budget - totalInvoiced + totalAdjustments;
+
+              const totalDiscountedFromPayout = job.invoices
+                ?.filter(inv => inv.isPayoutDiscount)
+                .reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
+
+              const remainingPayout = job.isFixedPay 
+                ? (job.initialValue || 0) + totalAdjustments - totalDiscountedFromPayout
+                : (job.budget || 0) - totalInvoiced + totalAdjustments;
 
               return (
                 <TableRow key={job.id}>

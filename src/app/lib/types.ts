@@ -1,9 +1,4 @@
 
-
-
-
-
-
 export type Client = {
   id: string;
   name: string;
@@ -41,7 +36,7 @@ export type Job = {
   idealNumberOfDays: number;
   productionDays: string[]; // Array of ISO date strings
   isFixedPay: boolean;
-  invoices: { id: string; origin: string; amount: number; date: string; notes?: string; chargedOnCompanyAccount?: boolean; }[];
+  invoices: { id: string; origin: string; amount: number; date: string; notes?: string; isPayoutDiscount?: boolean; }[];
   adjustments: { 
     id: string; 
     type: AdjustmentType;
