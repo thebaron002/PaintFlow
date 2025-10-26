@@ -80,8 +80,8 @@ export function NewJobForm({ onSuccess }: NewJobFormProps) {
       workOrderNumber: data.workOrderNumber,
       address: data.address,
       clientName: data.clientName,
-      startDate: format(data.startDate, "yyyy-MM-dd"),
-      deadline: format(new Date(), "yyyy-MM-dd"), // Placeholder deadline
+      startDate: format(data.startDate, "yyyy-MM-dd"), // ✅ data “pura”, sem fuso
+      deadline: format(new Date(), "yyyy-MM-dd"),      // coloque a lógica real depois
       specialRequirements: "",
       status: "Not Started",
       budget: data.initialValue, // budget is payout

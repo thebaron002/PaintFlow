@@ -1,10 +1,9 @@
-
 "use client";
 
 import * as React from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar as CalendarIcon, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -13,16 +12,9 @@ import {
   PopoverTrigger,
   PopoverContent,
 } from "@/components/ui/popover";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
-// ---------- DETECÇÃO MOBILE REFORÇADA ----------
+// ---------- DETECÇÃO MOBILE (reforçada) ----------
 function useIsMobile(breakpointPx = 768) {
   const [isMobile, setIsMobile] = React.useState(false);
 
@@ -34,13 +26,10 @@ function useIsMobile(breakpointPx = 768) {
     const ua = navigator.userAgent || "";
     const isIOS =
       /iPad|iPhone|iPod/.test(ua) ||
-      (ua.includes("Mac") && "ontouchend" in document); // iPadOS
+      (ua.includes("Mac") && "ontouchend" in document);
 
-    const update = () => {
-      setIsMobile(mqWidth.matches || mqCoarse.matches || isIOS);
-    };
+    const update = () => setIsMobile(mqWidth.matches || mqCoarse.matches || isIOS);
     update();
-
     mqWidth.addEventListener?.("change", update);
     mqCoarse.addEventListener?.("change", update);
     return () => {
@@ -52,13 +41,14 @@ function useIsMobile(breakpointPx = 768) {
   return isMobile;
 }
 
-type Mode = "auto" | "dialog" | "popover";
+type Mode = "auto" | "inline" | "popover";
 
 type ResponsiveDatePickerProps = {
   value?: Date;
   onChange: (d?: Date) => void;
   placeholder?: string;
-  mode?: Mode; // NEW: força o modo se quiser
+  mode?: Mode;         // NEW: force mode
+  label?: string;
 };
 
 export function ResponsiveDatePicker({
@@ -68,72 +58,75 @@ export function ResponsiveDatePicker({
   mode = "auto",
 }: ResponsiveDatePickerProps) {
   const isMobile = useIsMobile();
+  const useInline = mode === "inline" || (mode === "auto" && isMobile);
   const [open, setOpen] = React.useState(false);
-
-  const useDialog = mode === "dialog" || (mode === "auto" && isMobile);
 
   const handleSelect = (d?: Date) => {
     onChange(d);
     setOpen(false);
   };
 
+  const triggerClasses = cn(
+    "justify-start pl-3 text-left font-normal w-full",
+    !value && "text-muted-foreground"
+  );
+
   const TriggerBtn = (
     <Button
       type="button"
       variant="outline"
-      className={cn(
-        "justify-start pl-3 text-left font-normal w-full",
-        !value && "text-muted-foreground"
-      )}
-      onClick={() => setOpen(true)}
+      className={triggerClasses}
+      onClick={() => setOpen((v) => !v)}
     >
       <CalendarIcon className="mr-2 h-4 w-4" />
       {value ? format(value, "PPP", { locale: ptBR }) : <span>{placeholder}</span>}
     </Button>
   );
 
-  // --------- MOBILE (Dialog) ----------
-  if (useDialog) {
+  // --------- MOBILE (INLINE, sem portal/overlay) ----------
+  if (useInline) {
     return (
-      <>
+      <div className="flex flex-col gap-2">
         {TriggerBtn}
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent
-            // quase full-screen no mobile; compacto no desktop
-            className="p-0 gap-0 w-full max-w-none sm:max-w-[425px] sm:rounded-lg rounded-none
-                       h-[85vh] sm:h-auto"
+
+        {open && (
+          <div
+            className="mt-2 rounded-md border bg-background p-2 shadow-sm"
+            // garante cliques mesmo se houver wrappers com transform/overflow
+            style={{ position: "relative", zIndex: 1 }}
           >
-            <DialogHeader className="p-4 pb-2">
-              <DialogTitle>Selecione a data</DialogTitle>
-            </DialogHeader>
-
-            <div className="p-2 max-h-[65vh] overflow-y-auto sm:max-h-none">
-              <Calendar
-                mode="single"
-                selected={value}
-                onSelect={handleSelect}
-                initialFocus
-              />
+            <div className="flex justify-end">
+              <button
+                type="button"
+                className="p-1 -m-1 opacity-70"
+                onClick={() => setOpen(false)}
+                aria-label="Fechar"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
-
-            <DialogFooter className="p-3 pt-0">
-              <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
-                Fechar
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </>
+            <Calendar
+              mode="single"
+              selected={value}
+              onSelect={handleSelect}
+              // no inline, não usamos initialFocus para evitar rolagem forçada no iOS
+            />
+          </div>
+        )}
+      </div>
     );
   }
 
   // --------- DESKTOP (Popover) ----------
   return (
-      <Popover open={open} onOpenChange={setOpen} modal /* <- fecha melhor no iOS */>
+    <div className="flex flex-col gap-2">
+      <Popover open={open} onOpenChange={setOpen} modal>
         <PopoverTrigger asChild>
-          {/* no desktop o open é controlado pelo PopoverTrigger */}
           <div onClick={() => setOpen(true)} className="w-full">
-            {TriggerBtn}
+            <Button type="button" variant="outline" className={triggerClasses}>
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {value ? format(value, "PPP", { locale: ptBR }) : <span>{placeholder}</span>}
+            </Button>
           </div>
         </PopoverTrigger>
         <PopoverContent
@@ -141,7 +134,7 @@ export function ResponsiveDatePicker({
           sideOffset={8}
           collisionPadding={8}
           className="w-auto p-0 z-50"
-          onInteractOutside={() => setOpen(false)} // <- garante fechar no "tap fora"
+          onInteractOutside={() => setOpen(false)}
         >
           <Calendar
             mode="single"
@@ -154,5 +147,6 @@ export function ResponsiveDatePicker({
           />
         </PopoverContent>
       </Popover>
+    </div>
   );
 }
