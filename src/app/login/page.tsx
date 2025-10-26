@@ -23,7 +23,7 @@ export default function LoginPage() {
     const [isProcessingRedirect, setIsProcessingRedirect] = useState(true);
 
     useEffect(() => {
-        // When the page loads, check for a redirect result.
+        // When the page loads, check for a redirect result. This should only run once.
         handleRedirectResult().finally(() => {
             setIsProcessingRedirect(false);
         });
@@ -31,13 +31,16 @@ export default function LoginPage() {
 
 
     useEffect(() => {
-        // This effect runs when the auth state changes.
-        if (!isUserLoading && user) {
-            router.push('/dashboard');
+        // This effect waits for the redirect processing to finish AND for the user state to be confirmed.
+        if (!isProcessingRedirect && !isUserLoading) {
+            if (user) {
+                router.push('/dashboard');
+            }
         }
-    }, [user, isUserLoading, router]);
+    }, [user, isUserLoading, isProcessingRedirect, router]);
 
     // Show a loading state while processing redirect or waiting for initial user state.
+    // If the user is already logged in, this state will persist until the redirect to dashboard happens.
     if (isProcessingRedirect || isUserLoading || user) {
         return (
              <div className="flex flex-col min-h-screen items-center justify-center bg-background p-4">
@@ -52,6 +55,7 @@ export default function LoginPage() {
         );
     }
 
+  // Only show the login page if we are done loading and there is no user.
   return (
     <div className="flex flex-col min-h-screen items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm">
