@@ -4,6 +4,7 @@
 import * as React from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Calendar as CalendarIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -19,122 +20,128 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Calendar as CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// ---------------------------------------------------------------
-// Hook: detecta “mobile/iOS” e telas pequenas de forma SSR-safe
-// ---------------------------------------------------------------
+// ---------- DETECÇÃO MOBILE REFORÇADA ----------
 function useIsMobile(breakpointPx = 768) {
   const [isMobile, setIsMobile] = React.useState(false);
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
 
-    // 1) largura de tela (UX responsivo)
-    const mq = window.matchMedia(`(max-width: ${breakpointPx}px)`);
-
-    // 2) heurística iOS (Safari) — reforça fallback para modal
-    const ua = window.navigator.userAgent || "";
+    const mqWidth = window.matchMedia(`(max-width: ${breakpointPx}px)`);
+    const mqCoarse = window.matchMedia("(pointer: coarse)");
+    const ua = navigator.userAgent || "";
     const isIOS =
       /iPad|iPhone|iPod/.test(ua) ||
-      // iPadOS 13+ reporta como Mac; checamos touch
-      (ua.includes("Mac") && "ontouchend" in document);
+      (ua.includes("Mac") && "ontouchend" in document); // iPadOS
 
-    const update = () => setIsMobile(mq.matches || isIOS);
+    const update = () => {
+      setIsMobile(mqWidth.matches || mqCoarse.matches || isIOS);
+    };
     update();
 
-    mq.addEventListener?.("change", update);
-    return () => mq.removeEventListener?.("change", update);
+    mqWidth.addEventListener?.("change", update);
+    mqCoarse.addEventListener?.("change", update);
+    return () => {
+      mqWidth.removeEventListener?.("change", update);
+      mqCoarse.removeEventListener?.("change", update);
+    };
   }, [breakpointPx]);
 
   return isMobile;
 }
 
-// ---------------------------------------------------------------
-// Componente: DatePicker responsivo
-// props: value (Date | undefined) e onChange (Date | undefined => void)
-// ---------------------------------------------------------------
+type Mode = "auto" | "dialog" | "popover";
+
 type ResponsiveDatePickerProps = {
   value?: Date;
   onChange: (d?: Date) => void;
   placeholder?: string;
+  mode?: Mode; // NEW: força o modo se quiser
 };
 
 export function ResponsiveDatePicker({
   value,
   onChange,
   placeholder = "Pick a date",
+  mode = "auto",
 }: ResponsiveDatePickerProps) {
   const isMobile = useIsMobile();
   const [open, setOpen] = React.useState(false);
 
+  const useDialog = mode === "dialog" || (mode === "auto" && isMobile);
+
   const handleSelect = (d?: Date) => {
     onChange(d);
-    // Fecha imediatamente após escolher
     setOpen(false);
   };
 
-  // --------- Variante MOBILE (Dialog) ----------
-  if (isMobile) {
+  const TriggerBtn = (
+    <Button
+      type="button"
+      variant="outline"
+      className={cn(
+        "justify-start pl-3 text-left font-normal w-full",
+        !value && "text-muted-foreground"
+      )}
+      onClick={() => setOpen(true)}
+    >
+      <CalendarIcon className="mr-2 h-4 w-4" />
+      {value ? format(value, "PPP", { locale: ptBR }) : <span>{placeholder}</span>}
+    </Button>
+  );
+
+  // --------- MOBILE (Dialog) ----------
+  if (useDialog) {
     return (
       <>
-        <Button
-          type="button"
-          variant="outline"
-          className={cn("justify-start pl-3 text-left font-normal", !value && "text-muted-foreground")}
-          onClick={() => setOpen(true)}
-        >
-          <CalendarIcon className="mr-2 h-4 w-4" />
-          {value ? format(value, "PPP", { locale: ptBR }) : <span>{placeholder}</span>}
-        </Button>
-
+        {TriggerBtn}
         <Dialog open={open} onOpenChange={setOpen}>
-           <DialogContent
-                className="p-0 gap-0 w-full max-w-none sm:max-w-[425px] sm:rounded-lg rounded-none h-[85vh] sm:h-auto data-[state=open]:animate-in"
-            >
-                <DialogHeader className="p-4 pb-2">
-                <DialogTitle>Selecione a data</DialogTitle>
-                </DialogHeader>
+          <DialogContent
+            // quase full-screen no mobile; compacto no desktop
+            className="p-0 gap-0 w-full max-w-none sm:max-w-[425px] sm:rounded-lg rounded-none
+                       h-[85vh] sm:h-auto"
+          >
+            <DialogHeader className="p-4 pb-2">
+              <DialogTitle>Selecione a data</DialogTitle>
+            </DialogHeader>
 
-                <div className="p-2 max-h-[65vh] overflow-y-auto sm:max-h-none">
-                    <Calendar
-                        mode="single"
-                        selected={value}
-                        onSelect={handleSelect}
-                        initialFocus
-                    />
-                </div>
+            <div className="p-2 max-h-[65vh] overflow-y-auto sm:max-h-none">
+              <Calendar
+                mode="single"
+                selected={value}
+                onSelect={handleSelect}
+                initialFocus
+              />
+            </div>
 
-                <DialogFooter className="p-3 pt-0">
-                <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
-                    Fechar
-                </Button>
-                </DialogFooter>
+            <DialogFooter className="p-3 pt-0">
+              <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+                Fechar
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </>
     );
   }
 
-  // --------- Variante DESKTOP (Popover) ----------
+  // --------- DESKTOP (Popover) ----------
   return (
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={setOpen} modal /* <- fecha melhor no iOS */>
         <PopoverTrigger asChild>
-          <Button
-            type="button"
-            variant="outline"
-            className={cn("justify-start pl-3 text-left font-normal", !value && "text-muted-foreground")}
-          >
-            <CalendarIcon className="mr-2 h-4 w-4" />
-            {value ? format(value, "PPP", { locale: ptBR }) : <span>{placeholder}</span>}
-          </Button>
+          {/* no desktop o open é controlado pelo PopoverTrigger */}
+          <div onClick={() => setOpen(true)} className="w-full">
+            {TriggerBtn}
+          </div>
         </PopoverTrigger>
         <PopoverContent
           align="start"
           sideOffset={8}
           collisionPadding={8}
           className="w-auto p-0 z-50"
+          onInteractOutside={() => setOpen(false)} // <- garante fechar no "tap fora"
         >
           <Calendar
             mode="single"
