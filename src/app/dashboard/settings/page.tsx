@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useDoc, useFirestore, useMemoFirebase, useUser } from "@/firebase";
+import { useDoc, useFirestore, useMemoFirebase, useUser, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { doc, writeBatch } from "firebase/firestore";
 import type { GeneralSettings } from "@/app/lib/types";
 import { PageHeader } from "@/components/page-header";
@@ -37,7 +37,7 @@ const jobsData = [
     initialValue: 2200,
     idealMaterialCost: 400,
     idealNumberOfDays: 4,
-    productionDays: ["2024-08-12T00:00:00.000Z", "2024-08-13T00:00:00.000Z"],
+    productionDays: ["2024-08-12T00:00:00.000Z", "2024-8-13T00:00:00.000Z"],
     isFixedPay: true,
     invoices: [],
     adjustments: [{ id: "adj1", type: "General", description: "Extra coat on ceiling", value: 300 }]
@@ -124,7 +124,7 @@ const jobsData = [
     workOrderNumber: "WO-006",
     address: "333 Cradle Rock, Anytown, USA",
     clientName: "Alice Johnson",
-    startDate: "2024-08-08T00:00:00.000Z",
+    startDate: "2024-08-08T0-0:00:00.000Z",
     deadline: "2024-08-10T00:00:00.000Z",
     specialRequirements: "Zero-VOC paint only. Two-tone wall with stencil.",
     status: "Open Payment",
@@ -216,46 +216,48 @@ export default function SettingsPage() {
     }
 
     toast({ title: "Seeding...", description: "Populating your account with sample data." });
+    
+    const batch = writeBatch(firestore);
+    const userId = user.uid;
 
-    try {
-        const batch = writeBatch(firestore);
-        const userId = user.uid;
+    jobsData.forEach(job => {
+        const { id, ...jobData } = job;
+        const docRef = doc(firestore, 'users', userId, 'jobs', id);
+        batch.set(docRef, jobData);
+    });
 
-        // Add jobs, income, and expenses under the current user
-        jobsData.forEach(job => {
-            // Remove the 'id' property from the object to let Firestore generate it, or use it as the document ID
-            const { id, ...jobData } = job;
-            const docRef = doc(firestore, 'users', userId, 'jobs', id);
-            batch.set(docRef, jobData);
-        });
+    incomeData.forEach(incomeItem => {
+        const { id, ...incomeData } = incomeItem;
+        const docRef = doc(firestore, 'users', userId, 'income', id);
+        batch.set(docRef, incomeData);
+    });
 
-        incomeData.forEach(incomeItem => {
-            const { id, ...incomeData } = incomeItem;
-            const docRef = doc(firestore, 'users', userId, 'income', id);
-            batch.set(docRef, incomeData);
-        });
+    expensesData.forEach(expenseItem => {
+        const { id, ...expenseData } = expenseItem;
+        const docRef = doc(firestore, 'users', userId, 'expenses', id);
+        batch.set(docRef, expenseData);
+    });
+    
+    crewData.forEach(crewMember => {
+         const { id, ...crewMemberData } = crewMember;
+        const docRef = doc(firestore, 'crew', id);
+        batch.set(docRef, crewMemberData);
+    });
 
-        expensesData.forEach(expenseItem => {
-            const { id, ...expenseData } = expenseItem;
-            const docRef = doc(firestore, 'users', userId, 'expenses', id);
-            batch.set(docRef, expenseData);
-        });
-        
-        // Add crew data to the top-level collection
-        crewData.forEach(crewMember => {
-             const { id, ...crewMemberData } = crewMember;
-            const docRef = doc(firestore, 'crew', id);
-            batch.set(docRef, crewMemberData);
-        });
-
-        await batch.commit();
-
+    batch.commit()
+      .then(() => {
         toast({ title: "Seeding Complete!", description: "Your account has been populated with sample data." });
-
-    } catch (error) {
-        console.error("Error seeding database:", error);
-        toast({ variant: "destructive", title: "Seeding Failed", description: (error as Error).message });
-    }
+      })
+      .catch((error) => {
+        // This is a generic path since we don't know which write failed.
+        // A more robust solution might break this into multiple batches
+        // to provide more specific error context.
+        const contextualError = new FirestorePermissionError({
+          path: `users/${userId}`,
+          operation: 'write', // Batch write can be create or update
+        });
+        errorEmitter.emit('permission-error', contextualError);
+      });
   };
 
   const defaultSettings: GeneralSettings = {
