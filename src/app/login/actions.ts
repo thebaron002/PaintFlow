@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { getAuth, signInWithRedirect, GoogleAuthProvider, User, getRedirectResult } from 'firebase/auth';
@@ -11,39 +12,8 @@ export async function handleSignInWithGoogle() {
   await signInWithRedirect(auth, provider);
 }
 
-export async function handleRedirectResult() {
-  const auth = getAuth();
-  const firestore = getFirestore();
-  try {
-    const result = await getRedirectResult(auth);
-    if (result) {
-      // User successfully signed in.
-      const user = result.user;
-      await createUserProfile(firestore, user);
-      return user; // Return the user object on success
-    }
-  } catch (error) {
-    console.error('Error during Google sign-in redirect:', error);
-  }
-  return null; // Return null if no user or an error occurs
-}
+// Note: The primary logic for handling the redirect result and creating the user profile
+// has been moved to the more robust `src/firebase/firebase-client.ts` singleton
+// to solve the Safari race condition. This file is kept for potential future
+// actions but is no longer the main driver of the redirect flow.
 
-async function createUserProfile(firestore: any, user: User) {
-  const userRef = doc(firestore, 'users', user.uid);
-  const userSnap = await getDoc(userRef);
-
-  // Create a new document only if one doesn't already exist
-  if (!userSnap.exists()) {
-    const { displayName, email, photoURL } = user;
-    await setDoc(userRef, {
-      id: user.uid,
-      name: displayName,
-      email,
-      avatarUrl: photoURL,
-      // Initialize other fields as needed
-      phone: '',
-      businessName: '',
-      businessLogoUrl: '',
-    });
-  }
-}

@@ -1,8 +1,11 @@
-
+// src/app/dashboard/layout.tsx
 "use client";
 
-import Link from "next/link";
+import { ReactNode, useEffect, useState } from "react";
+import { auth, authReadyPromise, getRedirectResultOnce } from "@/firebase/firebase-client";
+import { onAuthStateChanged, type User } from "firebase/auth";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Briefcase,
@@ -14,7 +17,7 @@ import {
   LoaderCircle,
   Settings,
   Users,
-  User,
+  User as UserIcon, // Renamed to avoid conflict with Firebase User type
 } from "lucide-react";
 import {
   SidebarProvider,
@@ -33,9 +36,7 @@ import { UserNav } from "@/components/user-nav";
 import { Logo } from "@/components/logo";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
-import { useUser as useFirebaseUser } from "@/firebase";
-import { handleRedirectResult } from "@/app/login/actions";
-import { useEffect, useState } from "react";
+
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -44,7 +45,7 @@ const navItems = [
   { href: "/dashboard/finance", icon: DollarSign, label: "Finance" },
   { href: "/dashboard/payroll", icon: Landmark, label: "Payroll" },
   { href: "/dashboard/crew", icon: Users, label: "Crew" },
-  { href: "/dashboard/profile", icon: User, label: "Profile" },
+  { href: "/dashboard/profile", icon: UserIcon, label: "Profile" },
   { href: "/dashboard/settings", icon: Settings, label: "Settings" },
 ];
 
@@ -73,67 +74,91 @@ const BottomNavBar = () => {
   );
 };
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const isMobile = useIsMobile();
-  const { isUserLoading, user } = useFirebaseUser();
+
+export default function DashboardLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const [isProcessingRedirect, setIsProcessingRedirect] = useState(true);
+  const isMobile = useIsMobile();
+  const [phase, setPhase] = useState<"boot"|"waiting"|"ready">("boot");
+  const [user, setUser] = useState<User | null>(null);
 
-  // This unified effect handles both the redirect result and the subsequent user state check.
+  // Passo 1: garantir que redirect foi processado + auth pronto (uma vez)
   useEffect(() => {
-    // This function will run once on mount.
-    const processAuth = async () => {
+    let cancelled = false;
+    (async () => {
+      setPhase("waiting");
       try {
-        // First, attempt to process the redirect result from Google.
-        // This function will resolve with a user object if successful, or null otherwise.
-        await handleRedirectResult();
-      } catch (error) {
-        console.error("Error processing redirect result:", error);
-      } finally {
-        // After the attempt, we mark the redirect processing as complete.
-        // This is crucial for the next step.
-        setIsProcessingRedirect(false);
+        // Sempre aguarde ambos antes de decidir rota
+        await Promise.all([
+          getRedirectResultOnce(),
+          authReadyPromise,
+        ]);
+        if (cancelled) return;
+
+        // Passo 2: agora ouvimos mudanças de usuário normalmente
+        const unsub = onAuthStateChanged(auth, (u) => {
+          if (cancelled) return;
+          setUser(u);
+          setPhase("ready");
+        });
+
+        return () => unsub();
+      } catch {
+        if (!cancelled) setPhase("ready");
       }
-    };
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
-    processAuth();
-  }, []); // Empty dependency array ensures this runs only once on mount.
-
-
-  // This effect is responsible for routing decisions.
-  // It waits for both the redirect processing and the initial user loading to be finished.
+  // Passo 3: quando estiver “ready”, decida o que fazer
   useEffect(() => {
-    // The authentication process is only considered "ready" when we are no longer
-    // processing a redirect AND the initial user state has been loaded by `onAuthStateChanged`.
-    const isAuthReady = !isProcessingRedirect && !isUserLoading;
+    if (phase !== "ready") return;
 
-    // Only make a routing decision when authentication is ready.
-    if (isAuthReady) {
-      // If, after all checks, there is no authenticated user,
-      // then it's safe to redirect to the login page.
-      if (!user) {
-        router.push('/login');
-      }
+    if (!user) {
+      // Não autenticado: mande para /login, preservando callbackUrl
+      const currentPath = typeof window !== "undefined" ? window.location.pathname + window.location.search : "/dashboard";
+      const callbackParam = encodeURIComponent(currentPath);
+      router.replace(`/login?callbackUrl=${callbackParam}`);
     }
-  }, [isProcessingRedirect, isUserLoading, user, router]);
-
+  }, [phase, user, router]);
 
   const renderLoadingState = () => (
     <div className="flex-1 flex items-center justify-center">
       <div className="flex flex-col items-center gap-2">
         <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-muted-foreground">Authenticating...</p>
+        <p className="text-muted-foreground">Carregando seu painel...</p>
       </div>
     </div>
   );
 
-  // Show the loading screen while we are processing the redirect OR while the initial user state is loading.
-  // This prevents the screen from flashing or prematurely redirecting.
-  const showLoading = isProcessingRedirect || isUserLoading;
+  if (phase !== "ready") {
+    return (
+      <SidebarProvider>
+         <div className="flex min-h-screen w-full flex-col bg-background">
+            <header className="sticky top-0 flex h-14 items-center gap-4 border-b bg-background px-4 md:px-6">
+                 <Logo className="text-foreground" />
+                 <div className="ml-auto flex items-center gap-4">
+                    <Skeleton className="h-9 w-9 rounded-full" />
+                 </div>
+            </header>
+            <main className="flex-1 flex items-center justify-center">
+                 {renderLoadingState()}
+            </main>
+         </div>
+      </SidebarProvider>
+    );
+  }
+
+  if (!user) {
+      // Enquanto o router faz o replace, renderiza um placeholder
+      return (
+         <div className="flex-1 flex items-center justify-center">
+            <div className="flex flex-col items-center gap-2">
+                <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-muted-foreground">Redirecionando para login...</p>
+            </div>
+         </div>
+      )
+  }
 
   return (
     <SidebarProvider>
@@ -167,7 +192,7 @@ export default function DashboardLayout({
           </div>
         </header>
         <main className="flex-1 p-4 sm:px-6 sm:py-0 pb-20 md:pb-4 flex flex-col">
-          {showLoading ? renderLoadingState() : children}
+          {children}
         </main>
       </SidebarInset>
       {isMobile && <BottomNavBar />}

@@ -1,13 +1,14 @@
+// src/app/login/page.tsx
+"use client";
 
-'use client';
+import { useEffect, useState } from "react";
+import { auth, googleProvider, getRedirectResultOnce, authReadyPromise } from "@/firebase/firebase-client";
+import { signInWithRedirect } from "firebase/auth";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Logo } from "@/components/logo";
+import { Button } from "@/components/ui/button";
+import { LoaderCircle } from "lucide-react";
 
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Logo } from '@/components/logo';
-import { useUser } from '@/firebase';
-import { handleSignInWithGoogle } from './actions';
-import { LoaderCircle } from 'lucide-react';
 
 function GoogleIcon() {
     return (
@@ -18,58 +19,109 @@ function GoogleIcon() {
 }
 
 export default function LoginPage() {
-    const { user, isUserLoading } = useUser();
-    const router = useRouter();
+  const router = useRouter();
+  const search = useSearchParams();
+  const [status, setStatus] = useState<"idle"|"processing"|"ready"|"error">("idle");
+  const [message, setMessage] = useState<string>("");
 
-    useEffect(() => {
-        // If the user is already logged in, redirect them to the dashboard.
-        if (!isUserLoading && user) {
-            router.push('/dashboard');
+  // Ao carregar a página, se houver um redirect pendente, aguardamos o resultado + auth ready
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        setStatus("processing");
+        setMessage("Autenticando...");
+
+        // Se viemos de um redirect (ou se o Safari atrasar), forçamos aguardar ambos:
+        const pending = typeof window !== "undefined" && localStorage.getItem("pf_redirect_pending") === "1";
+        if (pending) {
+          await getRedirectResultOnce();
         }
-    }, [user, isUserLoading, router]);
 
-    // Show a loading state while we check for an existing session.
-    if (isUserLoading) {
-        return (
-             <div className="flex flex-col min-h-screen items-center justify-center bg-background p-4">
-                <div className="flex flex-col items-center justify-center text-center space-y-4">
-                    <Logo />
-                    <p className="text-muted-foreground">
-                      Loading...
-                    </p>
-                    <LoaderCircle className="h-6 w-6 animate-spin" />
-                </div>
-            </div>
-        );
+        const user = await authReadyPromise;
+
+        if (cancelled) return;
+
+        if (user) {
+          // Se já está logado, vá para o destino solicitado (callback), ou /dashboard
+          const callback = search.get("callbackUrl");
+          router.replace(callback || "/dashboard");
+          setStatus("ready");
+          return;
+        }
+
+        setStatus("idle"); // não há usuário, exibe tela de login normalmente
+      } catch (e) {
+        if (!cancelled) {
+          setStatus("error");
+          setMessage("Erro ao processar autenticação. Tente novamente.");
+        }
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [router, search]);
+
+  const handleGoogle = async () => {
+    try {
+      // Marcamos que vamos iniciar um redirect
+      if (typeof window !== "undefined") {
+        localStorage.setItem("pf_redirect_pending", "1");
+      }
+      await signInWithRedirect(auth, googleProvider);
+      // A partir daqui o navegador redireciona para o Google; não há mais nada a fazer
+    } catch (e) {
+      setStatus("error");
+      setMessage("Não foi possível iniciar o login com Google.");
     }
-  
-  // Only render the login page if there's no user.
-  return !user && (
+  };
+
+  if (status === "processing") {
+    return (
+       <div className="flex flex-col min-h-screen items-center justify-center bg-background p-4">
+          <div className="flex flex-col items-center justify-center text-center space-y-4">
+              <Logo />
+              <p className="text-muted-foreground">
+                {message}
+              </p>
+              <LoaderCircle className="h-6 w-6 animate-spin" />
+          </div>
+      </div>
+    );
+  }
+
+  return (
     <div className="flex flex-col min-h-screen items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center text-center mb-8">
             <Logo />
-            <h1 className="text-2xl font-semibold mt-4">Welcome</h1>
-            <p className="text-muted-foreground">Sign in to manage your painting business.</p>
+            <h1 className="text-2xl font-semibold mt-4">Bem-vindo</h1>
+            <p className="text-muted-foreground">Faça login para gerenciar seu negócio de pintura.</p>
         </div>
+         {status === "error" && (
+            <div className="mb-4 rounded border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+            {message}
+            </div>
+        )}
         <div className="grid gap-4">
             <Button
               variant="outline"
               className="w-full"
-              onClick={handleSignInWithGoogle}
+              onClick={handleGoogle}
             >
               <GoogleIcon />
-              Sign in with Google
+              Entrar com Google
             </Button>
         </div>
         <p className="px-8 text-center text-sm text-muted-foreground mt-6">
-            By clicking continue, you agree to our{' '}
+            Ao clicar em continuar, você concorda com nossos{' '}
             <a href="#" className="underline underline-offset-4 hover:text-primary">
-                Terms of Service
+                Termos de Serviço
             </a>{' '}
-            and{' '}
+            e{' '}
             <a href="#" className="underline underline-offset-4 hover:text-primary">
-                Privacy Policy
+                Política de Privacidade
             </a>
             .
         </p>
