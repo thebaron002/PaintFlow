@@ -71,9 +71,10 @@ export default function LoginPage() {
       }
       await signInWithRedirect(auth, googleProvider);
       // A partir daqui o navegador redireciona para o Google; não há mais nada a fazer
-    } catch (e) {
-      setStatus("error");
-      setMessage("Não foi possível iniciar o login com Google.");
+    } catch (e: any) {
+        console.error("Google sign-in failed:", e);
+        setStatus("error");
+        setMessage(e?.code ? `Error: ${e.code}` : "Não foi possível iniciar o login com Google.");
     }
   };
 
