@@ -1,160 +1,127 @@
 /**
- * @file Firestore Security Rules
- * @description This ruleset enforces a strict user-ownership model for data access within the PaintFlow application.
+ * @file Firebase Security Rules for PaintFlow Application
  *
- * Data Structure:
- * - /users/{userId}: Stores user profile information.
- * - /subcontractors/{subcontractorId}: Stores subcontractor information, globally accessible.
- * - /users/{userId}/jobs/{jobId}: Stores job information, owned by a specific user.
- * - /users/{userId}/jobs/{jobId}/expenses/{expenseId}: Stores expense information related to a specific job, owned by a user.
- * - /users/{userId}/jobs/{jobId}/cashFlow/{cashFlowId}: Stores cash flow information related to a specific job, owned by a user.
+ * @core_philosophy This ruleset enforces a strict user-ownership model for jobs, expenses, and cash flow,
+ * ensuring that only the authenticated user can access their own data. Subcontractors are stored at the root level,
+ * and UserProfiles are secured to their respective owners.
  *
- * Key Security Decisions:
- * - User profiles can only be read and written by the owning user.
- * - Subcontractors are globally accessible (read/write).
- * - Jobs, expenses, and cash flow are strictly user-owned and nested under the /users/{userId} path.
- * - Listing of subcontractors is allowed for all users.
- * - Listing of Jobs, Expenses and Cashflow documents is restricted to the owning user.
+ * @data_structure
+ * - /users/{userId}: Stores user profile data, accessible only by the user themselves.
+ * - /subcontractors/{subcontractorId}: Stores subcontractor data, accessible to any authenticated user.
+ * - /users/{userId}/jobs/{jobId}: Stores job data, accessible only by the user who owns the job.
+ * - /users/{userId}/jobs/{jobId}/expenses/{expenseId}: Stores expense data related to a job, accessible only by the user who owns the job and expense.
+ * - /users/{userId}/jobs/{jobId}/cashFlow/{cashFlowId}: Stores cash flow data related to a job, accessible only by the user who owns the job and cash flow.
+ *
+ * @key_security_decisions
+ * - User listing is explicitly disallowed.
+ * - Subcontractors can be read by any authenticated user, but writes are disallowed.
+ *
+ * @denormalization_for_authorization N/A - User ID is implicit based on the path, so no denormalization is needed.
+ *
+ * @structural_segregation All user-specific data is stored under the /users/{userId} path, ensuring clear separation and ownership.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows users to manage their own profile information.
+     * @description Checks if the user is signed in.
+     * @return {bool} True if the user is signed in, false otherwise.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * @description Checks if the request is made by the owner of the resource.
+     * @param {string} userId The user ID to compare against the request's auth UID.
+     * @return {bool} True if the request is made by the owner, false otherwise.
+     */
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    /**
+     * @description Checks if the request is made by the existing owner of the resource.
+     * @param {string} userId The user ID to compare against the resource data's userId.
+     * @return {bool} True if the request is made by the existing owner and the resource exists, false otherwise.
+     */
+    function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * @description Rule for user profiles.
      * @path /users/{userId}
-     * @allow (create) User with UID 'user_abc' can create their own profile if request.auth.uid == 'user_abc'.
-     * @allow (get) User with UID 'user_abc' can read their own profile if request.auth.uid == 'user_abc'.
-     * @allow (update) User with UID 'user_abc' can update their own profile if request.auth.uid == 'user_abc'.
-     * @allow (delete) User with UID 'user_abc' can delete their own profile if request.auth.uid == 'user_abc'.
-     * @deny (create) User with UID 'user_xyz' cannot create a profile for 'user_abc'.
-     * @deny (get) User with UID 'user_xyz' cannot read 'user_abc' profile.
-     * @principle Enforces document ownership for all operations on user profiles.
+     * @allow (create) - Authenticated user can create their own profile if the userId matches their auth UID.
+     * @allow (get, update, delete) - Authenticated user can only access their own profile.
+     * @deny (create) - If the userId does not match the auth UID.
+     * @deny (get, update, delete) - If the user is not authenticated or the userId does not match the auth UID.
+     * @principle Enforces document ownership for writes and restricts access to a user's own data tree.
      */
     match /users/{userId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      allow get: if isSignedIn() && isOwner(userId);
+      allow get: if isOwner(userId);
       allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isOwner(userId);
-      allow delete: if isSignedIn() && isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Allows anyone to read and write subcontractor information.
+     * @description Rule for subcontractors.
      * @path /subcontractors/{subcontractorId}
-     * @allow (create) Any authenticated user can create a subcontractor.
-     * @allow (get) Any authenticated user can read a subcontractor.
-     * @allow (update) Any authenticated user can update a subcontractor.
-     * @allow (delete) Any authenticated user can delete a subcontractor.
-     * @deny (create) Unauthenticated users cannot create subcontractors.
-     * @principle Allows public read and write access to subcontractor data.
+     * @allow (get, list) - Any authenticated user can read subcontractors.
+     * @deny (create, update, delete) - No one can create, update, or delete subcontractors.
+     * @principle Allows public read access but restricts write access.
      */
     match /subcontractors/{subcontractorId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      allow get, list: if true;
-      allow create, update, delete: if isSignedIn();
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if false;
     }
 
     /**
-     * @description Allows users to manage their own jobs.
+     * @description Rule for jobs.
      * @path /users/{userId}/jobs/{jobId}
-     * @allow (create) User with UID 'user_abc' can create a job under their ID.
-     * @allow (get) User with UID 'user_abc' can read a job under their ID.
-     * @allow (update) User with UID 'user_abc' can update a job under their ID.
-     * @allow (delete) User with UID 'user_abc' can delete a job under their ID.
-     * @deny (create) User with UID 'user_xyz' cannot create a job under 'user_abc' ID.
-     * @deny (get) User with UID 'user_xyz' cannot read a job under 'user_abc' ID.
-     * @principle Enforces document ownership for all operations on jobs.
+     * @allow (create) - Authenticated user can create a job under their userId.
+     * @allow (get, list, update, delete) - Authenticated user can only access their own jobs.
+     * @deny (create, get, list, update, delete) - If the user is not authenticated or the userId does not match the auth UID.
+     * @principle Enforces document ownership for writes and restricts access to a user's own data.
      */
     match /users/{userId}/jobs/{jobId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return (isOwner(userId) && resource != null);
-      }
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Allows users to manage expenses related to their jobs.
+     * @description Rule for expenses.
      * @path /users/{userId}/jobs/{jobId}/expenses/{expenseId}
-     * @allow (create) User with UID 'user_abc' can create an expense under their job.
-     * @allow (get) User with UID 'user_abc' can read an expense under their job.
-     * @allow (update) User with UID 'user_abc' can update an expense under their job.
-     * @allow (delete) User with UID 'user_abc' can delete an expense under their job.
-     * @deny (create) User with UID 'user_xyz' cannot create an expense under 'user_abc's job.
-     * @deny (get) User with UID 'user_xyz' cannot read an expense under 'user_abc's job.
-     * @principle Enforces document ownership for all operations on expenses.
+     * @allow (create) - Authenticated user can create an expense under their userId and jobId.
+     * @allow (get, list, update, delete) - Authenticated user can only access their own expenses.
+     * @deny (create, get, list, update, delete) - If the user is not authenticated or the userId does not match the auth UID.
+     * @principle Enforces document ownership for writes and restricts access to a user's own data.
      */
     match /users/{userId}/jobs/{jobId}/expenses/{expenseId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-      function isExistingOwner(userId) {
-        return (isOwner(userId) && resource != null);
-      }
-
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Allows users to manage cash flow entries related to their jobs.
+     * @description Rule for cash flow.
      * @path /users/{userId}/jobs/{jobId}/cashFlow/{cashFlowId}
-     * @allow (create) User with UID 'user_abc' can create a cash flow entry under their job.
-     * @allow (get) User with UID 'user_abc' can read a cash flow entry under their job.
-     * @allow (update) User with UID 'user_abc' can update a cash flow entry under their job.
-     * @allow (delete) User with UID 'user_abc' can delete a cash flow entry under their job.
-     * @deny (create) User with UID 'user_xyz' cannot create a cash flow entry under 'user_abc's job.
-     * @deny (get) User with UID 'user_xyz' cannot read a cash flow entry under 'user_abc's job.
-     * @principle Enforces document ownership for all operations on cash flow entries.
+     * @allow (create) - Authenticated user can create a cash flow entry under their userId and jobId.
+     * @allow (get, list, update, delete) - Authenticated user can only access their own cash flow entries.
+     * @deny (create, get, list, update, delete) - If the user is not authenticated or the userId does not match the auth UID.
+     * @principle Enforces document ownership for writes and restricts access to a user's own data.
      */
     match /users/{userId}/jobs/{jobId}/cashFlow/{cashFlowId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return (isOwner(userId) && resource != null);
-      }
-
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
     }
   }
 }
