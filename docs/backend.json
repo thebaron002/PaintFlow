@@ -1,185 +1,309 @@
-
 {
   "entities": {
-    "Job": {
-      "title": "Job",
+    "Subcontractor": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Subcontractor",
       "type": "object",
-      "description": "Represents a single job or project.",
+      "description": "Represents a subcontractor working on jobs.",
       "properties": {
-        "id": { "type": "string", "description": "Unique ID for the job." },
-        "title": { "type": "string", "description": "Title of the job." },
-        "workOrderNumber": { "type": "string", "description": "Work order number for the job." },
-        "address": { "type": "string", "description": "Physical address where the job is located." },
-        "clientName": { "type": "string", "description": "The name of the client this job belongs to." },
-        "startDate": { "type": "string", "format": "date-time", "description": "The start date of the job." },
-        "deadline": { "type": "string", "format": "date-time", "description": "The deadline for the job." },
-        "specialRequirements": { "type": "string", "description": "Any special requirements for the job." },
-        "status": { "type": "string", "enum": ["Not Started", "In Progress", "Complete", "Open Payment", "Finalized"] },
-        "budget": { "type": "number", "description": "The total payout/budget for the job." },
-        "initialValue": { "type": "number" },
-        "idealMaterialCost": { "type": "number" },
-        "idealNumberOfDays": { "type": "number" },
-        "productionDays": { "type": "array", "items": { "type": "string", "format": "date-time" } },
-        "isFixedPay": { "type": "boolean" },
-        "invoices": { 
-          "type": "array", 
-          "items": { 
-            "type": "object",
-            "properties": {
-              "id": {"type": "string"},
-              "origin": {"type": "string"},
-              "amount": {"type": "number"},
-              "date": {"type": "string", "format": "date-time"},
-              "notes": {"type": "string"}
-            }
-          } 
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Subcontractor entity."
         },
-        "adjustments": { 
-          "type": "array", 
-          "items": { 
-            "type": "object",
-            "properties": {
-              "id": {"type": "string"},
-              "type": { "type": "string", "enum": ["Time", "Material", "General"]},
-              "description": {"type": "string"},
-              "value": {"type": "number"},
-              "hourlyRate": {"type": "number", "description": "The hourly rate at the time of a 'Time' adjustment."}
-            }
-          } 
+        "name": {
+          "type": "string",
+          "description": "The name of the subcontractor."
         },
-        "crew": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "crewMemberId": { "type": "string" },
-              "name": { "type": "string" },
-              "type": { "type": "string", "enum": ["Helper", "Partner"] }
-            }
-          }
+        "contactNumber": {
+          "type": "string",
+          "description": "The contact phone number of the subcontractor."
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address of the subcontractor.",
+          "format": "email"
+        },
+        "skills": {
+          "type": "string",
+          "description": "Description of the subcontractors skills."
         }
       },
-      "required": ["id", "title", "address", "clientName", "deadline", "status", "budget"]
+      "required": [
+        "id",
+        "name",
+        "contactNumber"
+      ]
     },
-    "CrewMember": {
-      "title": "Crew Member",
+    "Job": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Job",
       "type": "object",
-      "description": "Represents a helper or partner.",
+      "description": "Represents a job assigned to subcontractors.",
       "properties": {
-        "id": { "type": "string" },
-        "name": { "type": "string" },
-        "type": { "type": "string", "enum": ["Helper", "Partner"] },
-        "dailyRate": { "type": "number" },
-        "profitPercentage": { "type": "number" },
-        "email": { "type": "string", "format": "email" },
-        "phone": { "type": "string" },
-        "avatarUrl": { "type": "string", "format": "uri" }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Job entity."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title or name of the job."
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the job requirements."
+        },
+        "deadline": {
+          "type": "string",
+          "description": "The deadline for completing the job.",
+          "format": "date-time"
+        },
+        "location": {
+          "type": "string",
+          "description": "The location or address of the job site."
+        },
+        "subcontractorId": {
+          "type": "string",
+          "description": "Reference to Subcontractor. (Relationship: Subcontractor 1:N Job)"
+        }
       },
-      "required": ["id", "name", "type", "avatarUrl"]
+      "required": [
+        "id",
+        "title",
+        "description",
+        "deadline",
+        "location",
+        "subcontractorId"
+      ]
     },
     "Expense": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Expense",
       "type": "object",
       "description": "Represents an expense associated with a job.",
       "properties": {
-        "id": { "type": "string" },
-        "jobId": { "type": "string" },
-        "category": { "type": "string", "enum": ["Materials", "Labor", "Transportation", "Other"] },
-        "description": { "type": "string" },
-        "amount": { "type": "number" },
-        "date": { "type": "string", "format": "date-time" }
-      },
-      "required": ["id", "jobId", "category", "amount", "date"]
-    },
-    "Income": {
-      "title": "Income",
-      "type": "object",
-      "description": "Represents an income payment associated with a job.",
-      "properties": {
-        "id": { "type": "string" },
-        "jobId": { "type": "string" },
-        "description": { "type": "string" },
-        "amount": { "type": "number" },
-        "date": { "type": "string", "format": "date-time" }
-      },
-      "required": ["id", "jobId", "amount", "date"]
-    },
-    "GeneralSettings": {
-      "title": "General Settings",
-      "type": "object",
-      "description": "Global settings for the application.",
-      "properties": {
-        "dailyPayTarget": { "type": "number", "description": "The target daily pay for profitability calculations." },
-        "idealMaterialCostPercentage": { "type": "number", "description": "The ideal percentage of the job budget to be spent on materials." },
-        "hourlyRate": { "type": "number", "description": "The default hourly rate for 'Time' adjustments." },
-        "reportRecipients": { "type": "array", "items": { "type": "string", "format": "email" }, "description": "A list of email addresses to send the weekly payroll report to."}
-      }
-    },
-    "UserProfile": {
-        "title": "User Profile",
-        "type": "object",
-        "description": "Represents a user's profile information.",
-        "properties": {
-            "id": { "type": "string", "description": "The user's unique ID (from Firebase Auth)." },
-            "name": { "type": "string", "description": "The user's full name." },
-            "email": { "type": "string", "format": "email", "description": "The user's email address." },
-            "phone": { "type": "string", "description": "The user's phone number." },
-            "avatarUrl": { "type": "string", "format": "uri", "description": "URL for the user's avatar image." },
-            "businessName": { "type": "string", "description": "The name of the user's business." },
-            "businessLogoUrl": { "type": "string", "format": "uri", "description": "URL for the user's business logo." }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Expense entity."
         },
-        "required": ["id", "email"]
-    },
-    "PayrollReport": {
-      "title": "Payroll Report",
-      "type": "object",
-      "description": "Represents a sent weekly payroll report.",
-      "properties": {
-        "id": { "type": "string" },
-        "weekNumber": { "type": "number" },
-        "year": { "type": "number" },
-        "startDate": { "type": "string", "format": "date-time" },
-        "endDate": { "type": "string", "format": "date-time" },
-        "sentDate": { "type": "string", "format": "date-time" },
-        "recipientCount": { "type": "number" },
-        "totalPayout": { "type": "number" },
-        "jobCount": { "type": "number" },
-        "jobIds": { "type": "array", "items": { "type": "string" } }
+        "jobId": {
+          "type": "string",
+          "description": "Reference to Job. (Relationship: Job 1:N Expense)"
+        },
+        "category": {
+          "type": "string",
+          "description": "The category of the expense (e.g., materials, labor, transportation)."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount of the expense."
+        },
+        "date": {
+          "type": "string",
+          "description": "The date when the expense was incurred.",
+          "format": "date-time"
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the expense."
+        }
       },
-      "required": ["id", "weekNumber", "year", "sentDate", "recipientCount", "totalPayout", "jobCount", "jobIds"]
+      "required": [
+        "id",
+        "jobId",
+        "category",
+        "amount",
+        "date"
+      ]
+    },
+    "CashFlow": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CashFlow",
+      "type": "object",
+      "description": "Represents cash flow related to a job (income or expense).",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the CashFlow entity."
+        },
+        "jobId": {
+          "type": "string",
+          "description": "Reference to Job. (Relationship: Job 1:N CashFlow)"
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of cash flow (income or expense)."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount of the cash flow."
+        },
+        "date": {
+          "type": "string",
+          "description": "The date of the cash flow transaction.",
+          "format": "date-time"
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the cash flow event."
+        }
+      },
+      "required": [
+        "id",
+        "jobId",
+        "type",
+        "amount",
+        "date"
+      ]
+    },
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the application. Stores basic profile information obtained from Google Sign-In.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity.  This could be the Google user ID."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address obtained from Google Sign-In.",
+          "format": "email"
+        },
+        "name": {
+          "type": "string",
+          "description": "The user's name obtained from Google Sign-In."
+        },
+        "givenName": {
+          "type": "string",
+          "description": "The user's given name (first name) obtained from Google Sign-In."
+        },
+        "familyName": {
+          "type": "string",
+          "description": "The user's family name (last name) obtained from Google Sign-In."
+        },
+        "photoUrl": {
+          "type": "string",
+          "description": "URL of the user's profile picture obtained from Google Sign-In.",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "name"
+      ]
     }
   },
   "auth": {
-    "providers": ["anonymous"]
+    "providers": [
+      "password",
+      "anonymous"
+    ]
   },
   "firestore": {
-    "/jobs/{jobId}": {
-      "schema": { "$ref": "#/entities/Job" },
-      "description": "Stores individual job documents."
-    },
-    "/crew/{crewMemberId}": {
-      "schema": { "$ref": "#/entities/CrewMember" },
-      "description": "Stores crew member documents."
-    },
-    "/income/{incomeId}": {
-      "schema": { "$ref": "#/entities/Income" },
-      "description": "Stores income records for all jobs."
-    },
-    "/expenses/{expenseId}": {
-      "schema": { "$ref": "#/entities/Expense" },
-      "description": "Stores expense records for all jobs."
-    },
-    "/settings/global": {
-      "schema": { "$ref": "#/entities/GeneralSettings" },
-      "description": "Stores the single global settings document for the app."
-    },
-    "/users/{userId}": {
-        "schema": { "$ref": "#/entities/UserProfile" },
-        "description": "Stores user profile data, keyed by user ID."
-    },
-    "/payrollReports/{reportId}": {
-      "schema": { "$ref": "#/entities/PayrollReport" },
-      "description": "Stores records of sent payroll reports."
-    }
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profile information obtained from Google Sign-In.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user, corresponding to their Firebase Auth UID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/subcontractors/{subcontractorId}",
+        "definition": {
+          "entityName": "Subcontractor",
+          "schema": {
+            "$ref": "#/backend/entities/Subcontractor"
+          },
+          "description": "Stores subcontractor information.",
+          "params": [
+            {
+              "name": "subcontractorId",
+              "description": "The unique identifier for the subcontractor."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/jobs/{jobId}",
+        "definition": {
+          "entityName": "Job",
+          "schema": {
+            "$ref": "#/backend/entities/Job"
+          },
+          "description": "Stores job data assigned to subcontractors, owned by the user. Includes denormalized 'userId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user (owner of the jobs)."
+            },
+            {
+              "name": "jobId",
+              "description": "The unique identifier for the job."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/jobs/{jobId}/expenses/{expenseId}",
+        "definition": {
+          "entityName": "Expense",
+          "schema": {
+            "$ref": "#/backend/entities/Expense"
+          },
+          "description": "Stores expenses associated with a specific job, owned by the user. Includes denormalized 'userId' and 'jobId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user (owner of the job and expense)."
+            },
+            {
+              "name": "jobId",
+              "description": "The unique identifier for the job to which the expense belongs."
+            },
+            {
+              "name": "expenseId",
+              "description": "The unique identifier for the expense."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/jobs/{jobId}/cashFlow/{cashFlowId}",
+        "definition": {
+          "entityName": "CashFlow",
+          "schema": {
+            "$ref": "#/backend/entities/CashFlow"
+          },
+          "description": "Stores cash flow entries (income or expense) related to a specific job, owned by the user. Includes denormalized 'userId' and 'jobId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user (owner of the job and cash flow)."
+            },
+            {
+              "name": "jobId",
+              "description": "The unique identifier for the job to which the cash flow belongs."
+            },
+            {
+              "name": "cashFlowId",
+              "description": "The unique identifier for the cash flow entry."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to manage subcontractors, jobs, expenses, and cash flow within the PaintFlow application. It prioritizes authorization independence and data clarity.\n\nThe core structure revolves around users and their associated data. Each user has their own collection of subcontractors, jobs, expenses, and cashflow entries, ensuring clear ownership and simplified security rules. Subcontractors are stored at the root level to manage the Subcontractor's list, while jobs, expenses and cashflow are located under users to ensure access control by user ID.\n\nAuthorization Independence is achieved by associating subcontractors with a user id. The user id must be present in each document in a subcollection. The proposed structure supports the QAPs as follows: Segregation is used by separating data with different access needs into different collections. For example, each user has their own set of 'jobs' under their user id, providing a clear segregation of data and enabling QAPs for listing jobs for each user. The path based ownership handles the job listing in a secure way."
   }
 }

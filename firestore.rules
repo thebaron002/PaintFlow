@@ -1,64 +1,152 @@
 /**
- * @file Firestore Security Rules
- * @description This ruleset enforces a strict data model where Clients and Jobs are top-level collections,
- * and Expenses and Income are subcollections nested under Jobs.  Since there is no auth, the rules are open to the public
- * in order to iterate quickly on the data shapes.
- *
- * Data Structure:
- * - /clients/{clientId}: Stores client information.
- * - /jobs/{jobId}: Stores job information, including a clientId.
- * - /jobs/{jobId}/expenses/{expenseId}: Stores expenses related to a specific job.
- * - /jobs/{jobId}/income/{incomeId}: Stores income payments related to a specific job.
- *
- * Key Security Decisions:
- * - Public read and write access for rapid prototyping given no authentication.
+ * @file Firebase Security Rules for PaintFlow
+ * @corePhilosophy This ruleset enforces a strict user-ownership model for jobs, expenses, and cash flow,
+ *                 while subcontractors can be listed publicly but only created, updated, or deleted by an
+ *                 authenticated user.
+ * @dataStructure Data is organized hierarchically under `/users/{userId}` for private user data
+ *                (jobs, expenses, cash flow) and at the root `/subcontractors/{subcontractorId}`.
+ * @keySecurityDecisions User data is strictly controlled by the user's ID. Subcontractor data can be listed,
+ *                       but write access requires authentication.
+ * @denormalization User ownership is enforced by nesting user-specific data under `/users/{userId}`.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows anyone to read or write client data.
-     * @path /clients/{clientId}
-     * @allow (get, list, create, update, delete)
-     * @principle Open access for prototyping
+     * @description Checks if the request is authenticated.
+     * @return {boolean} True if the request is authenticated, false otherwise.
      */
-    match /clients/{clientId} {
-      allow get, list: if true;
-      allow create, update, delete: if true;
+    function isSignedIn() {
+      return request.auth != null;
     }
 
     /**
-     * @description Allows anyone to read or write job data.
-     * @path /jobs/{jobId}
-     * @allow (get, list, create, update, delete)
-     * @principle Open access for prototyping
+     * @description Checks if the requested user ID matches the authenticated user's ID.
+     * @param {string} userId The user ID to compare against the authenticated user's ID.
+     * @return {boolean} True if the user IDs match, false otherwise.
      */
-    match /jobs/{jobId} {
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * @description Checks if the user is an existing owner of a resource.
+     * @param {string} userId The user ID to check against the authenticated user's ID.
+     * @return {boolean} True if the user IDs match and the resource exists, false otherwise.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * @description Rules for the /users/{userId} collection.
+     * @path /users/{userId}
+     * @allow (create) - Authenticated user can create their own profile.
+     * @deny (create) - Authenticated user cannot create another user's profile.
+     * @allow (get) - Authenticated user can read their own profile.
+     * @deny (get) - Authenticated user cannot read another user's profile.
+     * @allow (update) - Authenticated user can update their own profile.
+     * @deny (update) - Authenticated user cannot update another user's profile.
+     * @allow (delete) - Authenticated user can delete their own profile.
+     * @deny (delete) - Authenticated user cannot delete another user's profile.
+     * @principle Enforces user ownership for all operations on user profiles.
+     */
+    match /users/{userId} {
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Rules for the /subcontractors/{subcontractorId} collection.
+     * @path /subcontractors/{subcontractorId}
+     * @allow (create) - Authenticated user can create a subcontractor profile.
+     * @deny (create) - Unauthenticated user cannot create a subcontractor profile.
+     * @allow (get) - Anyone can read a subcontractor profile.
+     * @allow (list) - Anyone can list subcontractor profiles.
+     * @allow (update) - Authenticated user can update a subcontractor profile.
+     * @deny (update) - Unauthenticated user cannot update a subcontractor profile.
+     * @allow (delete) - Authenticated user can delete a subcontractor profile.
+     * @deny (delete) - Unauthenticated user cannot delete a subcontractor profile.
+     * @principle Allows public read access with authenticated user-only writes.
+     */
+    match /subcontractors/{subcontractorId} {
+      allow create: if isSignedIn();
       allow get, list: if true;
-      allow create, update, delete: if true;
+      allow update: if isSignedIn() && resource != null;
+      allow delete: if isSignedIn() && resource != null;
+    }
 
-      /**
-       * @description Allows anyone to read or write expense data for a specific job.
-       * @path /jobs/{jobId}/expenses/{expenseId}
-       * @allow (get, list, create, update, delete)
-       * @principle Open access for prototyping
-       */
-      match /expenses/{expenseId} {
-        allow get, list: if true;
-        allow create, update, delete: if true;
-      }
+    /**
+     * @description Rules for the /users/{userId}/jobs/{jobId} collection.
+     * @path /users/{userId}/jobs/{jobId}
+     * @allow (create) - Authenticated user can create a job under their user ID.
+     * @deny (create) - Authenticated user cannot create a job under another user's ID.
+     * @allow (get) - Authenticated user can read a job under their user ID.
+     * @deny (get) - Authenticated user cannot read a job under another user's ID.
+     * @allow (list) - Authenticated user can list jobs under their user ID.
+     * @deny (list) - Authenticated user cannot list jobs under another user's ID.
+     * @allow (update) - Authenticated user can update a job under their user ID.
+     * @deny (update) - Authenticated user cannot update a job under another user's ID.
+     * @allow (delete) - Authenticated user can delete a job under their user ID.
+     * @deny (delete) - Authenticated user cannot delete a job under another user's ID.
+     * @principle Enforces user ownership for all operations on jobs.
+     */
+    match /users/{userId}/jobs/{jobId} {
+      allow create: if isOwner(userId);
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
 
-      /**
-       * @description Allows anyone to read or write income data for a specific job.
-       * @path /jobs/{jobId}/income/{incomeId}
-       * @allow (get, list, create, update, delete)
-       * @principle Open access for prototyping
-       */
-      match /income/{incomeId} {
-        allow get, list: if true;
-        allow create, update, delete: if true;
-      }
+    /**
+     * @description Rules for the /users/{userId}/jobs/{jobId}/expenses/{expenseId} collection.
+     * @path /users/{userId}/jobs/{jobId}/expenses/{expenseId}
+     * @allow (create) - Authenticated user can create an expense under their user ID and job ID.
+     * @deny (create) - Authenticated user cannot create an expense under another user's ID or job ID.
+     * @allow (get) - Authenticated user can read an expense under their user ID and job ID.
+     * @deny (get) - Authenticated user cannot read an expense under another user's ID or job ID.
+     * @allow (list) - Authenticated user can list expenses under their user ID and job ID.
+     * @deny (list) - Authenticated user cannot list expenses under another user's ID or job ID.
+     * @allow (update) - Authenticated user can update an expense under their user ID and job ID.
+     * @deny (update) - Authenticated user cannot update an expense under another user's ID or job ID.
+     * @allow (delete) - Authenticated user can delete an expense under their user ID and job ID.
+     * @deny (delete) - Authenticated user cannot delete an expense under another user's ID or job ID.
+     * @principle Enforces user ownership for all operations on expenses.
+     */
+    match /users/{userId}/jobs/{jobId}/expenses/{expenseId} {
+      allow create: if isOwner(userId);
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Rules for the /users/{userId}/jobs/{jobId}/cashFlow/{cashFlowId} collection.
+     * @path /users/{userId}/jobs/{jobId}/cashFlow/{cashFlowId}
+     * @allow (create) - Authenticated user can create a cash flow entry under their user ID and job ID.
+     * @deny (create) - Authenticated user cannot create a cash flow entry under another user's ID or job ID.
+     * @allow (get) - Authenticated user can read a cash flow entry under their user ID and job ID.
+     * @deny (get) - Authenticated user cannot read a cash flow entry under another user's ID or job ID.
+     * @allow (list) - Authenticated user can list cash flow entries under their user ID and job ID.
+     * @deny (list) - Authenticated user cannot list cash flow entries under another user's ID or job ID.
+     * @allow (update) - Authenticated user can update a cash flow entry under their user ID and job ID.
+     * @deny (update) - Authenticated user cannot update a cash flow entry under another user's ID or job ID.
+     * @allow (delete) - Authenticated user can delete a cash flow entry under their user ID and job ID.
+     * @deny (delete) - Authenticated user cannot delete a cash flow entry under another user's ID or job ID.
+     * @principle Enforces user ownership for all operations on cash flow entries.
+     */
+    match /users/{userId}/jobs/{jobId}/cashFlow/{cashFlowId} {
+      allow create: if isOwner(userId);
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
     }
   }
 }
