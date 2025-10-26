@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import { useUser } from '@/firebase';
 import { handleSignInWithGoogle, handleRedirectResult } from './actions';
-import { Skeleton } from '@/components/ui/skeleton';
 import { LoaderCircle } from 'lucide-react';
 
 function GoogleIcon() {
@@ -25,11 +24,7 @@ export default function LoginPage() {
 
     useEffect(() => {
         // When the page loads, check for a redirect result.
-        handleRedirectResult().then(redirectUser => {
-            if (redirectUser) {
-                // If we get a user from the redirect, we don't need to do anything
-                // else, as the main 'user' object from useUser will soon update.
-            }
+        handleRedirectResult().finally(() => {
             setIsProcessingRedirect(false);
         });
     }, []);
