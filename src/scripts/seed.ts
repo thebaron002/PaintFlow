@@ -58,7 +58,7 @@ const jobsData = [
     idealNumberOfDays: 2,
     productionDays: ["2024-07-27T00:00:00.000Z", "2024-07-28T00:00:00.000Z"],
     isFixedPay: true,
-    invoices: [{id: 'inv1', amount: 800, date: "2024-07-30T00:00:00.000Z"}],
+    invoices: [{id: 'inv1', origin: 'Final Payment', amount: 800, date: "2024-07-30T00:00:00.000Z"}],
     adjustments: []
   },
   {
@@ -78,7 +78,7 @@ const jobsData = [
     productionDays: [],
     isFixedPay: false,
     invoices: [],
-    adjustments: [{ id: "adj2", reason: "Additional closets", amount: 1000 }]
+    adjustments: [{ id: "adj2", type: 'General', description: "Additional closets", value: 1000 }]
   },
   {
     id: "job5",
@@ -115,7 +115,7 @@ const jobsData = [
     idealNumberOfDays: 3,
     productionDays: ["2024-08-08T00:00:00.000Z", "2024-08-09T00:00:00.000Z", "2024-08-10T00:00:00.000Z"],
     isFixedPay: true,
-    invoices: [{id: 'inv2', amount: 475, date: "2024-08-01T00:00:00.000Z"}],
+    invoices: [{id: 'inv2', origin: 'Deposit', amount: 475, date: "2024-08-01T00:00:00.000Z"}],
     adjustments: []
   },
   {
@@ -134,7 +134,7 @@ const jobsData = [
     idealNumberOfDays: 3,
     productionDays: ["2024-07-18T00:00:00.000Z", "2024-07-19T00:00:00.000Z", "2024-07-20T00:00:00.000Z"],
     isFixedPay: true,
-    invoices: [{id: 'inv3', amount: 3200, date: "2024-07-25T00:00:00.000Z"}],
+    invoices: [{id: 'inv3', origin: 'Final Payment', amount: 3200, date: "2024-07-25T00:00:00.000Z"}],
     adjustments: []
   }
 ];
@@ -152,11 +152,34 @@ const expensesData = [
     { id: "exp4", jobId: "job2", category: "Transportation", description: "Gas for work truck", amount: 55, date: "2024-08-01T00:00:00.000Z" },
 ];
 
+const crewData = [
+  {
+    id: "crew1",
+    name: "Jake's Painting Co.",
+    type: "Partner",
+    profitPercentage: 50,
+    email: "jake@example.com",
+    phone: "123-456-7890",
+    avatarUrl: "https://images.unsplash.com/photo-1560250097-0b93528c311a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxtYW4lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NjExNDUzMDB8MA&ixlib=rb-4.1.0&q=80&w=1080"
+  },
+  {
+    id: "crew2",
+    name: "Maria's Painting Services",
+    type: "Helper",
+    dailyRate: 200,
+    email: "maria@example.com",
+    phone: "098-765-4321",
+    avatarUrl: "https://images.unsplash.com/photo-1609505848912-b7c3b8b4beda?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHx3b21hbiUyMHBvcnRyYWl0fGVufDB8fHx8MTc2MTE0NzUzOXww&ixlib=rb-4.1.0&q=80&w=1080"
+  },
+];
+
 
 async function seedDatabase() {
   console.log('Starting database seed process...');
 
   try {
+    const userId = "7aDfCRJ90HNiN2se655nys4glUX2";
+
     // Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
@@ -166,28 +189,36 @@ async function seedDatabase() {
     const batch = writeBatch(db);
 
     // Add jobs
-    const jobsCollection = collection(db, 'jobs');
+    const jobsCollection = collection(db, 'users', userId, 'jobs');
     jobsData.forEach(job => {
       const docRef = doc(jobsCollection, job.id);
       batch.set(docRef, job);
     });
-    console.log(`${jobsData.length} jobs prepared for batch write.`);
+    console.log(`${jobsData.length} jobs prepared for batch write for user ${userId}.`);
 
     // Add income
-    const incomeCollection = collection(db, 'income');
+    const incomeCollection = collection(db, 'users', userId, 'income');
     incomeData.forEach(incomeItem => {
       const docRef = doc(incomeCollection, incomeItem.id);
       batch.set(docRef, incomeItem);
     });
-    console.log(`${incomeData.length} income records prepared for batch write.`);
+    console.log(`${incomeData.length} income records prepared for batch write for user ${userId}.`);
     
     // Add expenses
-    const expensesCollection = collection(db, 'expenses');
+    const expensesCollection = collection(db, 'users', userId, 'expenses');
     expensesData.forEach(expenseItem => {
       const docRef = doc(expensesCollection, expenseItem.id);
       batch.set(docRef, expenseItem);
     });
-    console.log(`${expensesData.length} expense records prepared for batch write.`);
+    console.log(`${expensesData.length} expense records prepared for batch write for user ${userId}.`);
+
+     // Add crew (as a top-level collection, as per backend.json)
+    const crewCollection = collection(db, 'crew');
+    crewData.forEach(crewMember => {
+      const docRef = doc(crewCollection, crewMember.id);
+      batch.set(docRef, crewMember);
+    });
+    console.log(`${crewData.length} crew members prepared for batch write.`);
 
     // Commit the batch
     await batch.commit();
