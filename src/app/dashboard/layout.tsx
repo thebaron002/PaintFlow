@@ -85,18 +85,29 @@ export default function DashboardLayout({
 
   // This effect runs once on mount to handle the redirect result from Google.
   useEffect(() => {
+    // This function will attempt to process the redirect result.
+    // If there's no redirect to process, it resolves quickly.
+    // If there is, it signs the user in.
     handleRedirectResult()
       .catch((error) => console.error("Error processing redirect result:", error))
       .finally(() => {
+        // We set this to false regardless of the outcome.
+        // After this, the second useEffect will handle the logic.
         setIsProcessingRedirect(false);
       });
   }, []);
 
-  // This effect waits for both redirect processing and user loading to be false.
+  // This effect waits for both redirect processing and user loading to be complete.
   useEffect(() => {
+    // The authentication process is ready to be checked only when
+    // both the redirect attempt is finished AND the initial user state has been loaded.
     const isAuthReady = !isProcessingRedirect && !isUserLoading;
-    if (isAuthReady && !user) {
-      router.push('/login');
+
+    if (isAuthReady) {
+      // If, after all checks, there is no user, then we must redirect to login.
+      if (!user) {
+        router.push('/login');
+      }
     }
   }, [isProcessingRedirect, isUserLoading, user, router]);
 
@@ -109,7 +120,8 @@ export default function DashboardLayout({
     </div>
   );
 
-  const showLoading = isUserLoading || isProcessingRedirect;
+  // Show loading screen while we are processing the redirect OR while the initial user state is loading.
+  const showLoading = isProcessingRedirect || isUserLoading;
 
   return (
     <SidebarProvider>
