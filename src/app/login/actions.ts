@@ -1,25 +1,31 @@
 
 'use client';
 
-import { getAuth, signInWithPopup, GoogleAuthProvider, User } from 'firebase/auth';
+import { getAuth, signInWithRedirect, GoogleAuthProvider, User, getRedirectResult } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
 
 export async function handleSignInWithGoogle() {
   const auth = getAuth();
-  const firestore = getFirestore();
   const provider = new GoogleAuthProvider();
+  // Use signInWithRedirect instead of signInWithPopup
+  await signInWithRedirect(auth, provider);
+}
 
+export async function handleRedirectResult() {
+  const auth = getAuth();
+  const firestore = getFirestore();
   try {
-    const result = await signInWithPopup(auth, provider);
-    const user = result.user;
-
-    // After successful sign-in, create a user profile in Firestore
-    await createUserProfile(firestore, user);
-
+    const result = await getRedirectResult(auth);
+    if (result) {
+      // User successfully signed in.
+      const user = result.user;
+      await createUserProfile(firestore, user);
+      return user;
+    }
   } catch (error) {
-    console.error('Error during Google sign-in:', error);
-    // Handle errors here, such as by displaying a notification to the user
+    console.error('Error during Google sign-in redirect:', error);
   }
+  return null;
 }
 
 async function createUserProfile(firestore: any, user: User) {
@@ -41,5 +47,3 @@ async function createUserProfile(firestore: any, user: User) {
     });
   }
 }
-
-    

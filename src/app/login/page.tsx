@@ -2,12 +2,13 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import { useUser } from '@/firebase';
-import { handleSignInWithGoogle } from './actions';
+import { handleSignInWithGoogle, handleRedirectResult } from './actions';
 import { Skeleton } from '@/components/ui/skeleton';
+import { LoaderCircle } from 'lucide-react';
 
 function GoogleIcon() {
     return (
@@ -20,24 +21,37 @@ function GoogleIcon() {
 export default function LoginPage() {
     const { user, isUserLoading } = useUser();
     const router = useRouter();
+    const [isProcessingRedirect, setIsProcessingRedirect] = useState(true);
 
     useEffect(() => {
+        // When the page loads, check for a redirect result.
+        handleRedirectResult().then(redirectUser => {
+            if (redirectUser) {
+                // If we get a user from the redirect, we don't need to do anything
+                // else, as the main 'user' object from useUser will soon update.
+            }
+            setIsProcessingRedirect(false);
+        });
+    }, []);
+
+
+    useEffect(() => {
+        // This effect runs when the auth state changes.
         if (!isUserLoading && user) {
             router.push('/dashboard');
         }
     }, [user, isUserLoading, router]);
 
-    if (isUserLoading || user) {
+    // Show a loading state while processing redirect or waiting for initial user state.
+    if (isProcessingRedirect || isUserLoading || user) {
         return (
              <div className="flex flex-col min-h-screen items-center justify-center bg-background p-4">
                 <div className="flex flex-col items-center justify-center text-center space-y-4">
                     <Logo />
-                    <p className="text-muted-foreground">Redirecting to dashboard...</p>
-                    <div className="flex items-center space-x-2">
-                        <Skeleton className="h-4 w-4 rounded-full animate-bounce [animation-delay:-0.3s]" />
-                        <Skeleton className="h-4 w-4 rounded-full animate-bounce [animation-delay:-0.15s]" />
-                        <Skeleton className="h-4 w-4 rounded-full animate-bounce" />
-                    </div>
+                    <p className="text-muted-foreground">
+                      {user ? 'Redirecting to dashboard...' : 'Processing authentication...'}
+                    </p>
+                    <LoaderCircle className="h-6 w-6 animate-spin" />
                 </div>
             </div>
         );
@@ -76,4 +90,3 @@ export default function LoginPage() {
     </div>
   );
 }
-    
