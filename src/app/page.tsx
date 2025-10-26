@@ -3,27 +3,17 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser } from '@/firebase';
 import { Logo } from '@/components/logo';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function RootPage() {
   const router = useRouter();
-  const { user, isUserLoading } = useUser();
 
   useEffect(() => {
-    // Only redirect when the user loading state is resolved.
-    if (!isUserLoading) {
-      if (user) {
-        // If user is logged in, go to dashboard.
-        router.push('/dashboard');
-      } else {
-        // If no user, go to login.
-        router.push('/login');
-      }
-    }
-    // This effect should run whenever the loading state or user object changes.
-  }, [user, isUserLoading, router]);
+    // Immediately redirect to the login page.
+    // The login page will handle all authentication logic.
+    router.push('/login');
+  }, [router]);
 
   // Render a loading state while we determine the user's auth status.
   return (

@@ -2,7 +2,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import { useUser } from '@/firebase';
@@ -20,22 +20,32 @@ function GoogleIcon() {
 export default function LoginPage() {
     const { user, isUserLoading } = useUser();
     const router = useRouter();
+    // A separate loading state to manage the redirect processing.
+    const [isProcessingRedirect, setIsProcessingRedirect] = useState(true);
 
     useEffect(() => {
-        // If a user session is detected at any point, redirect to the dashboard.
-        if (!isUserLoading && user) {
-            router.push('/dashboard');
-        }
-    }, [user, isUserLoading, router]);
-
-    // This effect runs once on mount to handle the redirect result from Google.
-    useEffect(() => {
-        handleRedirectResult();
+        // This effect runs once on mount to handle the redirect result from Google.
+        handleRedirectResult()
+            .then(() => {
+                // Once the redirect is processed (or if there was none),
+                // we can rely on the useUser hook.
+                setIsProcessingRedirect(false);
+            });
     }, []);
 
-    // Show a loading state while Firebase is determining the auth state.
-    // This prevents the login button from flashing while a redirect is being processed.
-    if (isUserLoading) {
+
+    useEffect(() => {
+        // This effect waits for BOTH redirect processing and user loading to be false.
+        if (!isProcessingRedirect && !isUserLoading) {
+            if (user) {
+                // If a user session is detected, redirect to the dashboard.
+                router.push('/dashboard');
+            }
+        }
+    }, [user, isUserLoading, isProcessingRedirect, router]);
+
+    // Show a loading state while we are processing the redirect or waiting for Firebase auth state.
+    if (isProcessingRedirect || isUserLoading) {
         return (
              <div className="flex flex-col min-h-screen items-center justify-center bg-background p-4">
                 <div className="flex flex-col items-center justify-center text-center space-y-4">
@@ -50,7 +60,6 @@ export default function LoginPage() {
     }
 
   // Only show the login page content if we are done loading and there is NO user.
-  // The useEffect above will handle redirecting if a user exists.
   return (
     <div className="flex flex-col min-h-screen items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm">
