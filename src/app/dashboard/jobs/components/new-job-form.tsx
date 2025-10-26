@@ -14,7 +14,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { CalendarIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -23,6 +23,7 @@ import type { Job, GeneralSettings } from "@/app/lib/types";
 import { Switch } from "@/components/ui/switch";
 import { useFirestore, addDocumentNonBlocking, useUser } from "@/firebase";
 import { collection, doc, getDoc } from "firebase/firestore";
+import { useState } from "react";
 
 const jobSchema = z.object({
   title: z.string().optional(),
@@ -43,6 +44,7 @@ interface NewJobFormProps {
 export function NewJobForm({ onSuccess }: NewJobFormProps) {
   const firestore = useFirestore();
   const { user } = useUser();
+  const [isDatePickerOpen, setDatePickerOpen] = useState(false);
 
   const form = useForm<JobFormValues>({
     resolver: zodResolver(jobSchema),
@@ -170,19 +172,27 @@ export function NewJobForm({ onSuccess }: NewJobFormProps) {
               render={({ field }) => (
                 <FormItem className="flex flex-col">
                   <FormLabel>Start Date</FormLabel>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <FormControl>
-                                <Button variant="outline" className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                    {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50"/>
-                                </Button>
-                            </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus/>
-                        </PopoverContent>
-                    </Popover>
+                   <Dialog open={isDatePickerOpen} onOpenChange={setDatePickerOpen}>
+                      <DialogTrigger asChild>
+                          <FormControl>
+                              <Button variant="outline" className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                  {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50"/>
+                              </Button>
+                          </FormControl>
+                      </DialogTrigger>
+                      <DialogContent className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={(date) => {
+                              field.onChange(date);
+                              setDatePickerOpen(false);
+                            }}
+                            initialFocus
+                          />
+                      </DialogContent>
+                  </Dialog>
                   <FormMessage />
                 </FormItem>
               )}
@@ -228,3 +238,5 @@ export function NewJobForm({ onSuccess }: NewJobFormProps) {
     </Form>
   );
 }
+
+    
