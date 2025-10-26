@@ -3,37 +3,37 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper function to check ownership
-    function isOwner(userId) {
-      return request.auth != null && request.auth.uid == userId;
+    // Allow users to read/write their own profile data
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // Allow users to manage their own jobs, income, and expenses
+      match /jobs/{jobId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      match /income/{incomeId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      match /expenses/{expenseId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      match /payrollReports/{reportId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
     }
 
-    // Users can read and update their own profile
-    match /users/{userId} {
-      allow read, update: if isOwner(userId);
+    // Allow any authenticated user to manage crew members
+    match /crew/{crewId} {
+      allow read, write: if request.auth != null;
     }
     
-    // Deny reads/writes to the top-level 'users' collection itself
-    match /users {
-    	allow read, write: if false;
-    }
-
-    // Settings can be read by any authenticated user, but only written by an admin (future)
+    // Global settings can be read by any authenticated user, but written only by an admin (future-proofing)
     match /settings/global {
       allow read: if request.auth != null;
-      allow write: if false; // To be defined later, e.g., admin role check
-    }
-
-    // Crew can be read by any authenticated user
-    match /crew/{crewId} {
-      allow read: if request.auth != null;
-      // Allow write for seeding purposes (temporary) or admin roles
-      allow write: if false;
-    }
-
-    // User-specific subcollections
-    match /users/{userId}/{collection}/{docId} {
-      allow read, write: if isOwner(userId);
+      allow write: if false; // To be defined later, e.g., if resource.data.admin == true
     }
   }
 }
