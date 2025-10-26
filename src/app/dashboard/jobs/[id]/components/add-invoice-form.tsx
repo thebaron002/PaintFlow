@@ -37,12 +37,15 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { Switch } from "@/components/ui/switch";
+import { FormDescription } from "@/components/ui/form";
 
 const invoiceSchema = z.object({
   origin: z.string().min(1, "Origin is required."),
   date: z.date({ required_error: "Invoice date is required." }),
   amount: z.coerce.number().min(0.01, "Amount must be greater than 0."),
   notes: z.string().optional(),
+  chargedOnCompanyAccount: z.boolean().default(false),
 });
 
 type InvoiceFormValues = z.infer<typeof invoiceSchema>;
@@ -65,10 +68,12 @@ export function AddInvoiceForm({ jobId, existingInvoices, origins, onSuccess, in
     defaultValues: isEditing ? {
         ...invoiceToEdit,
         date: new Date(invoiceToEdit.date),
+        chargedOnCompanyAccount: invoiceToEdit.chargedOnCompanyAccount || false,
     } : {
       origin: "",
       amount: 0,
       notes: "",
+      chargedOnCompanyAccount: false,
     },
   });
 
@@ -183,6 +188,27 @@ export function AddInvoiceForm({ jobId, existingInvoices, origins, onSuccess, in
                 <Textarea placeholder="e.g., Initial 50% deposit" {...field} />
               </FormControl>
               <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="chargedOnCompanyAccount"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+              <div className="space-y-0.5">
+                <FormLabel>It was charged on the company account?</FormLabel>
+                <FormDescription>
+                    Enable if this was paid with company funds.
+                </FormDescription>
+              </div>
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
             </FormItem>
           )}
         />

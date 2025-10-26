@@ -34,6 +34,7 @@ import {
   PlusCircle,
   Clock,
   ChevronsUpDown,
+  Landmark,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -469,7 +470,10 @@ export function JobDetails({
                     {job.invoices.map((invoice) => (
                       <TableRow key={invoice.id} onClick={() => setInvoiceModal({isOpen: true, item: invoice})} className="cursor-pointer">
                         <TableCell>
-                            <div className="font-medium">{invoice.origin}</div>
+                            <div className="font-medium flex items-center gap-2">
+                                {invoice.origin}
+                                {invoice.chargedOnCompanyAccount && <Landmark className="h-3 w-3 text-muted-foreground" title="Charged on company account" />}
+                            </div>
                             {invoice.notes && <div className="text-xs text-muted-foreground">{invoice.notes}</div>}
                         </TableCell>
                         <TableCell>{format(new Date(invoice.date), "MMM dd, yyyy")}</TableCell>
