@@ -76,7 +76,7 @@ export default function JobDetailsPage() {
   }
   
   const clientLastName = (job.clientName || "").split(" ").pop() || "N/A";
-  const jobTitle = `${clientLastName} #${job.workOrderNumber}`;
+  const jobTitle = job.title || `${clientLastName} #${job.workOrderNumber}`;
 
   return <JobDetails job={job} allCrew={allCrew || []} jobTitle={jobTitle} />;
 }
