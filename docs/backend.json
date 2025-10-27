@@ -1,182 +1,28 @@
+
 {
   "entities": {
-    "Subcontractor": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Subcontractor",
-      "type": "object",
-      "description": "Represents a subcontractor working on jobs.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Subcontractor entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "The name of the subcontractor."
-        },
-        "contactNumber": {
-          "type": "string",
-          "description": "The contact phone number of the subcontractor."
-        },
-        "email": {
-          "type": "string",
-          "description": "The email address of the subcontractor.",
-          "format": "email"
-        },
-        "skills": {
-          "type": "string",
-          "description": "Description of the subcontractors skills."
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "contactNumber"
-      ]
-    },
-    "Job": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Job",
-      "type": "object",
-      "description": "Represents a job assigned to subcontractors.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Job entity."
-        },
-        "title": {
-          "type": "string",
-          "description": "The title or name of the job."
-        },
-        "description": {
-          "type": "string",
-          "description": "Detailed description of the job requirements."
-        },
-        "deadline": {
-          "type": "string",
-          "description": "The deadline for completing the job.",
-          "format": "date-time"
-        },
-        "location": {
-          "type": "string",
-          "description": "The location or address of the job site."
-        },
-        "subcontractorId": {
-          "type": "string",
-          "description": "Reference to Subcontractor. (Relationship: Subcontractor 1:N Job)"
-        }
-      },
-      "required": [
-        "id",
-        "title",
-        "description",
-        "deadline",
-        "location",
-        "subcontractorId"
-      ]
-    },
-    "Expense": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Expense",
-      "type": "object",
-      "description": "Represents an expense associated with a job.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Expense entity."
-        },
-        "jobId": {
-          "type": "string",
-          "description": "Reference to Job. (Relationship: Job 1:N Expense)"
-        },
-        "category": {
-          "type": "string",
-          "description": "The category of the expense (e.g., materials, labor, transportation)."
-        },
-        "amount": {
-          "type": "number",
-          "description": "The amount of the expense."
-        },
-        "date": {
-          "type": "string",
-          "description": "The date when the expense was incurred.",
-          "format": "date-time"
-        },
-        "description": {
-          "type": "string",
-          "description": "A description of the expense."
-        }
-      },
-      "required": [
-        "id",
-        "jobId",
-        "category",
-        "amount",
-        "date"
-      ]
-    },
-    "CashFlow": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "CashFlow",
-      "type": "object",
-      "description": "Represents cash flow related to a job (income or expense).",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the CashFlow entity."
-        },
-        "jobId": {
-          "type": "string",
-          "description": "Reference to Job. (Relationship: Job 1:N CashFlow)"
-        },
-        "type": {
-          "type": "string",
-          "description": "The type of cash flow (income or expense)."
-        },
-        "amount": {
-          "type": "number",
-          "description": "The amount of the cash flow."
-        },
-        "date": {
-          "type": "string",
-          "description": "The date of the cash flow transaction.",
-          "format": "date-time"
-        },
-        "description": {
-          "type": "string",
-          "description": "A description of the cash flow event."
-        }
-      },
-      "required": [
-        "id",
-        "jobId",
-        "type",
-        "amount",
-        "date"
-      ]
-    },
     "UserProfile": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "UserProfile",
       "type": "object",
-      "description": "Represents a user of the application. Stores basic profile information obtained from Google Sign-In.",
+      "description": "Represents a user of the application. Stores basic profile information obtained from Google Sign-In, as well as business-specific details.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the User entity.  This could be the Google user ID."
+          "description": "Unique identifier for the User entity. This should be the Firebase Auth UID."
         },
         "email": {
           "type": "string",
-          "description": "The user's email address obtained from Google Sign-In.",
+          "description": "The user's email address.",
           "format": "email"
         },
         "name": {
           "type": "string",
-          "description": "The user's name obtained from Google Sign-In."
+          "description": "The user's full name."
         },
         "avatarUrl": {
           "type": "string",
-          "description": "URL of the user's profile picture obtained from Google Sign-In.",
+          "description": "URL of the user's profile picture.",
           "format": "uri"
         },
         "phone": {
@@ -198,6 +44,156 @@
         "email",
         "name"
       ]
+    },
+    "CrewMember": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CrewMember",
+      "type": "object",
+      "description": "Represents a crew member (subcontractor or partner) associated with a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the CrewMember entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the crew member."
+        },
+        "type": {
+          "type": "string",
+          "enum": ["Helper", "Partner"],
+          "description": "The type of crew member."
+        },
+        "dailyRate": {
+          "type": "number",
+          "description": "The daily rate for a 'Helper' type crew member."
+        },
+        "profitPercentage": {
+          "type": "number",
+          "description": "The profit percentage for a 'Partner' type crew member."
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address of the crew member.",
+          "format": "email"
+        },
+        "phone": {
+          "type": "string",
+          "description": "The contact phone number of the crew member."
+        },
+        "avatarUrl": {
+          "type": "string",
+          "description": "URL for the crew member's avatar image.",
+          "format": "uri"
+        }
+      },
+      "required": ["id", "name", "type"]
+    },
+    "Job": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Job",
+      "type": "object",
+      "description": "Represents a job managed by a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Job entity."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title or name of the job."
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the job requirements."
+        },
+        "deadline": {
+          "type": "string",
+          "description": "The deadline for completing the job.",
+          "format": "date-time"
+        },
+        "location": {
+          "type": "string",
+          "description": "The location or address of the job site."
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "description",
+        "deadline",
+        "location"
+      ]
+    },
+    "Expense": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Expense",
+      "type": "object",
+      "description": "Represents an expense associated with a job.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Expense entity."
+        },
+        "category": {
+          "type": "string",
+          "description": "The category of the expense (e.g., materials, labor, transportation)."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount of the expense."
+        },
+        "date": {
+          "type": "string",
+          "description": "The date when the expense was incurred.",
+          "format": "date-time"
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the expense."
+        }
+      },
+      "required": [
+        "id",
+        "category",
+        "amount",
+        "date"
+      ]
+    },
+    "CashFlow": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CashFlow",
+      "type": "object",
+      "description": "Represents cash flow related to a job (income or expense).",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the CashFlow entity."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of cash flow (income or expense)."
+        },
+        "amount": {
+          "type": "number",
+          "description":."The amount of the cash flow."
+        },
+        "date": {
+          "type": "string",
+          "description": "The date of the cash flow transaction.",
+          "format": "date-time"
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the cash flow event."
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "amount",
+        "date"
+      ]
     }
   },
   "auth": {
@@ -212,9 +208,9 @@
         "definition": {
           "entityName": "UserProfile",
           "schema": {
-            "$ref": "#/backend/entities/UserProfile"
+            "$ref": "#/entities/UserProfile"
           },
-          "description": "Stores user profile information obtained from Google Sign-In.",
+          "description": "Stores user profile information. Each user has their own document.",
           "params": [
             {
               "name": "userId",
@@ -224,17 +220,21 @@
         }
       },
       {
-        "path": "/subcontractors/{subcontractorId}",
+        "path": "/users/{userId}/crew/{crewMemberId}",
         "definition": {
-          "entityName": "Subcontractor",
+          "entityName": "CrewMember",
           "schema": {
-            "$ref": "#/backend/entities/Subcontractor"
+            "$ref": "#/entities/CrewMember"
           },
-          "description": "Stores subcontractor information.",
+          "description": "Stores crew members (subcontractors, partners) associated with a specific user.",
           "params": [
             {
-              "name": "subcontractorId",
-              "description": "The unique identifier for the subcontractor."
+              "name": "userId",
+              "description": "The user who owns this crew member data."
+            },
+            {
+              "name": "crewMemberId",
+              "description": "The unique identifier for the crew member."
             }
           ]
         }
@@ -244,13 +244,13 @@
         "definition": {
           "entityName": "Job",
           "schema": {
-            "$ref": "#/backend/entities/Job"
+            "$ref": "#/entities/Job"
           },
-          "description": "Stores job data assigned to subcontractors, owned by the user. Includes denormalized 'userId' for authorization independence.",
+          "description": "Stores job data owned by the user.",
           "params": [
             {
               "name": "userId",
-              "description": "The unique identifier for the user (owner of the jobs)."
+              "description": "The user who owns this job."
             },
             {
               "name": "jobId",
@@ -264,17 +264,17 @@
         "definition": {
           "entityName": "Expense",
           "schema": {
-            "$ref": "#/backend/entities/Expense"
+            "$ref": "#/entities/Expense"
           },
-          "description": "Stores expenses associated with a specific job, owned by the user. Includes denormalized 'userId' and 'jobId' for authorization independence.",
+          "description": "Stores expenses associated with a specific job.",
           "params": [
             {
               "name": "userId",
-              "description": "The unique identifier for the user (owner of the job and expense)."
+              "description": "The user who owns the job."
             },
             {
               "name": "jobId",
-              "description": "The unique identifier for the job to which the expense belongs."
+              "description": "The job to which the expense belongs."
             },
             {
               "name": "expenseId",
@@ -288,17 +288,17 @@
         "definition": {
           "entityName": "CashFlow",
           "schema": {
-            "$ref": "#/backend/entities/CashFlow"
+            "$ref": "#/entities/CashFlow"
           },
-          "description": "Stores cash flow entries (income or expense) related to a specific job, owned by the user. Includes denormalized 'userId' and 'jobId' for authorization independence.",
+          "description": "Stores cash flow entries for a specific job.",
           "params": [
             {
               "name": "userId",
-              "description": "The unique identifier for the user (owner of the job and cash flow)."
+              "description": "The user who owns the job."
             },
             {
               "name": "jobId",
-              "description": "The unique identifier for the job to which the cash flow belongs."
+              "description": "The job to which the cash flow entry belongs."
             },
             {
               "name": "cashFlowId",
@@ -308,7 +308,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to manage subcontractors, jobs, expenses, and cash flow within the PaintFlow application. It prioritizes authorization independence and data clarity.\n\nThe core structure revolves around users and their associated data. Each user has their own collection of subcontractors, jobs, expenses, and cashflow entries, ensuring clear ownership and simplified security rules. Subcontractors are stored at the root level to manage the Subcontractor's list, while jobs, expenses and cashflow are located under users to ensure access control by user ID.\n\nAuthorization Independence is achieved by associating subcontractors with a user id. The user id must be present in each document in a subcollection. The proposed structure supports the QAPs as follows: Segregation is used by separating data with different access needs into different collections. For example, each user has their own set of 'jobs' under their user id, providing a clear segregation of data and enabling QAPs for listing jobs for each user. The path based ownership handles the job listing in a secure way."
+    "reasoning": "The Firestore structure is designed with a user-centric data model. All primary data collections (jobs, crew, etc.) are subcollections of a specific user's document in the top-level 'users' collection. This approach ensures strong data ownership and simplifies security rules, as access control is primarily based on verifying that the request's authenticated user ID matches the {userId} in the document path. This prevents users from accessing each other's data and provides a scalable, secure foundation for the application."
   }
 }
-    

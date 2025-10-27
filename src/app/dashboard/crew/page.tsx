@@ -14,7 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Mail, Phone, Users, Percent } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { collection } from "firebase/firestore";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -89,11 +89,12 @@ const CrewList = ({ members, isLoading, type }: { members: CrewMember[], isLoadi
 
 export default function CrewPage() {
     const firestore = useFirestore();
+    const { user } = useUser();
 
     const crewQuery = useMemoFirebase(() => {
-        if (!firestore) return null;
-        return collection(firestore, 'crew');
-    }, [firestore]);
+        if (!firestore || !user) return null;
+        return collection(firestore, 'users', user.uid, 'crew');
+    }, [firestore, user]);
 
     const { data: crew, isLoading } = useCollection<CrewMember>(crewQuery);
 

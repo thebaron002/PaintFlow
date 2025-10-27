@@ -22,9 +22,9 @@ export default function JobDetailsPage() {
   const { data: job, isLoading: isLoadingJob } = useDoc<Job>(jobRef);
   
   const crewRef = useMemoFirebase(() => {
-    if(!firestore) return null;
-    return collection(firestore, "crew");
-  }, [firestore]);
+    if(!firestore || !user) return null;
+    return collection(firestore, 'users', user.uid, 'crew');
+  }, [firestore, user]);
   const { data: allCrew, isLoading: isLoadingCrew } = useCollection<CrewMember>(crewRef);
 
   const isLoading = isLoadingJob || isLoadingCrew;
