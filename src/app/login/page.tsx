@@ -25,56 +25,65 @@ function LoginPage() {
   const search = useSearchParams();
   const [status, setStatus] = useState<"idle"|"processing"|"ready"|"error">("idle");
   const [message, setMessage] = useState<string>("");
-  const authFromHook = useAuth(); // We still use the hook to trigger context initialization
+  const { auth, isUserLoading, user: authUser } = useAuth(); // Get auth service and user state
 
-  // Ao carregar a página, se houver um redirect pendente, aguardamos o resultado + auth ready
+  // Handles redirect result and initial auth state check
   useEffect(() => {
     let cancelled = false;
 
-    (async () => {
-      // Use the auth instance from the hook here as it indicates provider readiness
-      if (!authFromHook) {
+    const processAuth = async () => {
+      if (!auth) {
         setStatus("processing");
         setMessage("Inicializando autenticação...");
-        return;
+        return; // Wait for auth service to be available
       }
+
       try {
         setStatus("processing");
         setMessage("Autenticando...");
 
-        // Se viemos de um redirect (ou se o Safari atrasar), forçamos aguardar ambos:
-        const pending = typeof window !== "undefined" && localStorage.getItem("pf_redirect_pending") === "1";
-        if (pending) {
-          await getRedirectResultOnce(authFromHook);
+        // First, check if there's a pending redirect result
+        const pendingRedirect = typeof window !== "undefined" && localStorage.getItem("pf_redirect_pending") === "1";
+        if (pendingRedirect) {
+          await getRedirectResultOnce(auth);
         }
-
-        const user = await authReadyPromise(authFromHook);
-
+        
+        // After redirect is handled, check current user state from the hook
+        // The useAuth hook's onAuthStateChanged listener will give us the most up-to-date user
         if (cancelled) return;
 
-        if (user) {
-          // Se já está logado, vá para o destino solicitado (callback), ou /dashboard
+        if (authUser) {
           const callback = search.get("callbackUrl");
           router.replace(callback || "/dashboard");
           setStatus("ready");
           return;
         }
+        
+        // If no user after all checks, ready to show login UI
+        setStatus("idle");
 
-        setStatus("idle"); // não há usuário, exibe tela de login normalmente
       } catch (e) {
         if (!cancelled) {
+          console.error("Authentication processing error:", e);
           setStatus("error");
           setMessage("Erro ao processar autenticação. Tente novamente.");
         }
       }
-    })();
+    };
+
+    // We start processing only when the initial user loading is complete
+    if (!isUserLoading) {
+      processAuth();
+    } else {
+       setStatus("processing");
+       setMessage("Inicializando autenticação...");
+    }
 
     return () => { cancelled = true; };
-  }, [router, search, authFromHook]);
+  }, [router, search, auth, isUserLoading, authUser]);
 
   const handleGoogle = async () => {
-    // Get a fresh instance of auth directly from the SDK at the time of click
-    const auth = getAuth();
+    // Get a fresh auth instance from the hook, it's guaranteed to be available if we reach here
     if (!auth) {
         console.error("Auth service not available at the time of click.");
         setStatus("error");
@@ -82,16 +91,15 @@ function LoginPage() {
         return;
     }
     try {
-      // Marcamos que vamos iniciar um redirect
       if (typeof window !== "undefined") {
         localStorage.setItem("pf_redirect_pending", "1");
       }
       await signInWithRedirect(auth, googleProvider);
-      // A partir daqui o navegador redireciona para o Google; não há mais nada a fazer
     } catch (e: any) {
         console.error("Google sign-in failed:", e);
         setStatus("error");
         setMessage(e?.code ? `Error: ${e.code}` : "Não foi possível iniciar o login com Google.");
+        localStorage.removeItem("pf_redirect_pending");
     }
   };
 
@@ -127,6 +135,7 @@ function LoginPage() {
               variant="outline"
               className="w-full"
               onClick={handleGoogle}
+              disabled={status !== 'idle'}
             >
               <GoogleIcon />
               Entrar com Google

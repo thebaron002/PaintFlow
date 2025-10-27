@@ -3,11 +3,9 @@
 "use client";
 
 import { ReactNode, useEffect, useState } from "react";
-import { useAuth } from "@/firebase/provider";
-import { onAuthStateChanged, type User } from "firebase/auth";
-import { useRouter } from "next/navigation";
+import { useUser } from "@/firebase";
+import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import {
   Briefcase,
   Calendar,
@@ -79,29 +77,23 @@ const BottomNavBar = () => {
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const auth = useAuth();
+  const { user, isUserLoading } = useUser();
   const isMobile = useIsMobile();
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const pathname = usePathname();
 
   useEffect(() => {
-    if (!auth) {
-        // Auth service is not yet available, wait.
-        return;
+    // Don't redirect until the auth state is fully determined.
+    if (isUserLoading) {
+      return;
     }
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setIsLoading(false);
-      if (!currentUser) {
-        // User is not logged in, redirect to login page.
-        // Preserve the current path to redirect back after login.
-        const callbackParam = encodeURIComponent(window.location.pathname + window.location.search);
-        router.replace(`/login?callbackUrl=${callbackParam}`);
-      }
-    });
 
-    return () => unsubscribe();
-  }, [auth, router]);
+    if (!user) {
+      // User is not logged in, redirect to login page.
+      // Preserve the current path to redirect back after login.
+      const callbackParam = encodeURIComponent(pathname);
+      router.replace(`/login?callbackUrl=${callbackParam}`);
+    }
+  }, [user, isUserLoading, router, pathname]);
 
   const renderLoadingState = () => (
     <div className="flex-1 flex items-center justify-center">
@@ -112,7 +104,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     </div>
   );
 
-  if (isLoading) {
+  if (isUserLoading) {
     return (
       <SidebarProvider>
          <div className="flex min-h-screen w-full flex-col bg-background">
@@ -130,10 +122,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     );
   }
 
+  // If there's no user, the useEffect will handle the redirect.
+  // Render a loading state to prevent a flash of the dashboard.
   if (!user) {
-      // While the router does its work, show a placeholder.
       return (
-         <div className="flex-1 flex items-center justify-center">
+         <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
             <div className="flex flex-col items-center gap-2">
                 <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
                 <p className="text-muted-foreground">Redirecionando para login...</p>
