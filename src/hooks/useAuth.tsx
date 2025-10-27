@@ -23,47 +23,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let mounted = true;
     let unsub: (() => void) | null = null;
 
-    (async () => {
-      try {
-        // 1) Processa redirect result (se voltamos de redirect)
-        await CleanAuth.handleRedirectResultOnce();
+    const bootstrapAuth = async () => {
+        try {
+            await CleanAuth.handleRedirectResultOnce();
+            
+            unsub = onAuthStateChanged(auth, (u) => {
+                if (mounted) {
+                    setUser(u);
+                    setLoading(false);
+                }
+            }, (err) => {
+                console.error("[auth] onAuthStateChanged error:", err);
+                if (mounted) {
+                    setUser(null);
+                    setLoading(false);
+                }
+            });
 
-        // 2) Depois que o redirect foi processado, instala listener e espera o primeiro snapshot
-        await new Promise<void>((resolve) => {
-          unsub = onAuthStateChanged(
-            auth,
-            (u) => {
-              if (!mounted) return;
-              setUser(u);
-              // o primeiro callback de onAuthStateChanged é o "estado estável inicial"
-              resolve();
-            },
-            (err) => {
-              console.error("[auth] onAuthStateChanged error during bootstrap:", err);
-              if (!mounted) return;
-              setUser(null);
-              resolve();
+        } catch (e) {
+            console.error("[auth] bootstrap error:", e);
+            if (mounted) {
+                setLoading(false);
             }
-          );
-        });
-
-        // 3) agora já recebemos o estado inicial; define loading false
-        if (mounted) setLoading(false);
-
-        // 4) depois do primeiro snapshot, mantemos o listener ativo (unsub já definido)
-        // nada mais a fazer aqui; futuras mudanças irão atualizar state via setUser
-      } catch (e) {
-        console.error("[auth] bootstrap error:", e);
-        if (mounted) {
-          setUser(null);
-          setLoading(false);
         }
-      }
-    })();
+    };
+    
+    bootstrapAuth();
 
     return () => {
       mounted = false;
-      if (typeof unsub === "function") unsub();
+      if (unsub) {
+        unsub();
+      }
     };
   }, []);
 

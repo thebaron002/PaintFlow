@@ -1,6 +1,3 @@
-// Inicialização limpa do Firebase (cliente)
-// Agora exporta initAuthPromise que assegura que a persistência foi configurada
-// antes de qualquer operação de sign-in.
 "use client";
 
 import { initializeApp, getApps, getApp } from "firebase/app";
@@ -11,8 +8,8 @@ import {
   browserLocalPersistence,
   inMemoryPersistence,
   GoogleAuthProvider,
-  type Auth,
   browserSessionPersistence,
+  type Auth,
 } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
 
@@ -30,29 +27,18 @@ const auth: Auth = getAuth(app);
 const db: Firestore = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
 
-/**
- * initAuthPromise:
- * - tenta configurar persistência (indexedDB -> localStorage -> inMemory)
- * - resolve quando a persistência foi aplicada (ou o fallback inMemory)
- * Isso garante que, quando chamarmos signInWithPopup/redirect, a persistência
- * já esteja definida para evitar inconsistências (especialmente em Safari).
- */
 export const initAuthPromise = (async () => {
   try {
     await setPersistence(auth, indexedDBLocalPersistence);
-    console.debug("[initAuth] using indexedDBLocalPersistence");
   } catch (e1) {
     try {
       await setPersistence(auth, browserLocalPersistence);
-      console.debug("[initAuth] using browserLocalPersistence");
     } catch (e2) {
-      try {
-        await setPersistence(auth, browserSessionPersistence);
-        console.debug("[initAuth] using browserSessionPersistence (fallback)");
-      } catch (e3) {
-        await setPersistence(auth, inMemoryPersistence);
-        console.debug("[initAuth] using inMemoryPersistence (last fallback)");
-      }
+        try {
+            await setPersistence(auth, browserSessionPersistence);
+        } catch (e3) {
+            await setPersistence(auth, inMemoryPersistence);
+        }
     }
   }
 })();

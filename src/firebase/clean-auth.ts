@@ -8,6 +8,8 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
+  setPersistence,
+  browserSessionPersistence,
   type User,
 } from "firebase/auth";
 import { doc, setDoc, getDoc } from "firebase/firestore";
@@ -31,67 +33,55 @@ export async function ensureUserProfile(user: User) {
   }
 }
 
-/** Detecta Safari/iOS para forçar redirect */
 function isSafariOrIos(): boolean {
   if (typeof navigator === "undefined") return false;
   const ua = navigator.userAgent || "";
-  const isiOS = /iP(hone|od|ad)/.test(ua);
-  // Safari desktop: contains Safari and WebKit, but not Chrome/Edge/Opera
+  const isiOS = /iPad|iPhone|iPod/.test(ua);
   const isSafariDesktop = /Safari/.test(ua) && !/Chrome|Chromium|Edg|OPR|FxiOS|CriOS/.test(ua);
-  // WebKit engines on some embedded browsers may behave similarly; treat iOS and Safari desktop as problematic
   return isiOS || isSafariDesktop;
 }
 
-/** Usar popup quando possível; se falhar por bloqueio/Safari, usar redirect. */
-/** IMPORTANT: garante que initAuthPromise foi aguardado antes de tentar sign-in. */
 export async function signInWithGooglePopupOrRedirect(): Promise<void> {
   await initAuthPromise;
 
-  // If Safari/iOS force redirect immediately (skip popup)
   if (isSafariOrIos()) {
-    console.debug("[auth] detected Safari/iOS - using redirect");
+    console.debug("[auth] Safari/iOS detected, using redirect.");
+    await setPersistence(auth, browserSessionPersistence);
     await signInWithRedirect(auth, googleProvider);
     return;
   }
 
   try {
+    console.debug("[auth] Attempting signInWithPopup");
     await signInWithPopup(auth, googleProvider);
-    return;
   } catch (err: any) {
-    const code = err?.code || err?.message || "";
-    console.warn("[auth] signInWithPopup failed:", code, err);
+    const code = err?.code || "";
+    console.warn("[auth] Popup failed, falling back to redirect. Code:", code);
 
-    const shouldRedirectFallback =
+    if (
       code === "auth/popup-blocked" ||
-      code === "auth/operation-not-supported-in-this-environment" ||
-      code === "auth/web-storage-unsupported" ||
-      code === "auth/popup-closed-by-user";
-
-    if (shouldRedirectFallback) {
+      code === "auth/popup-closed-by-user" ||
+      code === "auth/operation-not-supported-in-this-environment"
+    ) {
+      await setPersistence(auth, browserSessionPersistence);
       await signInWithRedirect(auth, googleProvider);
-      return;
+    } else {
+      throw err;
     }
-    throw err;
   }
 }
 
-/** Processa resultado do redirect (chamar no boot para finalizar o fluxo) */
 let _handledRedirectOnce = false;
 export async function handleRedirectResultOnce(): Promise<void> {
   if (_handledRedirectOnce) return;
   _handledRedirectOnce = true;
-
-  // garante persistência aplicada antes de processar redirect
   await initAuthPromise;
-
   try {
     const result = await getRedirectResult(auth);
     if (result?.user) {
       await ensureUserProfile(result.user);
-      console.debug("[auth] processed redirect result for user:", result.user.uid);
     }
   } catch (e) {
-    // ignora expected errors (ex: usuario cancelou)
     console.warn("getRedirectResult error (ignored):", e);
   }
 }
