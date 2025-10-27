@@ -7,7 +7,7 @@ import * as CleanAuth from "../firebase/clean-auth";
 type AuthContextValue = {
   user: User | null;
   loading: boolean;
-  signInWithGoogle: () => Promise<User>;
+  signInWithGoogle: () => Promise<void>;
   signUpWithEmail: (email: string, password: string) => Promise<User>;
   signInWithEmail: (email: string, password: string) => Promise<User>;
   signOut: () => Promise<void>;
@@ -20,28 +20,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(
-      auth,
-      (u) => {
-        setUser(u);
-        setLoading(false);
-      },
-      (err) => {
-        console.error("onAuthStateChanged error", err);
-        setUser(null);
-        setLoading(false);
+    let mounted = true;
+
+    // 1) Processa redirect result (se o usuário voltou de um redirect)
+    (async () => {
+      try {
+        await CleanAuth.handleRedirectResultOnce();
+      } catch (e) {
+        console.warn("handleRedirectResultOnce erro:", e);
+      } finally {
+        // 2) então instala o listener de auth
+        if (!mounted) return;
+        const unsub = onAuthStateChanged(
+          auth,
+          (u) => {
+            setUser(u);
+            setLoading(false);
+          },
+          (err) => {
+            console.error("onAuthStateChanged error", err);
+            setUser(null);
+            setLoading(false);
+          }
+        );
+        // guarda unsub no closure para cleanup
+        (AuthProvider as any).__unsub = unsub;
       }
-    );
-    return () => unsub();
+    })();
+
+    return () => {
+      mounted = false;
+      const unsub = (AuthProvider as any).__unsub;
+      if (typeof unsub === "function") unsub();
+    };
   }, []);
 
   const value: AuthContextValue = {
     user,
     loading,
     signInWithGoogle: async () => {
-      const u = await CleanAuth.signInWithGooglePopup();
-      setUser(u);
-      return u;
+      // função exposta que vai tentar popup e ggf redirect
+      await CleanAuth.signInWithGooglePopupOrRedirect();
     },
     signUpWithEmail: async (email, password) => {
       const u = await CleanAuth.signUpWithEmail(email, password);

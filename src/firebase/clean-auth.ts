@@ -1,9 +1,9 @@
-// Operações de autenticação limpas: Google popup + email/senha + criação de perfil no Firestore
-"use client";
-
+'use client';
 import { auth, db, googleProvider } from "./clean-firebase";
 import {
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
@@ -30,17 +30,55 @@ export async function ensureUserProfile(user: User) {
   }
 }
 
-/** Login Google via popup (padrão) */
-export async function signInWithGooglePopup(): Promise<User> {
+/** Detecta Safari (usado para fallback) */
+function isSafari(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent;
+  // detecta Safari excluindo Chrome/Chromium/Edge
+  return /Safari/.test(ua) && !/Chrome|Chromium|Edg|OPR/.test(ua);
+}
+
+/** Tenta abrir popup; em casos de erro conhecidos (popup bloqueado / ambiente/ safari) faz redirect fallback */
+export async function signInWithGooglePopupOrRedirect(): Promise<void> {
+  // Prefer popup - é a melhor UX
   try {
-    const res = await signInWithPopup(auth, googleProvider);
-    if (!res.user) throw new Error("No user returned from Google");
-    await ensureUserProfile(res.user);
-    return res.user;
+    await signInWithPopup(auth, googleProvider);
+    // signInWithPopup resolve e onAuthStateChanged (no provider) tratará o usuário.
+    return;
   } catch (err: any) {
-    // Lança erro com mensagem legível
-    const msg = err?.code || err?.message || "Erro no Google Sign-In (popup)";
-    throw new Error(msg);
+    const code = err?.code || err?.message || "";
+    // Erros que justificam tentar redirect:
+    const shouldRedirectFallback = isSafari() ||
+      code === "auth/popup-blocked" ||
+      code === "auth/operation-not-supported-in-this-environment" ||
+      code === "auth/web-storage-unsupported" ||
+      // em alguns casos Safari reporta popup-closed-by-user automaticamente; opcionalmente tratar
+      code === "auth/popup-closed-by-user";
+
+    console.warn("Google popup failed:", code, err);
+
+    if (shouldRedirectFallback) {
+      // fallback para redirect — o navegador será navegated para Google
+      await signInWithRedirect(auth, googleProvider);
+      return;
+    }
+
+    // se não quisermos fallback (usuario fechou popup manualmente), rethrow para UI mostrar mensagem
+    throw err;
+  }
+}
+
+/** Se usar redirect fallback, chame isso ao boot do app para processar o resultado */
+export async function handleRedirectResultOnce(): Promise<void> {
+  try {
+    const result = await getRedirectResult(auth);
+    if (result && result.user) {
+      // Cria perfil caso necessário
+      await ensureUserProfile(result.user);
+    }
+  } catch (e) {
+    // ignora cancel/erros expected
+    console.warn("getRedirectResult erro:", e);
   }
 }
 

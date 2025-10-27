@@ -1,29 +1,25 @@
 'use client';
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AuthProvider, useAuth } from "../../hooks/useAuth";
 import { AuthForm } from "../../components/AuthForm";
+import { useRouter } from "next/navigation";
 
 function LoginInner() {
   const { user, loading, signInWithGoogle, signInWithEmail, signUpWithEmail, signOut } = useAuth();
+  const router = useRouter();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [err, setErr] = useState<string | null>(null);
 
+  // quando o user existir, redireciona automaticamente para /dashboard
+  useEffect(() => {
+    if (!loading && user) {
+      router.replace("/dashboard");
+    }
+  }, [user, loading, router]);
+
   if (loading) return <div className="min-h-screen flex items-center justify-center">Carregando...</div>;
 
-  if (user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="p-6 bg-white rounded shadow">
-          <p className="mb-2">Logado como: <strong>{user.email || user.displayName}</strong></p>
-          <p className="mb-4 text-sm text-muted">UID: {user.uid}</p>
-          <button className="px-3 py-2 bg-red-500 text-white rounded" onClick={async () => await signOut()}>
-            Sair
-          </button>
-        </div>
-      </div>
-    );
-  }
-
+  // Não precisa mais mostrar o card "Logado" aqui; o useEffect fará redirect.
   return (
     <div className="min-h-screen flex items-center justify-center p-6">
       <div className="w-full max-w-sm bg-white p-6 rounded shadow">
@@ -74,7 +70,6 @@ function LoginInner() {
 }
 
 export default function LoginPageWrapper() {
-  // Você pode mover AuthProvider para o layout/global do app para disponibilizar em toda a app.
   return (
     <AuthProvider>
       <LoginInner />
