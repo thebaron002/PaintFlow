@@ -5,7 +5,7 @@ import React, { useMemo, type ReactNode } from 'react';
 import { FirebaseProvider } from '@/firebase/provider';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { firebaseConfig } from './config';
-import { Auth, getAuth, initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence, inMemoryPersistence } from 'firebase/auth';
+import { Auth, getAuth, initializeAuth, indexedDBLocalPersistence } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
 
 
@@ -17,18 +17,16 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
   const { firebaseApp, auth, firestore } = useMemo(() => {
     const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
     
+    // This robust pattern prevents re-initialization errors.
+    // It tries to get the existing auth instance, and only initializes a new one
+    // if it doesn't exist. This is safer than a simple try/catch.
     let authInstance: Auth;
     try {
-      authInstance = initializeAuth(app, {
-        persistence: [
-          indexedDBLocalPersistence,
-          browserLocalPersistence,
-          browserSessionPersistence,
-          inMemoryPersistence
-        ]
-      });
+        authInstance = getAuth(app);
     } catch (e) {
-      authInstance = getAuth(app);
+        authInstance = initializeAuth(app, {
+            persistence: indexedDBLocalPersistence
+        });
     }
     
     const firestoreInstance: Firestore = getFirestore(app);
