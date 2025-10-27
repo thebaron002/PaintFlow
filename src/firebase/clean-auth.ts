@@ -31,7 +31,7 @@ export async function ensureUserProfile(user: User) {
   }
 }
 
-/** Detecta Safari (usado para fallback) */
+/** Detecta Safari/iOS para forçar redirect */
 function isSafariOrIos(): boolean {
   if (typeof navigator === "undefined") return false;
   const ua = navigator.userAgent || "";
