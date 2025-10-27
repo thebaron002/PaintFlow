@@ -28,7 +28,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, MapPin, User } from "lucide-react";
-import { JobActions } from "./components/job-actions";
+import { JobActions } from "@/app/dashboard/job-actions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from "@/firebase";
