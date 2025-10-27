@@ -41,6 +41,7 @@ function isSafariOrIos(): boolean {
   return isiOS || isSafariDesktop;
 }
 
+
 export async function signInWithGooglePopupOrRedirect(): Promise<void> {
   await initAuthPromise;
 
@@ -85,6 +86,7 @@ export async function handleRedirectResultOnce(): Promise<void> {
     console.warn("getRedirectResult error (ignored):", e);
   }
 }
+
 
 /** Cadastro com e-mail e senha */
 export async function signUpWithEmail(email: string, password: string): Promise<User> {

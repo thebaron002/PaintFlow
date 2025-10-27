@@ -9,17 +9,16 @@ function LoginInner() {
   const router = useRouter();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [err, setErr] = useState<string | null>(null);
-
   const redirectedRef = useRef(false);
-  
+
   useEffect(() => {
     if (!loading && user && !redirectedRef.current) {
-        redirectedRef.current = true;
-        router.replace("/dashboard");
+      redirectedRef.current = true;
+      router.replace("/dashboard");
     }
-  }, [user, loading, router]);
-  
-  if (loading || user) {
+  }, [user, loading]);
+
+  if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Carregando...</div>;
   }
 
@@ -73,7 +72,6 @@ function LoginInner() {
 }
 
 export default function LoginPageWrapper() {
-  return (
-      <LoginInner />
-  );
+  // AuthProvider is in layout.tsx, so we don't need it here.
+  return <LoginInner />;
 }

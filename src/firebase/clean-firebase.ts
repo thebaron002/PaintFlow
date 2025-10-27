@@ -6,9 +6,9 @@ import {
   setPersistence,
   indexedDBLocalPersistence,
   browserLocalPersistence,
+  browserSessionPersistence,
   inMemoryPersistence,
   GoogleAuthProvider,
-  browserSessionPersistence,
   type Auth,
 } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
@@ -34,11 +34,11 @@ export const initAuthPromise = (async () => {
     try {
       await setPersistence(auth, browserLocalPersistence);
     } catch (e2) {
-        try {
-            await setPersistence(auth, browserSessionPersistence);
-        } catch (e3) {
-            await setPersistence(auth, inMemoryPersistence);
-        }
+      try {
+        await setPersistence(auth, browserSessionPersistence);
+      } catch (e3) {
+        await setPersistence(auth, inMemoryPersistence);
+      }
     }
   }
 })();
