@@ -3,7 +3,7 @@
 "use client";
 export const dynamic = 'force-dynamic';
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { auth, googleProvider, getRedirectResultOnce, authReadyPromise } from "@/firebase/firebase-client";
 import { signInWithRedirect } from "firebase/auth";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -20,7 +20,7 @@ function GoogleIcon() {
     )
 }
 
-export default function LoginPage() {
+function LoginPage() {
   const router = useRouter();
   const search = useSearchParams();
   const [status, setStatus] = useState<"idle"|"processing"|"ready"|"error">("idle");
@@ -130,5 +130,21 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+
+export default function LoginPageWrapper() {
+  return (
+    <Suspense fallback={
+        <div className="flex flex-col min-h-screen items-center justify-center bg-background p-4">
+          <div className="flex flex-col items-center justify-center text-center space-y-4">
+              <Logo />
+              <LoaderCircle className="h-6 w-6 animate-spin" />
+          </div>
+      </div>
+    }>
+      <LoginPage />
+    </Suspense>
   );
 }
