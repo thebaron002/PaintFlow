@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 
 function LoginInner() {
   const { user, loading, signInWithGoogle, signInWithEmail, signUpWithEmail, signOut } = useAuth();
-  const router = useRouter();
+  const router = useRouter(); // Hook movido para o topo
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [err, setErr] = useState<string | null>(null);
 
@@ -17,9 +17,12 @@ function LoginInner() {
     }
   }, [user, loading, router]);
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center">Carregando...</div>;
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Carregando...</div>;
+  }
 
-  // Não precisa mais mostrar o card "Logado" aqui; o useEffect fará redirect.
+  // Se o usuário estiver logado e o carregamento concluído, o useEffect acima fará o redirecionamento.
+  // Renderizar a UI de login evita o retorno antecipado.
   return (
     <div className="min-h-screen flex items-center justify-center p-6">
       <div className="w-full max-w-sm bg-white p-6 rounded shadow">
