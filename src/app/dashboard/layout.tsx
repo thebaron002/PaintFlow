@@ -3,7 +3,7 @@
 "use client";
 
 import { ReactNode, useEffect, useState } from "react";
-import { auth, authReadyPromise, getRedirectResultOnce } from "@/firebase/firebase-client";
+import { useAuth } from "@/firebase/provider";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -79,49 +79,29 @@ const BottomNavBar = () => {
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const auth = useAuth();
   const isMobile = useIsMobile();
-  const [phase, setPhase] = useState<"boot"|"waiting"|"ready">("boot");
   const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Passo 1: garantir que redirect foi processado + auth pronto (uma vez)
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setPhase("waiting");
-      try {
-        // Sempre aguarde ambos antes de decidir rota
-        await Promise.all([
-          getRedirectResultOnce(),
-          authReadyPromise,
-        ]);
-        if (cancelled) return;
-
-        // Passo 2: agora ouvimos mudanças de usuário normalmente
-        const unsub = onAuthStateChanged(auth, (u) => {
-          if (cancelled) return;
-          setUser(u);
-          setPhase("ready");
-        });
-
-        return () => unsub();
-      } catch {
-        if (!cancelled) setPhase("ready");
-      }
-    })();
-    return () => { cancelled = true; };
-  }, []);
-
-  // Passo 3: quando estiver “ready”, decida o que fazer
-  useEffect(() => {
-    if (phase !== "ready") return;
-
-    if (!user) {
-      // Não autenticado: mande para /login, preservando callbackUrl
-      const currentPath = typeof window !== "undefined" ? window.location.pathname + window.location.search : "/dashboard";
-      const callbackParam = encodeURIComponent(currentPath);
-      router.replace(`/login?callbackUrl=${callbackParam}`);
+    if (!auth) {
+        // Auth service is not yet available, wait.
+        return;
     }
-  }, [phase, user, router]);
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setIsLoading(false);
+      if (!currentUser) {
+        // User is not logged in, redirect to login page.
+        // Preserve the current path to redirect back after login.
+        const callbackParam = encodeURIComponent(window.location.pathname + window.location.search);
+        router.replace(`/login?callbackUrl=${callbackParam}`);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [auth, router]);
 
   const renderLoadingState = () => (
     <div className="flex-1 flex items-center justify-center">
@@ -132,7 +112,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     </div>
   );
 
-  if (phase !== "ready") {
+  if (isLoading) {
     return (
       <SidebarProvider>
          <div className="flex min-h-screen w-full flex-col bg-background">
@@ -151,7 +131,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }
 
   if (!user) {
-      // Enquanto o router faz o replace, renderiza um placeholder
+      // While the router does its work, show a placeholder.
       return (
          <div className="flex-1 flex items-center justify-center">
             <div className="flex flex-col items-center gap-2">

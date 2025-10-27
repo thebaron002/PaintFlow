@@ -4,7 +4,7 @@
 export const dynamic = 'force-dynamic';
 
 import { Suspense, useEffect, useState } from "react";
-import { auth, googleProvider, getRedirectResultOnce, authReadyPromise } from "@/firebase/firebase-client";
+import { useAuth, googleProvider, getRedirectResultOnce, authReadyPromise } from "@/firebase";
 import { signInWithRedirect } from "firebase/auth";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Logo } from "@/components/logo";
@@ -22,6 +22,7 @@ function GoogleIcon() {
 
 function LoginPage() {
   const router = useRouter();
+  const auth = useAuth();
   const search = useSearchParams();
   const [status, setStatus] = useState<"idle"|"processing"|"ready"|"error">("idle");
   const [message, setMessage] = useState<string>("");
@@ -31,6 +32,11 @@ function LoginPage() {
     let cancelled = false;
 
     (async () => {
+      if (!auth) {
+        setStatus("processing");
+        setMessage("Inicializando autenticação...");
+        return;
+      }
       try {
         setStatus("processing");
         setMessage("Autenticando...");
@@ -38,10 +44,10 @@ function LoginPage() {
         // Se viemos de um redirect (ou se o Safari atrasar), forçamos aguardar ambos:
         const pending = typeof window !== "undefined" && localStorage.getItem("pf_redirect_pending") === "1";
         if (pending) {
-          await getRedirectResultOnce();
+          await getRedirectResultOnce(auth);
         }
 
-        const user = await authReadyPromise;
+        const user = await authReadyPromise(auth);
 
         if (cancelled) return;
 
@@ -63,9 +69,15 @@ function LoginPage() {
     })();
 
     return () => { cancelled = true; };
-  }, [router, search]);
+  }, [router, search, auth]);
 
   const handleGoogle = async () => {
+    if (!auth) {
+        console.error("Auth service not available yet.");
+        setStatus("error");
+        setMessage("Serviço de autenticação não está pronto. Tente novamente em um instante.");
+        return;
+    }
     try {
       // Marcamos que vamos iniciar um redirect
       if (typeof window !== "undefined") {
