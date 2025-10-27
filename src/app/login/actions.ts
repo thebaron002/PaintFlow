@@ -1,5 +1,4 @@
 
-
 'use client';
 
 // Note: The primary logic for handling the redirect result and creating the user profile
