@@ -29,28 +29,18 @@ const firestore = getFirestore(app);
 let auth: Auth;
 try {
   // initializeAuth é mais seguro quando você precisa escolher persistências manualmente
-  auth = initializeAuth(app, { persistence: [indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence] });
-} catch {
+  auth = initializeAuth(app, { 
+    persistence: [
+      indexedDBLocalPersistence, 
+      browserLocalPersistence, 
+      browserSessionPersistence,
+      inMemoryPersistence
+    ] 
+  });
+} catch (e) {
   // Caso já exista um auth (em HMR), apenas recupere
   auth = getAuth(app);
 }
-
-// Tenta reforçar persistência e aplica fallback seguro
-(async () => {
-  try {
-    await setPersistence(auth, indexedDBLocalPersistence);
-  } catch {
-    try {
-      await setPersistence(auth, browserLocalPersistence);
-    } catch {
-      try {
-        await setPersistence(auth, browserSessionPersistence);
-      } catch {
-        await setPersistence(auth, inMemoryPersistence);
-      }
-    }
-  }
-})().catch(() => { /* noop */ });
 
 async function createUserProfile(user: User) {
   const userRef = doc(firestore, 'users', user.uid);
