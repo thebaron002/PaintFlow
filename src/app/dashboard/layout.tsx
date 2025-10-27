@@ -1,9 +1,9 @@
-// src/app/dashboard/layout.tsx
-"use client";
-
-import { ReactNode, useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
-import Link from "next/link";
+'use client';
+import { ReactNode, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
+import { LoaderCircle } from 'lucide-react';
+import Link from 'next/link';
 import {
   Briefcase,
   Calendar,
@@ -11,11 +11,10 @@ import {
   DollarSign,
   PanelLeft,
   Landmark,
-  LoaderCircle,
   Settings,
   Users,
-  User as UserIcon, // Renamed to avoid conflict with Firebase User type
-} from "lucide-react";
+  User as UserIcon,
+} from 'lucide-react';
 import {
   SidebarProvider,
   Sidebar,
@@ -27,13 +26,14 @@ import {
   SidebarFooter,
   SidebarTrigger,
   SidebarInset,
-} from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
-import { UserNav } from "@/components/user-nav";
-import { Logo } from "@/components/logo";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { cn } from "@/lib/utils";
-import { useAuthBootstrap } from "@/firebase/use-auth-bootstrap";
+} from '@/components/ui/sidebar';
+import { Button } from '@/components/ui/button';
+import { UserNav } from '@/components/user-nav';
+import { Logo } from '@/components/logo';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
+import { usePathname } from 'next/navigation';
+
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -71,34 +71,31 @@ const BottomNavBar = () => {
   );
 };
 
-export default function DashboardLayout({ children }: { children: ReactNode }) {
+
+function DashboardGuard({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const pathname = usePathname();
-  const { initializing, user, redirectPending } = useAuthBootstrap();
+  const { user, loading } = useAuth();
 
   useEffect(() => {
-    if (initializing) return;
-    if (redirectPending) return; // ⚠️ NÃO chuta pra /login durante redirect
-    if (!user && pathname !== "/login") {
-       const callbackParam = encodeURIComponent(pathname);
-       router.replace(`/login?callbackUrl=${callbackParam}`);
+    if (!loading && !user) {
+      router.replace('/login');
     }
-  }, [initializing, user, redirectPending, pathname, router]);
+  }, [user, loading, router]);
 
-  if (initializing || redirectPending) {
+  if (loading) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center">
         <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   if (!user) {
-      return null;
+    return null;
   }
 
   return (
-    <SidebarProvider>
+     <SidebarProvider>
       <Sidebar>
         <SidebarHeader>
           <div className="p-2">
@@ -135,4 +132,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       {useIsMobile() && <BottomNavBar />}
     </SidebarProvider>
   );
+}
+
+
+export default function DashboardLayout({ children }: { children: ReactNode }) {
+    return (
+        <DashboardGuard>{children}</DashboardGuard>
+    )
 }

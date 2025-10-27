@@ -2,6 +2,7 @@ import type {Metadata} from 'next';
 import { Poppins, PT_Sans } from 'next/font/google'
 import { Toaster } from "@/components/ui/toaster";
 import './globals.css';
+import { AuthProvider } from '@/hooks/useAuth';
 import { FirebaseClientProvider } from '@/firebase';
 
 const poppins = Poppins({
@@ -33,9 +34,11 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning className={`${poppins.variable} ${ptSans.variable}`}>
       <head />
       <body className="font-body antialiased">
-        <FirebaseClientProvider>
-          {children}
-        </FirebaseClientProvider>
+        <AuthProvider>
+            <FirebaseClientProvider>
+                {children}
+            </FirebaseClientProvider>
+        </AuthProvider>
         <Toaster />
       </body>
     </html>
