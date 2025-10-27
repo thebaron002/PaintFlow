@@ -4,7 +4,7 @@
 export const dynamic = 'force-dynamic';
 
 import { Suspense, useEffect, useState } from "react";
-import { signInWithRedirect } from "firebase/auth";
+import { signInWithPopup } from "firebase/auth";
 import { useAuth, googleProvider, getRedirectResultOnce, useFirestore } from "@/firebase";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Logo } from "@/components/logo";
@@ -83,16 +83,15 @@ function LoginPage() {
     }
     
     try {
-      if (typeof window !== "undefined") {
-        localStorage.setItem("pf_redirect_pending", "1");
-      }
-      await signInWithRedirect(auth, googleProvider);
+      // Use signInWithPopup instead of signInWithRedirect
+      await signInWithPopup(auth, googleProvider);
+      // After the popup closes, the onAuthStateChanged listener in useUser/useAuth
+      // will detect the new user and trigger the redirect in the useEffect hook.
     } catch (e: any) {
         console.error("Google sign-in failed:", e);
-        setStatus("error");
-        setMessage(e?.code ? `Error: ${e.code}` : "Não foi possível iniciar o login com Google.");
-        if (typeof window !== "undefined") {
-            localStorage.removeItem("pf_redirect_pending");
+        if (e.code !== 'auth/popup-closed-by-user') {
+            setStatus("error");
+            setMessage(e?.code ? `Error: ${e.code}` : "Não foi possível iniciar o login com Google.");
         }
     }
   };
