@@ -124,6 +124,34 @@
         "deadline",
         "location"
       ]
+    },
+    "GeneralSettings": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "GeneralSettings",
+      "type": "object",
+      "description": "Stores global application settings, managed by the user.",
+      "properties": {
+        "dailyPayTarget": {
+          "type": "number",
+          "description": "The target daily pay for profitability calculations."
+        },
+        "idealMaterialCostPercentage": {
+          "type": "number",
+          "description": "Ideal material cost as a percentage of the job's budget."
+        },
+        "hourlyRate": {
+          "type": "number",
+          "description": "Default hourly rate for 'Time' based adjustments."
+        },
+        "reportRecipients": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "format": "email"
+            },
+            "description": "A list of email addresses to receive the weekly payroll report."
+        }
+      }
     }
   },
   "auth": {
@@ -188,8 +216,19 @@
             }
           ]
         }
+      },
+      {
+        "path": "/settings/global",
+        "definition": {
+          "entityName": "GeneralSettings",
+          "schema": {
+            "$ref": "#/entities/GeneralSettings"
+          },
+          "description": "A singleton document containing global application settings.",
+          "params": []
+        }
       }
     ],
-    "reasoning": "The Firestore structure is designed with a user-centric data model. All primary data collections (jobs, crew, etc.) are subcollections of a specific user's document in the top-level 'users' collection. This approach ensures strong data ownership and simplifies security rules, as access control is primarily based on verifying that the request's authenticated user ID matches the {userId} in the document path. This prevents users from accessing each other's data and provides a scalable, secure foundation for the application."
+    "reasoning": "The Firestore structure is designed with a user-centric data model. All primary data collections (jobs, crew, etc.) are subcollections of a specific user's document in the top-level 'users' collection. This approach ensures strong data ownership and simplifies security rules, as access control is primarily based on verifying that the request's authenticated user ID matches the {userId} in the document path. This prevents users from accessing each other's data and provides a scalable, secure foundation for the application. There is also a top-level 'settings' collection containing a single 'global' document for app-wide configurations."
   }
 }
