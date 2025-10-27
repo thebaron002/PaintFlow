@@ -124,76 +124,6 @@
         "deadline",
         "location"
       ]
-    },
-    "Expense": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Expense",
-      "type": "object",
-      "description": "Represents an expense associated with a job.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Expense entity."
-        },
-        "category": {
-          "type": "string",
-          "description": "The category of the expense (e.g., materials, labor, transportation)."
-        },
-        "amount": {
-          "type": "number",
-          "description": "The amount of the expense."
-        },
-        "date": {
-          "type": "string",
-          "description": "The date when the expense was incurred.",
-          "format": "date-time"
-        },
-        "description": {
-          "type": "string",
-          "description": "A description of the expense."
-        }
-      },
-      "required": [
-        "id",
-        "category",
-        "amount",
-        "date"
-      ]
-    },
-    "CashFlow": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "CashFlow",
-      "type": "object",
-      "description": "Represents cash flow related to a job (income or expense).",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the CashFlow entity."
-        },
-        "type": {
-          "type": "string",
-          "description": "The type of cash flow (income or expense)."
-        },
-        "amount": {
-          "type": "number",
-          "description":."The amount of the cash flow."
-        },
-        "date": {
-          "type": "string",
-          "description": "The date of the cash flow transaction.",
-          "format": "date-time"
-        },
-        "description": {
-          "type": "string",
-          "description": "A description of the cash flow event."
-        }
-      },
-      "required": [
-        "id",
-        "type",
-        "amount",
-        "date"
-      ]
     }
   },
   "auth": {
@@ -246,7 +176,7 @@
           "schema": {
             "$ref": "#/entities/Job"
           },
-          "description": "Stores job data owned by the user.",
+          "description": "Stores job data owned by the user. Financial transactions like income and expenses for the job can be stored in subcollections here.",
           "params": [
             {
               "name": "userId",
@@ -255,54 +185,6 @@
             {
               "name": "jobId",
               "description": "The unique identifier for the job."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/jobs/{jobId}/expenses/{expenseId}",
-        "definition": {
-          "entityName": "Expense",
-          "schema": {
-            "$ref": "#/entities/Expense"
-          },
-          "description": "Stores expenses associated with a specific job.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The user who owns the job."
-            },
-            {
-              "name": "jobId",
-              "description": "The job to which the expense belongs."
-            },
-            {
-              "name": "expenseId",
-              "description": "The unique identifier for the expense."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/jobs/{jobId}/cashFlow/{cashFlowId}",
-        "definition": {
-          "entityName": "CashFlow",
-          "schema": {
-            "$ref": "#/entities/CashFlow"
-          },
-          "description": "Stores cash flow entries for a specific job.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The user who owns the job."
-            },
-            {
-              "name": "jobId",
-              "description": "The job to which the cash flow entry belongs."
-            },
-            {
-              "name": "cashFlowId",
-              "description": "The unique identifier for the cash flow entry."
             }
           ]
         }

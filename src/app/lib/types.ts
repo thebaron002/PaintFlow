@@ -49,11 +49,14 @@ export type Job = {
     name: string;
     type: 'Helper' | 'Partner';
   }[];
+  // Simplified income and expenses, stored directly on the job
+  income?: { id: string; description: string; amount: number; date: string; }[];
+  expenses?: { id: string; category: string; description: string; amount: number; date: string; }[];
 };
 
 export type Expense = {
   id: string;
-  jobId: string; // Changed from projectId to jobId
+  jobId: string; 
   category: 'Materials' | 'Labor' | 'Transportation' | 'Other';
   description: string;
   amount: number;
@@ -62,7 +65,7 @@ export type Expense = {
 
 export type Income = {
   id:string;
-  jobId: string; // changed from projectId
+  jobId: string; 
   description: string;
   amount: number;
   date: string; // ISO date string
