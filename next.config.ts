@@ -31,6 +31,25 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async rewrites() {
+    // Use seu Project ID live; pode deixar fixo ou pegar do env
+    const projectId =
+      process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "studio-170657449-62ce2";
+    const hostBase = `${projectId}.firebaseapp.com`;
+
+    return [
+      // Permite que /__/firebase/init.json funcione no dev
+      {
+        source: "/__/firebase/:path*",
+        destination: `https://${hostBase}/__/firebase/:path*`,
+      },
+      // Faz o callback /__/auth/handler funcionar no dev
+      {
+        source: "/__/auth/:path*",
+        destination: `https://${hostBase}/__/auth/:path*`,
+      },
+    ];
+  },
 };
 
 export default nextConfig;
