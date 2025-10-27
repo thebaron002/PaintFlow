@@ -1,15 +1,16 @@
+
 "use client";
 
 import * as React from "react";
+import * as Popover from "@radix-ui/react-popover";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Calendar as CalendarIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
-// ---- detecção iOS + mobile ----
+// Mobile/iOS detection
 function useEnv() {
   const [env, setEnv] = React.useState({ isIOS: false, isMobile: false });
   React.useEffect(() => {
@@ -30,20 +31,19 @@ function useEnv() {
   return env;
 }
 
-// helpers p/ string yyyy-MM-dd
 function toDateInputValue(d?: Date) {
-  if (!d) return "";
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
+    if (!d) return '';
+    // Formata como YYYY-MM-DD para o input
+    const offset = d.getTimezoneOffset();
+    const adjustedDate = new Date(d.getTime() - (offset * 60 * 1000));
+    return adjustedDate.toISOString().split('T')[0];
 }
+
 function fromDateInputValue(v: string): Date | undefined {
   if (!v) return undefined;
   const [y, m, d] = v.split("-").map(Number);
   if (!y || !m || !d) return undefined;
-  // cria como data local (sem fuso)
-  return new Date(y, m - 1, d, 12, 0, 0, 0); // 12:00 minimiza edge no DST
+  return new Date(y, m - 1, d, 12);
 }
 
 type Props = {
@@ -57,11 +57,10 @@ export function ResponsiveDatePicker({ value, onChange, placeholder = "Pick a da
   const { isIOS, isMobile } = useEnv();
   const [open, setOpen] = React.useState(false);
 
-  // ---------- 1) iOS: input nativo ----------
   if (isIOS) {
     return (
       <div className="flex flex-col gap-2">
-        {label ? <span className="text-sm font-medium">{label}</span> : null}
+        {label && <span className="text-sm font-medium">{label}</span>}
         <input
           type="date"
           value={toDateInputValue(value)}
@@ -70,48 +69,34 @@ export function ResponsiveDatePicker({ value, onChange, placeholder = "Pick a da
             "w-full rounded-md border border-input bg-background px-3 py-2 text-sm h-10",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           )}
-          // garante clique mesmo com wrappers "estranhos"
           style={{ WebkitTapHighlightColor: "transparent" }}
         />
       </div>
     );
   }
 
-  const triggerClasses = cn("justify-start pl-3 text-left font-normal w-full", !value && "text-muted-foreground")
-  // Botão gatilho (desktop e mobile não-iOS)
-  const trigger = (
-    <Button
-      type="button"
-      variant="outline"
-      className={triggerClasses}
-      onClick={() => setOpen((v) => !v)}
-      role="button"
-      tabIndex={0}
-      style={{ WebkitTapHighlightColor: "transparent" }}
-    >
-      <CalendarIcon className="mr-2 h-4 w-4" />
-      {value ? format(value, "PPP", { locale: ptBR }) : <span>{placeholder}</span>}
-    </Button>
+  const triggerClasses = cn(
+    "justify-start pl-3 text-left font-normal w-full",
+    !value && "text-muted-foreground"
   );
 
-  // ---------- 2) Mobile não-iOS: inline ----------
   if (isMobile) {
     return (
       <div className="flex flex-col gap-2">
-        {label ? <span className="text-sm font-medium">{label}</span> : null}
-        {trigger}
+        {label && <span className="text-sm font-medium">{label}</span>}
+        <Button
+          type="button"
+          variant="outline"
+          className={triggerClasses}
+          onClick={() => setOpen((v) => !v)}
+        >
+          <CalendarIcon className="mr-2 h-4 w-4" />
+          {value ? format(value, "PPP", { locale: ptBR }) : <span>{placeholder}</span>}
+        </Button>
         {open && (
-          <div
-            className="mt-2 rounded-md border bg-background p-2 shadow-sm"
-            style={{ position: "relative", zIndex: 1, pointerEvents: "auto" }}
-          >
+          <div className="mt-2 rounded-md border bg-background p-2 shadow-sm z-[99] relative">
             <div className="flex justify-end">
-              <button
-                type="button"
-                className="p-1 -m-1 opacity-70"
-                onClick={() => setOpen(false)}
-                aria-label="Fechar"
-              >
+              <button type="button" className="p-1 -m-1 opacity-70" onClick={() => setOpen(false)}>
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -129,36 +114,43 @@ export function ResponsiveDatePicker({ value, onChange, placeholder = "Pick a da
     );
   }
 
-  // ---------- 3) Desktop: popover ----------
+  // Desktop: Radix Popover com container inline (sem portal)
   return (
     <div className="flex flex-col gap-2">
-      {label ? <span className="text-sm font-medium">{label}</span> : null}
-      <Popover open={open} onOpenChange={setOpen} modal>
-        <PopoverTrigger asChild>
+      {label && <span className="text-sm font-medium">{label}</span>}
+      <Popover.Root open={open} onOpenChange={setOpen}>
+        <Popover.Trigger asChild>
           <div onClick={() => setOpen(true)} className="w-full">
             <Button type="button" variant="outline" className={triggerClasses}>
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {value ? format(value, "PPP", { locale: ptBR }) : <span>{placeholder}</span>}
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {value ? format(value, "PPP", { locale: ptBR }) : <span>{placeholder}</span>}
             </Button>
           </div>
-        </PopoverTrigger>
-        <PopoverContent
+        </Popover.Trigger>
+        <Popover.Content
           align="start"
           sideOffset={8}
-          collisionPadding={8}
-          className="w-auto p-0 z-50"
+          className="z-50 w-auto rounded-md border bg-popover p-2 shadow-md"
+          onPointerDownOutside={(e) => {
+            // Previne o foco de ser roubado pelo dialog pai
+            const target = e.target as HTMLElement;
+            if(target.closest('[data-radix-collection-item]')) {
+                e.preventDefault();
+            }
+          }}
           onInteractOutside={() => setOpen(false)}
+          side="bottom"
         >
-          <Calendar
-            mode="single"
-            selected={value}
-            onSelect={(d) => {
-              onChange(d);
-              setOpen(false);
-            }}
-          />
-        </PopoverContent>
-      </Popover>
+            <Calendar
+              mode="single"
+              selected={value}
+              onSelect={(d) => {
+                onChange(d);
+                setOpen(false);
+              }}
+            />
+        </Popover.Content>
+      </Popover.Root>
     </div>
   );
 }

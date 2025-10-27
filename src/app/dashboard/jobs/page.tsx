@@ -229,7 +229,7 @@ export default function JobsPage() {
   return (
     <div>
       <PageHeader title="My Jobs">
-         <Dialog open={isNewJobOpen} onOpenChange={setIsNewJobOpen}>
+         <Dialog open={isNewJobOpen} onOpenChange={setIsNewJobOpen} modal={false}>
             <DialogTrigger asChild>
                 <Button>
                   <PlusCircle className="mr-2 h-4 w-4" />
