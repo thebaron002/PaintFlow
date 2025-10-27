@@ -1,4 +1,4 @@
-// src/app/login/page.tsx
+
 "use client";
 export const dynamic = "force-dynamic";
 
@@ -70,8 +70,8 @@ function Content() {
     if (clicking.current) return;
     clicking.current = true;
     setErr(null);
-
-    // 1. If in an iframe, escape to a new tab
+  
+    // If we are in an iframe, don't try popup — force redirect flow via new tab
     if (isIframe) {
       const url = new URL(window.location.href);
       url.searchParams.set("startGoogle", "1");
@@ -79,46 +79,38 @@ function Content() {
       clicking.current = false;
       return;
     }
-
-    // 2. Mobile/iOS should use redirect
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    if (isIOS) {
-      try {
-        setRedirectPending(true);
-        await signInWithRedirect(auth, googleProvider);
-        return; // This will navigate away
-      } catch (e: any) {
-        setErr(e?.code || "Failed to start Google sign-in.");
-        setRedirectPending(false);
-        clicking.current = false;
-        return;
-      }
-    }
-
-    // 3. Desktop: try popup, fallback to redirect
+  
     try {
-      const result: UserCredential = await signInWithPopup(auth, googleProvider);
-      await createUserProfileIfNotExists(result.user);
-      router.replace(search.get("callbackUrl") || "/dashboard");
-    } catch (e: any) {
-      if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') {
-        // User closed the popup, do nothing.
-      } else if (e.code === 'auth/popup-blocked') {
-        // Fallback to redirect if popup is blocked
-        try {
-          setRedirectPending(true);
-          await signInWithRedirect(auth, googleProvider);
-          return;
-        } catch (e2: any) {
-          setErr(e2?.code || "Failed to start Google sign-in after popup failure.");
-          setRedirectPending(false);
+      setRedirectPending(true); // Optimistically set pending for fallback
+  
+      // First, try popup (more user-friendly on desktop)
+      try {
+        const result: UserCredential = await signInWithPopup(auth, googleProvider);
+        await createUserProfileIfNotExists(result.user);
+        setRedirectPending(false); // Popup succeeded, clear pending flag
+        router.replace(search.get("callbackUrl") || "/dashboard");
+        return; // Success
+      } catch (popupErr: any) {
+        // If popup fails (e.g., blocked), log it and fall through to redirect
+        console.warn("signInWithPopup failed, falling back to redirect:", popupErr);
+        if (popupErr.code !== 'auth/popup-closed-by-user' && popupErr.code !== 'auth/cancelled-popup-request') {
+           // Fallback to redirect for other popup errors (like auth/popup-blocked)
+           await signInWithRedirect(auth, googleProvider);
+           return; // This will navigate away
+        } else {
+           // If user just closed the popup, don't do anything else.
+           setRedirectPending(false);
+           clicking.current = false;
         }
-      } else {
-        setErr(e?.code || "An unknown error occurred during sign-in.");
       }
+    } catch (e: any) {
+      setRedirectPending(false);
+      console.error("Error during Google sign-in:", e);
+      setErr(e?.code || e?.message || "Could not initiate sign-in.");
       clicking.current = false;
     }
   }
+
    function GoogleIcon() {
     return (
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
