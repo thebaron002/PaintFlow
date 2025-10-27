@@ -1,78 +1,94 @@
-'use client';
-import React, { useEffect, useState, useRef } from "react";
-import { useAuth } from "../../hooks/useAuth";
-import { useRouter } from "next/navigation";
+
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Button } from "@/components/ui/button";
 import { LoaderCircle } from "lucide-react";
 import { Logo } from "@/components/logo";
-import { Button } from "@/components/ui/button";
-import { FcGoogle } from "react-icons/fc";
+import { getAuthReady, signInWithGoogle } from "@/firebase/auth-live-like";
 
-function LoginInner() {
-  const { user, loading, signInWithGoogle } = useAuth();
+export default function LoginPage() {
   const router = useRouter();
-  const [err, setErr] = useState<string | null>(null);
-  const redirectedRef = useRef(false);
+  const search = useSearchParams();
+  const [status, setStatus] = useState<"idle" | "authenticating" | "error">("authenticating");
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
-    if (!loading && user && !redirectedRef.current) {
-      redirectedRef.current = true;
-      router.replace("/dashboard");
-    }
-  }, [user, loading, router]);
+    let mounted = true;
+    (async () => {
+      try {
+        const { user } = await getAuthReady();
+        if (!mounted) return;
+        if (user) {
+          router.replace(search.get("callbackUrl") || "/dashboard");
+        } else {
+          setStatus("idle");
+        }
+      } catch (e: any) {
+        if (!mounted) return;
+        setStatus("error");
+        setMessage(e?.message || "Falha ao inicializar autenticação.");
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [router, search]);
 
-  if (loading || (!loading && user)) {
-      return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-muted/20">
-            <Logo />
-            <LoaderCircle className="h-8 w-8 animate-spin text-primary mt-4" />
-        </div>
-      );
+  async function handleGoogle() {
+    try {
+      setStatus("authenticating");
+      await signInWithGoogle();
+      // popup: volta aqui e o onAuthStateChanged resolve; redirect: sai da página e retorna
+    } catch (e: any) {
+      setStatus("error");
+      setMessage(e?.message || "Não foi possível iniciar o login.");
+    }
   }
 
-  const handleLogin = async () => {
-    setErr(null);
-    try {
-      await signInWithGoogle();
-    } catch (e: any) {
-      setErr(e?.message || e?.code || "An unknown error occurred during sign-in.");
-    }
-  };
+  if (status === "authenticating") {
+    return (
+      <div className="flex flex-col min-h-screen items-center justify-center bg-background p-4">
+        <div className="flex flex-col items-center justify-center text-center space-y-4">
+          <Logo />
+          <p className="text-muted-foreground">Autenticando…</p>
+          <LoaderCircle className="h-6 w-6 animate-spin" />
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-muted/20 p-6 text-center">
-      <div className="w-full max-w-sm mx-auto">
-        <div className="mb-8">
-            <Logo />
+    <div className="flex flex-col min-h-screen items-center justify-center bg-background p-4">
+      <div className="w-full max-w-sm">
+        <div className="flex flex-col items-center text-center mb-8">
+          <Logo />
+          <h1 className="text-2xl font-semibold mt-4">Bem-vindo</h1>
+          <p className="text-muted-foreground">Faça login para gerenciar seu negócio de pintura.</p>
         </div>
-        <h1 className="text-3xl font-bold font-headline tracking-tight">Welcome Back</h1>
-        <p className="text-muted-foreground mt-2 mb-8">
-          Sign in to manage your painting business.
-        </p>
-
-        {err && <div className="text-sm text-red-600 mb-4 bg-destructive/10 p-3 rounded-md">{err}</div>}
-        
-        <Button onClick={handleLogin} size="lg" className="w-full">
-            <FcGoogle className="mr-2 h-5 w-5" />
-            Sign in with Google
-        </Button>
-        
-        <p className="text-xs text-muted-foreground mt-8">
-          By clicking continue, you agree to our{" "}
-          <a href="#" className="underline hover:text-primary">
-            Terms of Service
+        {status === "error" && (
+          <div className="mb-4 rounded border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+            {message}
+          </div>
+        )}
+        <div className="grid gap-4">
+          <Button variant="outline" className="w-full" onClick={handleGoogle}>
+            Entrar com Google
+          </Button>
+        </div>
+        <p className="px-8 text-center text-sm text-muted-foreground mt-6">
+          Ao clicar em continuar, você concorda com nossos{" "}
+          <a href="#" className="underline underline-offset-4 hover:text-primary">
+            Termos de Serviço
           </a>{" "}
-          and{" "}
-          <a href="#" className="underline hover:text-primary">
-            Privacy Policy
+          e{" "}
+          <a href="#" className="underline underline-offset-4 hover:text-primary">
+            Política de Privacidade
           </a>
           .
         </p>
       </div>
     </div>
   );
-}
-
-export default function LoginPage() {
-  // AuthProvider is already in layout.tsx, so we don't need it here.
-  return <LoginInner />;
 }
