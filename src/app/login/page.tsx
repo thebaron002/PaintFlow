@@ -4,7 +4,7 @@
 export const dynamic = 'force-dynamic';
 
 import { Suspense, useEffect, useState } from "react";
-import { getAuth, signInWithRedirect } from "firebase/auth";
+import { signInWithRedirect } from "firebase/auth";
 import { useAuth, googleProvider, getRedirectResultOnce, useFirestore } from "@/firebase";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Logo } from "@/components/logo";
@@ -25,7 +25,7 @@ function LoginPage() {
   const search = useSearchParams();
   const [status, setStatus] = useState<"idle"|"processing"|"ready"|"error">("idle");
   const [message, setMessage] = useState<string>("");
-  const { isUserLoading, user: authUser } = useAuth();
+  const { isUserLoading, user: authUser, auth } = useAuth();
   const firestore = useFirestore();
 
   // Handles redirect result and initial auth state check
@@ -49,12 +49,12 @@ function LoginPage() {
       
       // At this point, user is not logged in. Check for a pending redirect.
       const pendingRedirect = typeof window !== "undefined" && localStorage.getItem("pf_redirect_pending") === "1";
-      if (pendingRedirect && firestore) {
+      if (pendingRedirect && auth && firestore) {
           setStatus("processing");
           setMessage("Autenticando...");
           try {
               // getRedirectResultOnce now handles profile creation
-              await getRedirectResultOnce(getAuth(), firestore);
+              await getRedirectResultOnce(auth, firestore);
               // onAuthStateChanged via useAuth will handle the user state update and trigger a re-render + redirect.
           } catch(e) {
               if (!cancelled) {
@@ -72,11 +72,9 @@ function LoginPage() {
     processAuth();
 
     return () => { cancelled = true; };
-  }, [router, search, isUserLoading, authUser, firestore]);
+  }, [router, search, isUserLoading, authUser, firestore, auth]);
 
   const handleGoogle = async () => {
-    // Get the auth instance directly from the SDK at the moment of click.
-    const auth = getAuth();
     if (!auth) {
         console.error("Auth service not available at the time of click.");
         setStatus("error");
