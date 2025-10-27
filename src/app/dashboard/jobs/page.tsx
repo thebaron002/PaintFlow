@@ -200,6 +200,7 @@ const JobsTabContent = ({ status, hourlyRate }: { status: Job["status"], hourlyR
 export default function JobsPage() {
   const jobStatuses: Job["status"][] = ["Not Started", "In Progress", "Complete", "Open Payment", "Finalized"];
   const firestore = useFirestore();
+  const { user } = useUser();
 
   const settingsRef = useMemoFirebase(() => {
     if (!firestore) return null;
