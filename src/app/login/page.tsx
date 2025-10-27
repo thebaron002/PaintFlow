@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 
 import { Suspense, useEffect, useState } from "react";
 import { getAuth, signInWithRedirect } from "firebase/auth";
-import { useAuth, googleProvider, getRedirectResultOnce, authReadyPromise, useFirestore } from "@/firebase";
+import { useAuth, googleProvider, getRedirectResultOnce, useFirestore } from "@/firebase";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
@@ -25,72 +25,65 @@ function LoginPage() {
   const search = useSearchParams();
   const [status, setStatus] = useState<"idle"|"processing"|"ready"|"error">("idle");
   const [message, setMessage] = useState<string>("");
-  const { auth, isUserLoading, user: authUser } = useAuth(); // Get auth service and user state
-  const firestore = useFirestore(); // Get firestore instance correctly
+  const { isUserLoading, user: authUser } = useAuth();
+  const firestore = useFirestore();
 
   // Handles redirect result and initial auth state check
   useEffect(() => {
     let cancelled = false;
 
     const processAuth = async () => {
-      if (!auth || !firestore) {
+      // isUserLoading is now the primary signal. If it's true, we wait.
+      if (isUserLoading) {
         setStatus("processing");
         setMessage("Inicializando autenticação...");
-        return; // Wait for auth service and firestore to be available
+        return;
       }
-
-      try {
-        setStatus("processing");
-        setMessage("Autenticando...");
-
-        // First, check if there's a pending redirect result
-        const pendingRedirect = typeof window !== "undefined" && localStorage.getItem("pf_redirect_pending") === "1";
-        if (pendingRedirect) {
-          await getRedirectResultOnce(auth, firestore); // Pass firestore instance
-        }
-        
-        // After redirect is handled, check current user state from the hook
-        // The useAuth hook's onAuthStateChanged listener will give us the most up-to-date user
-        if (cancelled) return;
-
-        if (authUser) {
+      
+      // If loading is finished and we have a user, redirect.
+      if (authUser) {
           const callback = search.get("callbackUrl");
           router.replace(callback || "/dashboard");
-          setStatus("ready");
-          return;
-        }
-        
-        // If no user after all checks, ready to show login UI
+          return; // Stop processing
+      }
+      
+      // At this point, user is not logged in. Check for a pending redirect.
+      const pendingRedirect = typeof window !== "undefined" && localStorage.getItem("pf_redirect_pending") === "1";
+      if (pendingRedirect && firestore) {
+          setStatus("processing");
+          setMessage("Autenticando...");
+          try {
+              // getRedirectResultOnce now handles profile creation
+              await getRedirectResultOnce(getAuth(), firestore);
+              // onAuthStateChanged via useAuth will handle the user state update and trigger a re-render + redirect.
+          } catch(e) {
+              if (!cancelled) {
+                  console.error("Authentication processing error:", e);
+                  setStatus("error");
+                  setMessage("Erro ao processar autenticação. Tente novamente.");
+              }
+          }
+      } else {
+        // No user, no pending redirect. Ready for user to click login.
         setStatus("idle");
-
-      } catch (e) {
-        if (!cancelled) {
-          console.error("Authentication processing error:", e);
-          setStatus("error");
-          setMessage("Erro ao processar autenticação. Tente novamente.");
-        }
       }
     };
 
-    // We start processing only when the initial user loading is complete
-    if (!isUserLoading) {
-      processAuth();
-    } else {
-       setStatus("processing");
-       setMessage("Inicializando autenticação...");
-    }
+    processAuth();
 
     return () => { cancelled = true; };
-  }, [router, search, auth, isUserLoading, authUser, firestore]);
+  }, [router, search, isUserLoading, authUser, firestore]);
 
   const handleGoogle = async () => {
-    // Get a fresh auth instance from the hook, it's guaranteed to be available if we reach here
+    // Get the auth instance directly from the SDK at the moment of click.
+    const auth = getAuth();
     if (!auth) {
         console.error("Auth service not available at the time of click.");
         setStatus("error");
         setMessage("Serviço de autenticação não está pronto. Tente novamente em um instante.");
         return;
     }
+    
     try {
       if (typeof window !== "undefined") {
         localStorage.setItem("pf_redirect_pending", "1");
@@ -100,17 +93,19 @@ function LoginPage() {
         console.error("Google sign-in failed:", e);
         setStatus("error");
         setMessage(e?.code ? `Error: ${e.code}` : "Não foi possível iniciar o login com Google.");
-        localStorage.removeItem("pf_redirect_pending");
+        if (typeof window !== "undefined") {
+            localStorage.removeItem("pf_redirect_pending");
+        }
     }
   };
 
-  if (status === "processing") {
+  if (status === "processing" || isUserLoading) {
     return (
        <div className="flex flex-col min-h-screen items-center justify-center bg-background p-4">
           <div className="flex flex-col items-center justify-center text-center space-y-4">
               <Logo />
               <p className="text-muted-foreground">
-                {message}
+                {message || 'Carregando...'}
               </p>
               <LoaderCircle className="h-6 w-6 animate-spin" />
           </div>
