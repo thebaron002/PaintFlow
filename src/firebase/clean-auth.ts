@@ -32,17 +32,27 @@ export async function ensureUserProfile(user: User) {
 }
 
 /** Detecta Safari (usado para fallback) */
-function isSafari(): boolean {
+function isSafariOrIos(): boolean {
   if (typeof navigator === "undefined") return false;
-  const ua = navigator.userAgent;
-  return /Safari/.test(ua) && !/Chrome|Chromium|Edg|OPR/.test(ua);
+  const ua = navigator.userAgent || "";
+  const isiOS = /iP(hone|od|ad)/.test(ua);
+  // Safari desktop: contains Safari and WebKit, but not Chrome/Edge/Opera
+  const isSafariDesktop = /Safari/.test(ua) && !/Chrome|Chromium|Edg|OPR|FxiOS|CriOS/.test(ua);
+  // WebKit engines on some embedded browsers may behave similarly; treat iOS and Safari desktop as problematic
+  return isiOS || isSafariDesktop;
 }
 
 /** Usar popup quando possível; se falhar por bloqueio/Safari, usar redirect. */
 /** IMPORTANT: garante que initAuthPromise foi aguardado antes de tentar sign-in. */
 export async function signInWithGooglePopupOrRedirect(): Promise<void> {
-  // garante que persistência foi aplicada
   await initAuthPromise;
+
+  // If Safari/iOS force redirect immediately (skip popup)
+  if (isSafariOrIos()) {
+    console.debug("[auth] detected Safari/iOS - using redirect");
+    await signInWithRedirect(auth, googleProvider);
+    return;
+  }
 
   try {
     await signInWithPopup(auth, googleProvider);
@@ -51,21 +61,16 @@ export async function signInWithGooglePopupOrRedirect(): Promise<void> {
     const code = err?.code || err?.message || "";
     console.warn("[auth] signInWithPopup failed:", code, err);
 
-    const shouldRedirect =
-      isSafari() ||
+    const shouldRedirectFallback =
       code === "auth/popup-blocked" ||
       code === "auth/operation-not-supported-in-this-environment" ||
       code === "auth/web-storage-unsupported" ||
-      // opcional: se popup foi fechado automaticamente
       code === "auth/popup-closed-by-user";
 
-    if (shouldRedirect) {
-      // fallback para redirect
+    if (shouldRedirectFallback) {
       await signInWithRedirect(auth, googleProvider);
       return;
     }
-
-    // se não for um caso elegível para fallback, rethrow para UI
     throw err;
   }
 }
@@ -87,7 +92,7 @@ export async function handleRedirectResultOnce(): Promise<void> {
     }
   } catch (e) {
     // ignora expected errors (ex: usuario cancelou)
-    console.warn("[auth] getRedirectResult error (ignored):", e);
+    console.warn("getRedirectResult error (ignored):", e);
   }
 }
 
