@@ -1,19 +1,19 @@
 // Inicialização limpa do Firebase (cliente)
-// Usa as variáveis NEXT_PUBLIC_FIREBASE_* que você confirmou.
-// Não faz nenhum tratamento de redirect - usa popup para Google.
+// Agora exporta initAuthPromise que assegura que a persistência foi configurada
+// antes de qualquer operação de sign-in.
 "use client";
 
-import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
+import { initializeApp, getApps, getApp } from "firebase/app";
 import {
   getAuth,
-  Auth,
   setPersistence,
   indexedDBLocalPersistence,
   browserLocalPersistence,
   inMemoryPersistence,
   GoogleAuthProvider,
+  type Auth,
 } from "firebase/auth";
-import { getFirestore, Firestore } from "firebase/firestore";
+import { getFirestore, type Firestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
@@ -24,26 +24,29 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
 };
 
-let app: FirebaseApp;
-if (!getApps().length) {
-  app = initializeApp(firebaseConfig);
-} else {
-  app = getApp();
-}
-
+let app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const auth: Auth = getAuth(app);
 const db: Firestore = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
 
-// Tenta persistência persistente, com fallback seguro
-(async () => {
+/**
+ * initAuthPromise:
+ * - tenta configurar persistência (indexedDB -> localStorage -> inMemory)
+ * - resolve quando a persistência foi aplicada (ou o fallback inMemory)
+ * Isso garante que, quando chamarmos signInWithPopup/redirect, a persistência
+ * já esteja definida para evitar inconsistências (especialmente em Safari).
+ */
+export const initAuthPromise = (async () => {
   try {
     await setPersistence(auth, indexedDBLocalPersistence);
-  } catch {
+    console.debug("[initAuth] using indexedDBLocalPersistence");
+  } catch (e1) {
     try {
       await setPersistence(auth, browserLocalPersistence);
-    } catch {
+      console.debug("[initAuth] using browserLocalPersistence");
+    } catch (e2) {
       await setPersistence(auth, inMemoryPersistence);
+      console.debug("[initAuth] using inMemoryPersistence (fallback)");
     }
   }
 })();

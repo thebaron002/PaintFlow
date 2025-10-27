@@ -1,5 +1,6 @@
 'use client';
-import { auth, db, googleProvider } from "./clean-firebase";
+
+import { auth, db, googleProvider, initAuthPromise } from "./clean-firebase";
 import {
   signInWithPopup,
   signInWithRedirect,
@@ -34,78 +35,78 @@ export async function ensureUserProfile(user: User) {
 function isSafari(): boolean {
   if (typeof navigator === "undefined") return false;
   const ua = navigator.userAgent;
-  // detecta Safari excluindo Chrome/Chromium/Edge
   return /Safari/.test(ua) && !/Chrome|Chromium|Edg|OPR/.test(ua);
 }
 
-/** Tenta abrir popup; em casos de erro conhecidos (popup bloqueado / ambiente/ safari) faz redirect fallback */
+/** Usar popup quando possível; se falhar por bloqueio/Safari, usar redirect. */
+/** IMPORTANT: garante que initAuthPromise foi aguardado antes de tentar sign-in. */
 export async function signInWithGooglePopupOrRedirect(): Promise<void> {
-  // Prefer popup - é a melhor UX
+  // garante que persistência foi aplicada
+  await initAuthPromise;
+
   try {
     await signInWithPopup(auth, googleProvider);
-    // signInWithPopup resolve e onAuthStateChanged (no provider) tratará o usuário.
     return;
   } catch (err: any) {
     const code = err?.code || err?.message || "";
-    // Erros que justificam tentar redirect:
-    const shouldRedirectFallback = isSafari() ||
+    console.warn("[auth] signInWithPopup failed:", code, err);
+
+    const shouldRedirect =
+      isSafari() ||
       code === "auth/popup-blocked" ||
       code === "auth/operation-not-supported-in-this-environment" ||
       code === "auth/web-storage-unsupported" ||
-      // em alguns casos Safari reporta popup-closed-by-user automaticamente; opcionalmente tratar
+      // opcional: se popup foi fechado automaticamente
       code === "auth/popup-closed-by-user";
 
-    console.warn("Google popup failed:", code, err);
-
-    if (shouldRedirectFallback) {
-      // fallback para redirect — o navegador será navegated para Google
+    if (shouldRedirect) {
+      // fallback para redirect
       await signInWithRedirect(auth, googleProvider);
       return;
     }
 
-    // se não quisermos fallback (usuario fechou popup manualmente), rethrow para UI mostrar mensagem
+    // se não for um caso elegível para fallback, rethrow para UI
     throw err;
   }
 }
 
-/** Se usar redirect fallback, chame isso ao boot do app para processar o resultado */
+/** Processa resultado do redirect (chamar no boot para finalizar o fluxo) */
+let _handledRedirectOnce = false;
 export async function handleRedirectResultOnce(): Promise<void> {
+  if (_handledRedirectOnce) return;
+  _handledRedirectOnce = true;
+
+  // garante persistência aplicada antes de processar redirect
+  await initAuthPromise;
+
   try {
     const result = await getRedirectResult(auth);
-    if (result && result.user) {
-      // Cria perfil caso necessário
+    if (result?.user) {
       await ensureUserProfile(result.user);
+      console.debug("[auth] processed redirect result for user:", result.user.uid);
     }
   } catch (e) {
-    // ignora cancel/erros expected
-    console.warn("getRedirectResult erro:", e);
+    // ignora expected errors (ex: usuario cancelou)
+    console.warn("[auth] getRedirectResult error (ignored):", e);
   }
 }
 
 /** Cadastro com e-mail e senha */
 export async function signUpWithEmail(email: string, password: string): Promise<User> {
-  try {
-    const res = await createUserWithEmailAndPassword(auth, email, password);
-    if (!res.user) throw new Error("No user returned on sign up");
-    await ensureUserProfile(res.user);
-    return res.user;
-  } catch (err: any) {
-    const msg = err?.code || err?.message || "Erro no sign up";
-    throw new Error(msg);
-  }
+  await initAuthPromise;
+  const res = await createUserWithEmailAndPassword(auth, email, password);
+  if (!res.user) throw new Error("No user returned on sign up");
+  await ensureUserProfile(res.user);
+  return res.user;
 }
 
 /** Login com e-mail e senha */
 export async function signInWithEmailOnly(email: string, password: string): Promise<User> {
-  try {
-    const res = await signInWithEmailAndPassword(auth, email, password);
-    if (!res.user) throw new Error("No user returned on sign in");
-    await ensureUserProfile(res.user);
-    return res.user;
-  } catch (err: any) {
-    const msg = err?.code || err?.message || "Erro no sign in";
-    throw new Error(msg);
-  }
+  await initAuthPromise;
+  const res = await signInWithEmailAndPassword(auth, email, password);
+  if (!res.user) throw new Error("No user returned on sign in");
+  await ensureUserProfile(res.user);
+  return res.user;
 }
 
 /** Logout */

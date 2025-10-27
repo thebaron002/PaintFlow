@@ -21,36 +21,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
+    let unsub: (() => void) | null = null;
 
-    // 1) Processa redirect result (se o usuário voltou de um redirect)
     (async () => {
       try {
+        // 1) Processa redirect result (se voltamos de redirect)
         await CleanAuth.handleRedirectResultOnce();
+
+        // 2) Depois que o redirect foi processado, instala listener e espera o primeiro snapshot
+        await new Promise<void>((resolve) => {
+          unsub = onAuthStateChanged(
+            auth,
+            (u) => {
+              if (!mounted) return;
+              setUser(u);
+              // o primeiro callback de onAuthStateChanged é o "estado estável inicial"
+              resolve();
+            },
+            (err) => {
+              console.error("[auth] onAuthStateChanged error during bootstrap:", err);
+              if (!mounted) return;
+              setUser(null);
+              resolve();
+            }
+          );
+        });
+
+        // 3) agora já recebemos o estado inicial; define loading false
+        if (mounted) setLoading(false);
+
+        // 4) depois do primeiro snapshot, mantemos o listener ativo (unsub já definido)
+        // nada mais a fazer aqui; futuras mudanças irão atualizar state via setUser
       } catch (e) {
-        console.warn("handleRedirectResultOnce erro:", e);
-      } finally {
-        // 2) então instala o listener de auth
-        if (!mounted) return;
-        const unsub = onAuthStateChanged(
-          auth,
-          (u) => {
-            setUser(u);
-            setLoading(false);
-          },
-          (err) => {
-            console.error("onAuthStateChanged error", err);
-            setUser(null);
-            setLoading(false);
-          }
-        );
-        // guarda unsub no closure para cleanup
-        (AuthProvider as any).__unsub = unsub;
+        console.error("[auth] bootstrap error:", e);
+        if (mounted) {
+          setUser(null);
+          setLoading(false);
+        }
       }
     })();
 
     return () => {
       mounted = false;
-      const unsub = (AuthProvider as any).__unsub;
       if (typeof unsub === "function") unsub();
     };
   }, []);
@@ -59,7 +71,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user,
     loading,
     signInWithGoogle: async () => {
-      // função exposta que vai tentar popup e ggf redirect
       await CleanAuth.signInWithGooglePopupOrRedirect();
     },
     signUpWithEmail: async (email, password) => {

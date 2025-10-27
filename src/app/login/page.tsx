@@ -1,28 +1,26 @@
 'use client';
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { AuthProvider, useAuth } from "../../hooks/useAuth";
 import { AuthForm } from "../../components/AuthForm";
 import { useRouter } from "next/navigation";
 
 function LoginInner() {
-  const { user, loading, signInWithGoogle, signInWithEmail, signUpWithEmail, signOut } = useAuth();
-  const router = useRouter(); // Hook movido para o topo
+  const { user, loading, signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth();
+  const router = useRouter();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [err, setErr] = useState<string | null>(null);
+  const redirectedRef = useRef(false);
 
-  // quando o user existir, redireciona automaticamente para /dashboard
+  // redireciona apenas uma vez quando user estiver presente e bootstrap concluído
   useEffect(() => {
-    if (!loading && user) {
+    if (!loading && user && !redirectedRef.current) {
+      redirectedRef.current = true;
       router.replace("/dashboard");
     }
   }, [user, loading, router]);
 
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Carregando...</div>;
-  }
+  if (loading) return <div className="min-h-screen flex items-center justify-center">Carregando...</div>;
 
-  // Se o usuário estiver logado e o carregamento concluído, o useEffect acima fará o redirecionamento.
-  // Renderizar a UI de login evita o retorno antecipado.
   return (
     <div className="min-h-screen flex items-center justify-center p-6">
       <div className="w-full max-w-sm bg-white p-6 rounded shadow">
