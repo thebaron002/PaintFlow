@@ -4,8 +4,8 @@
 export const dynamic = 'force-dynamic';
 
 import { Suspense, useEffect, useState } from "react";
+import { getAuth, signInWithRedirect } from "firebase/auth";
 import { useAuth, googleProvider, getRedirectResultOnce, authReadyPromise } from "@/firebase";
-import { signInWithRedirect } from "firebase/auth";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
@@ -22,17 +22,18 @@ function GoogleIcon() {
 
 function LoginPage() {
   const router = useRouter();
-  const auth = useAuth();
   const search = useSearchParams();
   const [status, setStatus] = useState<"idle"|"processing"|"ready"|"error">("idle");
   const [message, setMessage] = useState<string>("");
+  const authFromHook = useAuth(); // We still use the hook to trigger context initialization
 
   // Ao carregar a página, se houver um redirect pendente, aguardamos o resultado + auth ready
   useEffect(() => {
     let cancelled = false;
 
     (async () => {
-      if (!auth) {
+      // Use the auth instance from the hook here as it indicates provider readiness
+      if (!authFromHook) {
         setStatus("processing");
         setMessage("Inicializando autenticação...");
         return;
@@ -44,10 +45,10 @@ function LoginPage() {
         // Se viemos de um redirect (ou se o Safari atrasar), forçamos aguardar ambos:
         const pending = typeof window !== "undefined" && localStorage.getItem("pf_redirect_pending") === "1";
         if (pending) {
-          await getRedirectResultOnce(auth);
+          await getRedirectResultOnce(authFromHook);
         }
 
-        const user = await authReadyPromise(auth);
+        const user = await authReadyPromise(authFromHook);
 
         if (cancelled) return;
 
@@ -69,11 +70,13 @@ function LoginPage() {
     })();
 
     return () => { cancelled = true; };
-  }, [router, search, auth]);
+  }, [router, search, authFromHook]);
 
   const handleGoogle = async () => {
+    // Get a fresh instance of auth directly from the SDK at the time of click
+    const auth = getAuth();
     if (!auth) {
-        console.error("Auth service not available yet.");
+        console.error("Auth service not available at the time of click.");
         setStatus("error");
         setMessage("Serviço de autenticação não está pronto. Tente novamente em um instante.");
         return;
