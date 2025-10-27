@@ -1,4 +1,3 @@
-
 'use client';
 
 // This file is the single-entry point for all Firebase-related client-side utilities.
@@ -14,3 +13,6 @@ export * from './firestore/use-doc';
 export * from './non-blocking-updates';
 export * from './errors';
 export * from './error-emitter';
+
+// Compatibility layer for older imports
+export { useAuth, useAuth as useUser } from '@/hooks/useAuth';
