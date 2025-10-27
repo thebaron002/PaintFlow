@@ -9,12 +9,11 @@ import {
   type Auth,
   type User,
 } from "firebase/auth";
-import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { useFirestore } from "./provider";
+import { doc, setDoc, getDoc, Firestore } from 'firebase/firestore';
 
 
 // This helper function creates user profile in Firestore if it doesn't exist.
-async function createUserProfile(firestore: any, user: User) {
+async function createUserProfile(firestore: Firestore, user: User) {
   const userRef = doc(firestore, 'users', user.uid);
   const userSnap = await getDoc(userRef);
 
@@ -36,9 +35,8 @@ async function createUserProfile(firestore: any, user: User) {
 
 // --- Redirect result: ensures it's processed ONLY ONCE per session ---
 let _redirectResultPromise: Promise<any> | null = null;
-export function getRedirectResultOnce(auth: Auth) {
+export function getRedirectResultOnce(auth: Auth, firestore: Firestore) {
   if (!_redirectResultPromise) {
-    const firestore = useFirestore(); // This hook can be used here if needed
     _redirectResultPromise = getRedirectResult(auth)
       .then(async (result) => {
         if (result) {

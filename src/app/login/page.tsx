@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 
 import { Suspense, useEffect, useState } from "react";
 import { getAuth, signInWithRedirect } from "firebase/auth";
-import { useAuth, googleProvider, getRedirectResultOnce, authReadyPromise } from "@/firebase";
+import { useAuth, googleProvider, getRedirectResultOnce, authReadyPromise, useFirestore } from "@/firebase";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
@@ -26,16 +26,17 @@ function LoginPage() {
   const [status, setStatus] = useState<"idle"|"processing"|"ready"|"error">("idle");
   const [message, setMessage] = useState<string>("");
   const { auth, isUserLoading, user: authUser } = useAuth(); // Get auth service and user state
+  const firestore = useFirestore(); // Get firestore instance correctly
 
   // Handles redirect result and initial auth state check
   useEffect(() => {
     let cancelled = false;
 
     const processAuth = async () => {
-      if (!auth) {
+      if (!auth || !firestore) {
         setStatus("processing");
         setMessage("Inicializando autenticação...");
-        return; // Wait for auth service to be available
+        return; // Wait for auth service and firestore to be available
       }
 
       try {
@@ -45,7 +46,7 @@ function LoginPage() {
         // First, check if there's a pending redirect result
         const pendingRedirect = typeof window !== "undefined" && localStorage.getItem("pf_redirect_pending") === "1";
         if (pendingRedirect) {
-          await getRedirectResultOnce(auth);
+          await getRedirectResultOnce(auth, firestore); // Pass firestore instance
         }
         
         // After redirect is handled, check current user state from the hook
@@ -80,7 +81,7 @@ function LoginPage() {
     }
 
     return () => { cancelled = true; };
-  }, [router, search, auth, isUserLoading, authUser]);
+  }, [router, search, auth, isUserLoading, authUser, firestore]);
 
   const handleGoogle = async () => {
     // Get a fresh auth instance from the hook, it's guaranteed to be available if we reach here
