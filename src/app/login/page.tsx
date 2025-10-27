@@ -1,15 +1,15 @@
+
 // src/app/login/page.tsx
 "use client";
 export const dynamic = 'force-dynamic';
 
 import { Suspense, useEffect, useState } from "react";
-import { useAuth, googleProvider, getRedirectResultOnce, useFirestore } from "@/firebase";
+import { useAuth, useFirestore } from "@/firebase";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { LoaderCircle } from "lucide-react";
-import { signInWithRedirect } from "firebase/auth";
-
+import { handleSignInWithGoogle } from "@/firebase/auth-helpers";
 
 function GoogleIcon() {
     return (
@@ -22,90 +22,54 @@ function GoogleIcon() {
 function LoginPage() {
   const router = useRouter();
   const search = useSearchParams();
-  const [status, setStatus] = useState<"idle"|"processing"|"ready"|"error">("idle");
+  const [status, setStatus] = useState<"idle" | "processing" | "error">("idle");
   const [message, setMessage] = useState<string>("");
-  const { isUserLoading, user: authUser, auth } = useAuth();
+  const { auth, user, isUserLoading } = useAuth();
   const firestore = useFirestore();
 
-  // Handles redirect result and initial auth state check
   useEffect(() => {
-    let cancelled = false;
-
-    const processAuth = async () => {
-      // isUserLoading is now the primary signal. If it's true, we wait.
-      if (isUserLoading) {
-        setStatus("processing");
-        setMessage("Inicializando autenticação...");
-        return;
-      }
-      
-      // If loading is finished and we have a user, redirect.
-      if (authUser) {
-          const callback = search.get("callbackUrl");
-          router.replace(callback || "/dashboard");
-          return; // Stop processing
-      }
-      
-      // At this point, user is not logged in. Check for a pending redirect.
-      const pendingRedirect = typeof window !== "undefined" && localStorage.getItem("pf_redirect_pending") === "1";
-      if (pendingRedirect && auth && firestore) {
-          setStatus("processing");
-          setMessage("Autenticando...");
-          try {
-              // getRedirectResultOnce now handles profile creation
-              await getRedirectResultOnce(auth, firestore);
-              // onAuthStateChanged via useAuth will handle the user state update and trigger a re-render + redirect.
-          } catch(e) {
-              if (!cancelled) {
-                  console.error("Authentication processing error:", e);
-                  setStatus("error");
-                  setMessage("Erro ao processar autenticação. Tente novamente.");
-              }
-          }
-      } else {
-        // No user, no pending redirect. Ready for user to click login.
-        setStatus("idle");
-      }
-    };
-
-    processAuth();
-
-    return () => { cancelled = true; };
-  }, [router, search, isUserLoading, authUser, firestore, auth]);
+    // If auth state is still loading, wait.
+    if (isUserLoading) {
+      return;
+    }
+    // If user is logged in, redirect them.
+    if (user) {
+      const callback = search.get("callbackUrl");
+      router.replace(callback || "/dashboard");
+    }
+  }, [user, isUserLoading, router, search]);
 
   const handleGoogle = async () => {
-    if (!auth) {
-        console.error("Auth service not available at the time of click.");
-        setStatus("error");
-        setMessage("Serviço de autenticação não está pronto. Tente novamente em um instante.");
-        return;
+    if (!auth || !firestore) {
+      setStatus("error");
+      setMessage("Serviços de autenticação não estão prontos. Tente novamente em um instante.");
+      return;
     }
-    
+
+    setStatus("processing");
+    setMessage("Aguardando autenticação do Google...");
+
     try {
-      // Set a flag in localStorage before redirecting
-      if (typeof window !== "undefined") {
-        localStorage.setItem("pf_redirect_pending", "1");
-      }
-      await signInWithRedirect(auth, googleProvider);
+      await handleSignInWithGoogle(auth, firestore);
+      // The useEffect above will handle the redirect once the `user` state is updated.
     } catch (e: any) {
-        console.error("Google sign-in failed:", e);
-        if (typeof window !== "undefined") {
-          localStorage.removeItem("pf_redirect_pending");
-        }
-        if (e.code !== 'auth/popup-closed-by-user') {
-            setStatus("error");
-            setMessage(e?.code ? `Error: ${e.code}` : "Não foi possível iniciar o login com Google.");
-        }
+      setStatus("error");
+      setMessage(e.message || "Não foi possível iniciar o login com Google.");
+      // If the error is not critical, we might want to revert to idle state
+      if (e.message === "Login process was cancelled." || e.message === "Multiple login attempts detected. Please try again.") {
+        setTimeout(() => setStatus("idle"), 2000);
+      }
     }
   };
 
-  if (status === "processing" || isUserLoading) {
+  // Show a loading screen while auth state is being determined.
+  if (isUserLoading || user) {
     return (
        <div className="flex flex-col min-h-screen items-center justify-center bg-background p-4">
           <div className="flex flex-col items-center justify-center text-center space-y-4">
               <Logo />
               <p className="text-muted-foreground">
-                {message || 'Carregando...'}
+                {user ? 'Login bem-sucedido! Redirecionando...' : 'Inicializando autenticação...'}
               </p>
               <LoaderCircle className="h-6 w-6 animate-spin" />
           </div>
@@ -121,33 +85,44 @@ function LoginPage() {
             <h1 className="text-2xl font-semibold mt-4">Bem-vindo</h1>
             <p className="text-muted-foreground">Faça login para gerenciar seu negócio de pintura.</p>
         </div>
-         {status === "error" && (
-            <div className="mb-4 rounded border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+        
+        {status === "error" && (
+          <div className="mb-4 rounded border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
             {message}
-            </div>
+          </div>
         )}
-        <div className="grid gap-4">
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={handleGoogle}
-              disabled={status !== 'idle'}
-            >
-              <GoogleIcon />
-              Entrar com Google
-            </Button>
-        </div>
-        <p className="px-8 text-center text-sm text-muted-foreground mt-6">
-            Ao clicar em continuar, você concorda com nossos{' '}
-            <a href="#" className="underline underline-offset-4 hover:text-primary">
-                Termos de Serviço
-            </a>{' '}
-            e{' '}
-            <a href="#" className="underline underline-offset-4 hover:text-primary">
-                Política de Privacidade
-            </a>
-            .
-        </p>
+        
+        {status === "processing" ? (
+           <div className="flex flex-col items-center justify-center text-center space-y-4">
+              <p className="text-muted-foreground">{message}</p>
+              <LoaderCircle className="h-6 w-6 animate-spin" />
+          </div>
+        ) : (
+          <>
+            <div className="grid gap-4">
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={handleGoogle}
+                disabled={status !== 'idle'}
+              >
+                <GoogleIcon />
+                Entrar com Google
+              </Button>
+            </div>
+            <p className="px-8 text-center text-sm text-muted-foreground mt-6">
+              Ao clicar em continuar, você concorda com nossos{' '}
+              <a href="#" className="underline underline-offset-4 hover:text-primary">
+                  Termos de Serviço
+              </a>{' '}
+              e{' '}
+              <a href="#" className="underline underline-offset-4 hover:text-primary">
+                  Política de Privacidade
+              </a>
+              .
+            </p>
+          </>
+        )}
       </div>
     </div>
   );
