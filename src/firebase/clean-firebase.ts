@@ -14,6 +14,10 @@ let app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const auth: Auth = getAuth(app);
 const db: Firestore = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({
+  prompt: 'select_account',
+});
+
 
 // Corrige o problema de domínio de autenticação no ambiente dev
 if (typeof window !== 'undefined' && window.location.hostname.includes("cloudworkstations.dev")) {
