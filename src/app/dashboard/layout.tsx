@@ -75,6 +75,7 @@ const BottomNavBar = () => {
 function DashboardGuard({ children }: { children: ReactNode }) {
   const router = useRouter();
   const { user, loading } = useAuth();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (!loading && !user) {
@@ -129,7 +130,7 @@ function DashboardGuard({ children }: { children: ReactNode }) {
           {children}
         </main>
       </SidebarInset>
-      {useIsMobile() && <BottomNavBar />}
+      {isMobile && <BottomNavBar />}
     </SidebarProvider>
   );
 }
