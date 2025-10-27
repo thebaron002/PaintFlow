@@ -1,8 +1,9 @@
+
 'use client';
 
 import type { User } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from './firebase-client';
+import { db } from './clean-firebase';
 import type { UserProfile } from '@/app/lib/types';
 
 /**

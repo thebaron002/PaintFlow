@@ -6,7 +6,7 @@ import {
   GoogleAuthProvider,
   type Auth,
 } from "firebase/auth";
-import { getFirestore, type Firestore } from "firestore";
+import { getFirestore, type Firestore } from "firebase/firestore";
 import { firebaseConfig } from "./config";
 
 
