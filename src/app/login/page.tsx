@@ -1,4 +1,3 @@
-
 // src/app/login/page.tsx
 "use client";
 export const dynamic = "force-dynamic";
@@ -9,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { LoaderCircle } from "lucide-react";
 import { Logo } from "@/components/logo";
 import {
-  auth, googleProvider, authReadyPromise,
+  auth, googleProvider,
   getRedirectResultOnce, isInIframe, markRedirectPending
 } from "@/firebase/firebase-client";
 import { signInWithRedirect, signInWithPopup } from "firebase/auth";

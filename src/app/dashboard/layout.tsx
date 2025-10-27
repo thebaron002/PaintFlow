@@ -1,9 +1,7 @@
-
 // src/app/dashboard/layout.tsx
 "use client";
 
-import { ReactNode, useEffect, useState } from "react";
-import { useUser } from "@/firebase";
+import { ReactNode, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import {
@@ -35,8 +33,7 @@ import { UserNav } from "@/components/user-nav";
 import { Logo } from "@/components/logo";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
-import { Skeleton } from "@/components/ui/skeleton";
-
+import { useAuthBootstrap } from "@/firebase/use-auth-bootstrap";
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -74,16 +71,15 @@ const BottomNavBar = () => {
   );
 };
 
-
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const { user, isUserLoading } = useUser();
-  const isMobile = useIsMobile();
   const pathname = usePathname();
+  const { initializing, user } = useAuthBootstrap();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     // Don't redirect until the auth state is fully determined.
-    if (isUserLoading) {
+    if (initializing) {
       return;
     }
 
@@ -93,46 +89,20 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       const callbackParam = encodeURIComponent(pathname);
       router.replace(`/login?callbackUrl=${callbackParam}`);
     }
-  }, [user, isUserLoading, router, pathname]);
+  }, [initializing, user, router, pathname]);
 
-  const renderLoadingState = () => (
-    <div className="flex-1 flex items-center justify-center">
-      <div className="flex flex-col items-center gap-2">
-        <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-muted-foreground">Carregando seu painel...</p>
-      </div>
-    </div>
-  );
-
-  if (isUserLoading) {
+  if (initializing) {
     return (
-      <SidebarProvider>
-         <div className="flex min-h-screen w-full flex-col bg-background">
-            <header className="sticky top-0 flex h-14 items-center gap-4 border-b bg-background px-4 md:px-6">
-                 <Logo className="text-foreground" />
-                 <div className="ml-auto flex items-center gap-4">
-                    <Skeleton className="h-9 w-9 rounded-full" />
-                 </div>
-            </header>
-            <main className="flex-1 flex items-center justify-center">
-                 {renderLoadingState()}
-            </main>
-         </div>
-      </SidebarProvider>
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
+      </div>
     );
   }
 
   // If there's no user, the useEffect will handle the redirect.
-  // Render a loading state to prevent a flash of the dashboard.
+  // Render null to prevent a flash of the dashboard.
   if (!user) {
-      return (
-         <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
-            <div className="flex flex-col items-center gap-2">
-                <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
-                <p className="text-muted-foreground">Redirecionando para login...</p>
-            </div>
-         </div>
-      )
+      return null;
   }
 
   return (
