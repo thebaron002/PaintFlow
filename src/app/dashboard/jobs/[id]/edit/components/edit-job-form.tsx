@@ -162,13 +162,13 @@ export function EditJobForm({ job, onSuccess }: EditJobFormProps) {
               render={({ field }) => (
                 <FormItem className="flex flex-col">
                   <FormLabel>Start Date</FormLabel>
-                    <FormControl>
-                        <ResponsiveDatePicker
-                            value={field.value}
-                            onChange={field.onChange}
-                            placeholder="Pick a date"
-                        />
-                    </FormControl>
+                  <div className="relative z-[9999] pointer-events-auto">
+                    <ResponsiveDatePicker
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder="Pick a date"
+                    />
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}

@@ -80,8 +80,8 @@ export function NewJobForm({ onSuccess }: NewJobFormProps) {
       workOrderNumber: data.workOrderNumber,
       address: data.address,
       clientName: data.clientName,
-      startDate: format(data.startDate, "yyyy-MM-dd"), // ✅ data “pura”, sem fuso
-      deadline: format(new Date(), "yyyy-MM-dd"),      // coloque a lógica real depois
+      startDate: format(data.startDate, "yyyy-MM-dd"),
+      deadline: format(new Date(), "yyyy-MM-dd"),
       specialRequirements: "",
       status: "Not Started",
       budget: data.initialValue, // budget is payout
@@ -167,13 +167,13 @@ export function NewJobForm({ onSuccess }: NewJobFormProps) {
               render={({ field }) => (
                 <FormItem className="flex flex-col">
                   <FormLabel>Start Date</FormLabel>
-                   <FormControl>
-                      <ResponsiveDatePicker 
-                        value={field.value}
-                        onChange={field.onChange}
-                        placeholder="Pick a date"
-                      />
-                   </FormControl>
+                    <div className="relative z-[9999] pointer-events-auto">
+                        <ResponsiveDatePicker
+                            value={field.value}
+                            onChange={field.onChange}
+                            placeholder="Pick a date"
+                        />
+                    </div>
                   <FormMessage />
                 </FormItem>
               )}

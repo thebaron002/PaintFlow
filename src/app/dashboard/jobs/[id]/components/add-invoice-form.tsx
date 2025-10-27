@@ -150,13 +150,13 @@ export function AddInvoiceForm({ jobId, existingInvoices, origins, onSuccess, in
             render={({ field }) => (
                 <FormItem className="flex flex-col">
                 <FormLabel>Date</FormLabel>
-                   <FormControl>
+                    <div className="relative z-[9999] pointer-events-auto">
                         <ResponsiveDatePicker
                             value={field.value}
                             onChange={field.onChange}
                             placeholder="Pick a date"
                         />
-                   </FormControl>
+                    </div>
                 <FormMessage />
                 </FormItem>
             )}
