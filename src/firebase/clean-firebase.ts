@@ -12,6 +12,7 @@ import {
   inMemoryPersistence,
   GoogleAuthProvider,
   type Auth,
+  browserSessionPersistence,
 } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
 
@@ -45,8 +46,13 @@ export const initAuthPromise = (async () => {
       await setPersistence(auth, browserLocalPersistence);
       console.debug("[initAuth] using browserLocalPersistence");
     } catch (e2) {
-      await setPersistence(auth, inMemoryPersistence);
-      console.debug("[initAuth] using inMemoryPersistence (fallback)");
+      try {
+        await setPersistence(auth, browserSessionPersistence);
+        console.debug("[initAuth] using browserSessionPersistence (fallback)");
+      } catch (e3) {
+        await setPersistence(auth, inMemoryPersistence);
+        console.debug("[initAuth] using inMemoryPersistence (last fallback)");
+      }
     }
   }
 })();
