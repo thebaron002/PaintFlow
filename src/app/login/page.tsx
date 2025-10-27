@@ -1,14 +1,15 @@
 'use client';
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useAuth } from "../../hooks/useAuth";
-import { AuthForm } from "../../components/AuthForm";
 import { useRouter } from "next/navigation";
 import { LoaderCircle } from "lucide-react";
+import { Logo } from "@/components/logo";
+import { Button } from "@/components/ui/button";
+import { FcGoogle } from "react-icons/fc";
 
 function LoginInner() {
-  const { user, loading, signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth();
+  const { user, loading, signInWithGoogle } = useAuth();
   const router = useRouter();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [err, setErr] = useState<string | null>(null);
   const redirectedRef = useRef(false);
 
@@ -19,64 +20,59 @@ function LoginInner() {
     }
   }, [user, loading, router]);
 
-  if (loading || user) {
+  if (loading || (!loading && user)) {
       return (
-        <div className="min-h-screen flex items-center justify-center">
-            <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
+        <div className="min-h-screen flex flex-col items-center justify-center bg-muted/20">
+            <Logo />
+            <LoaderCircle className="h-8 w-8 animate-spin text-primary mt-4" />
         </div>
       );
   }
 
+  const handleLogin = async () => {
+    setErr(null);
+    try {
+      await signInWithGoogle();
+    } catch (e: any) {
+      setErr(e?.message || e?.code || "An unknown error occurred during sign-in.");
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-6">
-      <div className="w-full max-w-sm bg-white p-6 rounded shadow">
-        <h2 className="text-xl font-semibold mb-4">Entrar</h2>
-
-        {err && <div className="text-sm text-red-600 mb-3">{err}</div>}
-
-        <button
-          onClick={async () => {
-            setErr(null);
-            try {
-              await signInWithGoogle();
-            } catch (e: any) {
-              setErr(e?.message || e?.code || "Erro no login com Google");
-            }
-          }}
-          className="w-full border py-2 rounded mb-4 flex items-center justify-center gap-2"
-        >
-          Entrar com Google
-        </button>
-
-        <div className="text-center text-sm text-muted mb-3">ou</div>
-
-        <div className="mb-3">
-          <div className="flex justify-between items-center mb-2">
-            <div className="text-sm">{mode === "signin" ? "Entrar com e-mail" : "Criar conta"}</div>
-            <button className="text-xs underline" onClick={() => setMode(mode === "signin" ? "signup" : "signin")}>
-              {mode === "signin" ? "Criar conta" : "Já tem conta?"}
-            </button>
-          </div>
-
-          <AuthForm
-            mode={mode}
-            onSubmit={async (email, password) => {
-              setErr(null);
-              try {
-                if (mode === "signup") await signUpWithEmail(email, password);
-                else await signInWithEmail(email, password);
-              } catch (e: any) {
-                throw e;
-              }
-            }}
-          />
+    <div className="min-h-screen flex flex-col items-center justify-center bg-muted/20 p-6 text-center">
+      <div className="w-full max-w-sm mx-auto">
+        <div className="mb-8">
+            <Logo />
         </div>
+        <h1 className="text-3xl font-bold font-headline tracking-tight">Welcome Back</h1>
+        <p className="text-muted-foreground mt-2 mb-8">
+          Sign in to manage your painting business.
+        </p>
+
+        {err && <div className="text-sm text-red-600 mb-4 bg-destructive/10 p-3 rounded-md">{err}</div>}
+        
+        <Button onClick={handleLogin} size="lg" className="w-full">
+            <FcGoogle className="mr-2 h-5 w-5" />
+            Sign in with Google
+        </Button>
+        
+        <p className="text-xs text-muted-foreground mt-8">
+          By clicking continue, you agree to our{" "}
+          <a href="#" className="underline hover:text-primary">
+            Terms of Service
+          </a>{" "}
+          and{" "}
+          <a href="#" className="underline hover:text-primary">
+            Privacy Policy
+          </a>
+          .
+        </p>
       </div>
     </div>
   );
 }
 
-export default function LoginPageWrapper() {
-  // AuthProvider is in layout.tsx, so we don't need it here.
+export default function LoginPage() {
+  // AuthProvider is already in layout.tsx, so we don't need it here.
   return <LoginInner />;
 }
