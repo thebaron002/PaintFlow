@@ -1,54 +1,51 @@
-// "use client" NÃO aqui; este módulo é importado por client components.
 import { onAuthStateChanged, getRedirectResult, type User } from "firebase/auth";
 import { auth } from "./firebase-client";
 
-// roda uma única vez por carga de app
-let _bootPromise: Promise<void> | null = null;
-let _bootResolved = false;
-
-// estado atual do usuário (sempre sincronizado após bootstrap)
-let _currentUser: User | null = null;
+let _bootOnce: Promise<void> | null = null;
+let _firstUser: User | null = null;
 let _haveInitialUser = false;
 
-export function getCurrentUserSync() {
-  return _currentUser;
+// flag global: estamos no meio de um signInWithRedirect
+let _redirectPending = false;
+
+export function setRedirectPending(on: boolean) {
+  _redirectPending = on;
+  try {
+    if (typeof window !== "undefined") {
+      on ? localStorage.setItem("pf_redirect_pending", "1")
+         : localStorage.removeItem("pf_redirect_pending");
+    }
+  } catch {}
 }
-export function haveInitialUserSync() {
-  return _haveInitialUser;
+export function isRedirectPending() {
+  if (_redirectPending) return true;
+  try {
+    return typeof window !== "undefined" &&
+           localStorage.getItem("pf_redirect_pending") === "1";
+  } catch { return false; }
 }
 
-// chama no começo de QUALQUER tela protegida / login
+export function haveInitialUserSync() { return _haveInitialUser; }
+export function getCurrentUserSync() { return _firstUser; }
+
+/** Processa (1) resultado do redirect e (2) captura o 1º snapshot de auth – UMA VEZ */
 export function ensureAuthBootstrapped(): Promise<void> {
-  if (_bootPromise) return _bootPromise;
-  _bootPromise = (async () => {
-    // 1) processa resultado do redirect (se houver); não falha o bootstrap se não houver
-    try { await getRedirectResult(auth); } catch { /* ignore */ }
+  if (_bootOnce) return _bootOnce;
 
-    // 2) aguarda o PRIMEIRO snapshot de auth (estado inicial coerente)
+  _bootOnce = (async () => {
+    // 1) processa o resultado do redirect primeiro (se houver)
+    try { await getRedirectResult(auth); } catch { /* ignora cancel/sem resultado */ }
+    // 2) espera o primeiro estado estável de usuário
     await new Promise<void>((resolve) => {
       const unsub = onAuthStateChanged(
         auth,
-        (u) => {
-          _currentUser = u;
-          _haveInitialUser = true;
-          unsub();
-          resolve();
-        },
-        () => {
-          _currentUser = null;
-          _haveInitialUser = true;
-          unsub();
-          resolve();
-        }
+        (u) => { _firstUser = u; _haveInitialUser = true; unsub(); resolve(); },
+        () => { _firstUser = null; _haveInitialUser = true; unsub(); resolve(); }
       );
     });
-
-    _bootResolved = true;
+    // se chegamos aqui, não há mais redirect em curso
+    setRedirectPending(false);
   })();
 
-  return _bootPromise;
-}
-
-export function bootResolved() {
-  return _bootResolved;
+  return _bootOnce;
 }

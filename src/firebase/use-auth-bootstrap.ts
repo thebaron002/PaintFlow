@@ -1,39 +1,34 @@
 "use client";
-
 import { useEffect, useState } from "react";
+import { auth } from "./firebase-client";
+import { onAuthStateChanged } from "firebase/auth";
 import {
   ensureAuthBootstrapped,
   getCurrentUserSync,
   haveInitialUserSync,
+  isRedirectPending,
 } from "./auth-bootstrap";
-import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "./firebase-client";
 
 export function useAuthBootstrap() {
   const [initializing, setInitializing] = useState(!haveInitialUserSync());
   const [user, setUser] = useState(getCurrentUserSync());
+  const [redirectPending, setRedirectPending] = useState(isRedirectPending());
 
   useEffect(() => {
-    let active = true;
-
-    // garante bootstrap (redirect -> primeiro user)
+    let alive = true;
     ensureAuthBootstrapped().then(() => {
-      if (!active) return;
+      if (!alive) return;
       setInitializing(false);
       setUser(getCurrentUserSync());
+      setRedirectPending(isRedirectPending());
     });
-
-    // mantém sincronizado depois do bootstrap
     const unsub = onAuthStateChanged(auth, (u) => {
-      if (!active) return;
+      if (!alive) return;
       setUser(u);
+      setRedirectPending(isRedirectPending());
     });
-
-    return () => {
-      active = false;
-      unsub();
-    };
+    return () => { alive = false; unsub(); };
   }, []);
 
-  return { initializing, user };
+  return { initializing, user, redirectPending };
 }

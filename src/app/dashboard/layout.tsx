@@ -74,24 +74,18 @@ const BottomNavBar = () => {
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { initializing, user } = useAuthBootstrap();
-  const isMobile = useIsMobile();
+  const { initializing, user, redirectPending } = useAuthBootstrap();
 
   useEffect(() => {
-    // Don't redirect until the auth state is fully determined.
-    if (initializing) {
-      return;
+    if (initializing) return;
+    if (redirectPending) return; // ⚠️ NÃO chuta pra /login durante redirect
+    if (!user && pathname !== "/login") {
+       const callbackParam = encodeURIComponent(pathname);
+       router.replace(`/login?callbackUrl=${callbackParam}`);
     }
+  }, [initializing, user, redirectPending, pathname, router]);
 
-    if (!user) {
-      // User is not logged in, redirect to login page.
-      // Preserve the current path to redirect back after login.
-      const callbackParam = encodeURIComponent(pathname);
-      router.replace(`/login?callbackUrl=${callbackParam}`);
-    }
-  }, [initializing, user, router, pathname]);
-
-  if (initializing) {
+  if (initializing || redirectPending) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
         <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
@@ -99,8 +93,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     );
   }
 
-  // If there's no user, the useEffect will handle the redirect.
-  // Render null to prevent a flash of the dashboard.
   if (!user) {
       return null;
   }
@@ -140,7 +132,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           {children}
         </main>
       </SidebarInset>
-      {isMobile && <BottomNavBar />}
+      {useIsMobile() && <BottomNavBar />}
     </SidebarProvider>
   );
 }
