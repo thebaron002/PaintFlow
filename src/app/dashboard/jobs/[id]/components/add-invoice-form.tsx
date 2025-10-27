@@ -71,6 +71,7 @@ export function AddInvoiceForm({ jobId, existingInvoices, origins, onSuccess, in
       origin: "",
       amount: 0,
       notes: "",
+      date: "",
       isPayoutDiscount: false,
     },
   });
