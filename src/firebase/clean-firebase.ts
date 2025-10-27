@@ -15,5 +15,11 @@ const auth: Auth = getAuth(app);
 const db: Firestore = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
 
+// Corrige o problema de domínio de autenticação no ambiente dev
+if (typeof window !== 'undefined' && window.location.hostname.includes("cloudworkstations.dev")) {
+  auth.useDeviceLanguage();
+  auth.config.authDomain = window.location.hostname;
+}
+
 
 export { app, auth, db, googleProvider };
