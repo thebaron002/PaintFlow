@@ -41,7 +41,6 @@ function isSafariOrIos(): boolean {
   return isiOS || isSafariDesktop;
 }
 
-
 export async function signInWithGooglePopupOrRedirect(): Promise<void> {
   await initAuthPromise;
 

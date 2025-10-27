@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "../../hooks/useAuth";
 import { AuthForm } from "../../components/AuthForm";
 import { useRouter } from "next/navigation";
+import { LoaderCircle } from "lucide-react";
 
 function LoginInner() {
   const { user, loading, signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth();
@@ -16,10 +17,14 @@ function LoginInner() {
       redirectedRef.current = true;
       router.replace("/dashboard");
     }
-  }, [user, loading]);
+  }, [user, loading, router]);
 
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Carregando...</div>;
+  if (loading || user) {
+      return (
+        <div className="min-h-screen flex items-center justify-center">
+            <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      );
   }
 
   return (
