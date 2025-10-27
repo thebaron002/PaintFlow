@@ -77,12 +77,13 @@ export function ResponsiveDatePicker({ value, onChange, placeholder = "Pick a da
     );
   }
 
+  const triggerClasses = cn("justify-start pl-3 text-left font-normal w-full", !value && "text-muted-foreground")
   // Botão gatilho (desktop e mobile não-iOS)
   const trigger = (
     <Button
       type="button"
       variant="outline"
-      className={cn("justify-start pl-3 text-left font-normal w-full", !value && "text-muted-foreground")}
+      className={triggerClasses}
       onClick={() => setOpen((v) => !v)}
       role="button"
       tabIndex={0}
@@ -135,7 +136,10 @@ export function ResponsiveDatePicker({ value, onChange, placeholder = "Pick a da
       <Popover open={open} onOpenChange={setOpen} modal>
         <PopoverTrigger asChild>
           <div onClick={() => setOpen(true)} className="w-full">
-            {trigger}
+            <Button type="button" variant="outline" className={triggerClasses}>
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {value ? format(value, "PPP", { locale: ptBR }) : <span>{placeholder}</span>}
+            </Button>
           </div>
         </PopoverTrigger>
         <PopoverContent
@@ -152,7 +156,6 @@ export function ResponsiveDatePicker({ value, onChange, placeholder = "Pick a da
               onChange(d);
               setOpen(false);
             }}
-            initialFocus
           />
         </PopoverContent>
       </Popover>
