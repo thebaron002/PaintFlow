@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useDoc, useFirestore, useMemoFirebase, useUser } from "@/firebase";
+import { useDoc, useFirestore, useMemoFirebase } from "@/firebase";
 import { doc } from "firebase/firestore";
 import type { GeneralSettings } from "@/app/lib/types";
 import { PageHeader } from "@/components/page-header";
