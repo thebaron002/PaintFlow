@@ -18,7 +18,6 @@ import type { Job, GeneralSettings } from "@/app/lib/types";
 import { Switch } from "@/components/ui/switch";
 import { useFirestore, addDocumentNonBlocking, useUser } from "@/firebase";
 import { collection, doc, getDoc } from "firebase/firestore";
-import { ResponsiveDatePicker } from "@/components/ui/responsive-date-picker";
 import { format } from "date-fns";
 
 const jobSchema = z.object({
@@ -26,7 +25,11 @@ const jobSchema = z.object({
   clientName: z.string().min(1, "Client name is required"),
   workOrderNumber: z.string().min(1, "Work order number is required"),
   address: z.string().min(1, "Address is required"),
-  startDate: z.date({ required_error: "Start date is required." }),
+  startDate: z.string().min(1, 'Start date is required').refine((val) => {
+       return !Number.isNaN(Date.parse(val));
+     }, {
+       message: 'Invalid date',
+     }),
   initialValue: z.coerce.number().min(0, "Initial value must be a positive number"),
   isFixedPay: z.boolean().default(false),
 });
@@ -80,8 +83,8 @@ export function NewJobForm({ onSuccess }: NewJobFormProps) {
       workOrderNumber: data.workOrderNumber,
       address: data.address,
       clientName: data.clientName,
-      startDate: format(data.startDate, "yyyy-MM-dd"),
-      deadline: format(new Date(), "yyyy-MM-dd"),
+      startDate: new Date(data.startDate + 'T12:00:00').toISOString(),
+      deadline: new Date().toISOString(),
       specialRequirements: "",
       status: "Not Started",
       budget: data.initialValue, // budget is payout
@@ -161,23 +164,22 @@ export function NewJobForm({ onSuccess }: NewJobFormProps) {
         />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="startDate"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Start Date</FormLabel>
-                    <div className="relative z-[9999] pointer-events-auto">
-                        <ResponsiveDatePicker
-                            value={field.value}
-                            onChange={field.onChange}
-                            placeholder="Pick a date"
-                        />
-                    </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+             <FormField
+                control={form.control}
+                name="startDate"
+                render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                    <FormLabel>Start Date</FormLabel>
+                    <input
+                        type="date"
+                        className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        value={field.value ?? ''}
+                        onChange={(e) => field.onChange(e.target.value)}
+                    />
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
             <FormField
               control={form.control}
               name="initialValue"

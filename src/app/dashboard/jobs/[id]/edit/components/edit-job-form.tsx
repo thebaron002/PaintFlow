@@ -14,19 +14,20 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { ResponsiveDatePicker } from "@/components/ui/responsive-date-picker";
-import { format } from "date-fns";
 import type { Job, GeneralSettings } from "@/app/lib/types";
 import { Switch } from "@/components/ui/switch";
 import { useFirestore, updateDocumentNonBlocking, useUser } from "@/firebase";
 import { doc, getDoc } from "firebase/firestore";
+import { format, parseISO } from "date-fns";
 
 const jobSchema = z.object({
   title: z.string().optional(),
   clientName: z.string().min(1, "Client name is required"),
   workOrderNumber: z.string().min(1, "Work order number is required"),
   address: z.string().min(1, "Address is required"),
-  startDate: z.date({ required_error: "Start date is required." }),
+  startDate: z.string().min(1, 'Start date is required').refine((val) => !isNaN(Date.parse(val)), {
+    message: 'Invalid date',
+  }),
   initialValue: z.coerce.number().min(0, "Initial value must be a positive number"),
   isFixedPay: z.boolean().default(false),
 });
@@ -49,7 +50,7 @@ export function EditJobForm({ job, onSuccess }: EditJobFormProps) {
       clientName: job.clientName || "",
       workOrderNumber: job.workOrderNumber || "",
       address: job.address || "",
-      startDate: new Date(job.startDate),
+      startDate: format(parseISO(job.startDate), 'yyyy-MM-dd'),
       initialValue: job.initialValue || 0,
       isFixedPay: job.isFixedPay || false,
     },
@@ -83,7 +84,7 @@ export function EditJobForm({ job, onSuccess }: EditJobFormProps) {
       workOrderNumber: data.workOrderNumber,
       address: data.address,
       clientName: data.clientName,
-      startDate: format(data.startDate, "yyyy-MM-dd"),
+      startDate: new Date(data.startDate + 'T12:00:00').toISOString(),
       budget: data.initialValue, // budget is payout
       initialValue: data.initialValue,
       isFixedPay: data.isFixedPay,
@@ -162,13 +163,12 @@ export function EditJobForm({ job, onSuccess }: EditJobFormProps) {
               render={({ field }) => (
                 <FormItem className="flex flex-col">
                   <FormLabel>Start Date</FormLabel>
-                  <div className="relative z-[9999] pointer-events-auto">
-                    <ResponsiveDatePicker
-                        value={field.value}
-                        onChange={field.onChange}
-                        placeholder="Pick a date"
+                   <input
+                        type="date"
+                        className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        value={field.value ?? ''}
+                        onChange={(e) => field.onChange(e.target.value)}
                     />
-                  </div>
                   <FormMessage />
                 </FormItem>
               )}

@@ -30,14 +30,6 @@ import { Button } from "@/components/ui/button";
 import { PlusCircle, MapPin, User } from "lucide-react";
 import { JobActions } from "./components/job-actions";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { NewJobForm } from "./components/new-job-form";
 import { useToast } from "@/hooks/use-toast";
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { collection, query, where, doc } from "firebase/firestore";
@@ -206,8 +198,6 @@ const JobsTabContent = ({ status, hourlyRate }: { status: Job["status"], hourlyR
 };
 
 export default function JobsPage() {
-  const [isNewJobOpen, setIsNewJobOpen] = useState(false);
-  const { toast } = useToast();
   const jobStatuses: Job["status"][] = ["Not Started", "In Progress", "Complete", "Open Payment", "Finalized"];
   const firestore = useFirestore();
 
@@ -218,31 +208,15 @@ export default function JobsPage() {
   const { data: settings } = useDoc<GeneralSettings>(settingsRef);
   const hourlyRate = settings?.hourlyRate ?? 0;
   
-  const handleJobCreated = () => {
-    setIsNewJobOpen(false);
-    toast({
-      title: "Job Created!",
-      description: "The new job has been added to the list.",
-    });
-  };
-
   return (
     <div>
       <PageHeader title="My Jobs">
-         <Dialog open={isNewJobOpen} onOpenChange={setIsNewJobOpen} modal={false}>
-            <DialogTrigger asChild>
-                <Button>
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  New Job
-                </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[625px]">
-                <DialogHeader>
-                    <DialogTitle>Create New Job</DialogTitle>
-                </DialogHeader>
-                <NewJobForm onSuccess={handleJobCreated} />
-            </DialogContent>
-        </Dialog>
+         <Button asChild>
+            <Link href="/dashboard/jobs/new">
+                <PlusCircle className="mr-2 h-4 w-4" />
+                New Job
+            </Link>
+         </Button>
       </PageHeader>
       <Tabs defaultValue="Not Started">
         <TabsList className="grid w-full grid-cols-5 mb-4">

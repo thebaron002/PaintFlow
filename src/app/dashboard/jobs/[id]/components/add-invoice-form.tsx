@@ -20,7 +20,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Trash2 } from "lucide-react";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { useFirestore, updateDocumentNonBlocking, useUser } from "@/firebase";
 import { doc } from "firebase/firestore";
 import type { Job } from "@/app/lib/types";
@@ -37,11 +37,10 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Switch } from "@/components/ui/switch";
-import { ResponsiveDatePicker } from "@/components/ui/responsive-date-picker";
 
 const invoiceSchema = z.object({
   origin: z.string().min(1, "Origin is required."),
-  date: z.date({ required_error: "Invoice date is required." }),
+  date: z.string().min(1, 'Date is required').refine((val) => !isNaN(Date.parse(val)), { message: 'Invalid date' }),
   amount: z.coerce.number().min(0.01, "Amount must be greater than 0."),
   notes: z.string().optional(),
   isPayoutDiscount: z.boolean().default(false),
@@ -66,7 +65,7 @@ export function AddInvoiceForm({ jobId, existingInvoices, origins, onSuccess, in
     resolver: zodResolver(invoiceSchema),
     defaultValues: isEditing ? {
         ...invoiceToEdit,
-        date: new Date(invoiceToEdit.date),
+        date: format(parseISO(invoiceToEdit.date), 'yyyy-MM-dd'),
         isPayoutDiscount: invoiceToEdit.isPayoutDiscount || false,
     } : {
       origin: "",
@@ -91,13 +90,13 @@ export function AddInvoiceForm({ jobId, existingInvoices, origins, onSuccess, in
 
     if(isEditing) {
         updatedInvoices = existingInvoices.map(inv => 
-            inv.id === invoiceToEdit.id ? { ...inv, ...data, date: format(data.date, "yyyy-MM-dd") } : inv
+            inv.id === invoiceToEdit.id ? { ...inv, ...data, date: new Date(data.date + 'T12:00:00').toISOString() } : inv
         );
     } else {
         const newInvoice = {
             id: uuidv4(),
             ...data,
-            date: format(data.date, "yyyy-MM-dd"),
+            date: new Date(data.date + 'T12:00:00').toISOString(),
         };
         updatedInvoices = [...existingInvoices, newInvoice];
     }
@@ -150,13 +149,12 @@ export function AddInvoiceForm({ jobId, existingInvoices, origins, onSuccess, in
             render={({ field }) => (
                 <FormItem className="flex flex-col">
                 <FormLabel>Date</FormLabel>
-                    <div className="relative z-[9999] pointer-events-auto">
-                        <ResponsiveDatePicker
-                            value={field.value}
-                            onChange={field.onChange}
-                            placeholder="Pick a date"
-                        />
-                    </div>
+                    <input
+                        type="date"
+                        className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        value={field.value ?? ''}
+                        onChange={(e) => field.onChange(e.target.value)}
+                    />
                 <FormMessage />
                 </FormItem>
             )}
