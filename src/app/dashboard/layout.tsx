@@ -2,8 +2,7 @@
 'use client';
 import { ReactNode, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/useAuth';
-import { LoaderCircle } from 'lucide-react';
+import { LoaderCircle, Palette } from 'lucide-react';
 import Link from 'next/link';
 import {
   Briefcase,
@@ -35,6 +34,7 @@ import { Logo } from '@/components/logo';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { usePathname } from 'next/navigation';
+import { useUser } from '@/firebase';
 
 
 const navItems = [
@@ -46,11 +46,12 @@ const navItems = [
   { href: "/dashboard/crew", icon: Users, label: "Crew" },
   { href: "/dashboard/profile", icon: UserIcon, label: "Profile" },
   { href: "/dashboard/settings", icon: Settings, label: "Settings" },
+  { href: "/dashboard/styleguide", icon: Palette, label: "Styleguide" },
   { href: "/dashboard/migrate", icon: HardHat, label: "Migrate" },
 ];
 
 const mobileNavItems = navItems.filter(item => 
-    !["/dashboard/migrate", "/dashboard/profile", "/dashboard/settings"].includes(item.href)
+    !["/dashboard/migrate", "/dashboard/profile", "/dashboard/settings", "/dashboard/styleguide"].includes(item.href)
 );
 
 const BottomNavBar = () => {
@@ -59,7 +60,7 @@ const BottomNavBar = () => {
   const navGridCols = `grid-cols-${mobileNavItems.length > maxItems ? maxItems : mobileNavItems.length}`;
 
   const isDashboard = pathname === '/dashboard';
-  const navBgClass = isDashboard ? 'bg-transparent border-t-0' : 'bg-background/80 backdrop-blur-sm border-t';
+  const navBgClass = isDashboard ? 'bg-transparent' : 'bg-background/80 backdrop-blur-sm border-t';
 
   return (
     <div className={cn("md:hidden fixed bottom-0 left-0 z-50 w-full h-16", navBgClass)}>
@@ -88,28 +89,24 @@ const BottomNavBar = () => {
 function DashboardGuard({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, loading } = useAuth();
+  const { user, isUserLoading } = useUser();
   const isMobile = useIsMobile();
-  const isDashboardPage = pathname === '/dashboard';
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (!isUserLoading && !user) {
       router.replace('/login');
     }
-  }, [user, loading, router]);
+  }, [user, isUserLoading, router]);
 
-  if (loading) {
+  if (isUserLoading || !user) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
-
-  if (!user) {
-    return null;
-  }
   
+  const isDashboardPage = pathname === '/dashboard';
   const sidebarVariant = isDashboardPage ? 'floating' : 'sidebar';
   const sidebarClass = isDashboardPage ? 'text-white border-white/20' : '';
   const insetClass = isDashboardPage ? 'bg-transparent' : 'bg-background';
@@ -119,14 +116,14 @@ function DashboardGuard({ children }: { children: ReactNode }) {
       <Sidebar variant={sidebarVariant} className={sidebarClass}>
         <SidebarHeader>
           <div className="p-2">
-            <Logo className={isDashboardPage ? 'text-white' : 'text-sidebar-foreground'} />
+            <Logo className={isDashboardPage ? 'text-white' : ''} />
           </div>
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
             {navItems.map(({ href, icon: Icon, label }) => (
                <SidebarMenuItem key={label}>
-                <SidebarMenuButton asChild tooltip={label} isActive={pathname === href}>
+                <SidebarMenuButton asChild tooltip={label} isActive={pathname.startsWith(href)}>
                   <Link href={href}>
                     <Icon />
                     <span>{label}</span>
@@ -138,7 +135,7 @@ function DashboardGuard({ children }: { children: ReactNode }) {
         </SidebarContent>
         <SidebarFooter>{/* Footer content if any */}</SidebarFooter>
       </Sidebar>
-      <SidebarInset className={insetClass}>
+      <SidebarInset className={cn('app-bg', insetClass)}>
         {!isDashboardPage && (
             <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/80 backdrop-blur-sm px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 py-4">
             <SidebarTrigger className="sm:hidden" />
@@ -149,7 +146,7 @@ function DashboardGuard({ children }: { children: ReactNode }) {
         )}
         <main className={cn(
             "flex-1 flex flex-col",
-            !isDashboardPage && "p-4 sm:px-6 sm:py-0",
+            isDashboardPage ? "p-0" : "p-4 sm:px-6 sm:py-0",
             "pb-20 md:pb-4"
         )}>
           {children}
