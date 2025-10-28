@@ -1,6 +1,5 @@
 
 import type {NextConfig} from 'next';
-import { getAuth } from 'firebase-admin/auth';
 
 const nextConfig: NextConfig = {
   /* config options here */
