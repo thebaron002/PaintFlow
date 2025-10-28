@@ -9,15 +9,30 @@ import { Logo } from "@/components/logo";
 import { useAuth } from "@/hooks/useAuth";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogTrigger,
+  DialogClose,
+} from "@/components/ui/dialog";
+
 
 export default function LoginPage() {
   const router = useRouter();
   const { user, loading, auth } = useAuth();
+  const { toast } = useToast();
   const [status, setStatus] = useState<"idle" | "authenticating" | "error">("idle");
   const [message, setMessage] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [resetEmail, setResetEmail] = useState("");
+  const [isResetting, setIsResetting] = useState(false);
 
   if (loading) {
      return (
@@ -61,6 +76,36 @@ export default function LoginPage() {
     }
   };
 
+  const handlePasswordReset = async () => {
+    if (!resetEmail) {
+        toast({
+            variant: "destructive",
+            title: "Email Required",
+            description: "Please enter your email address.",
+        });
+        return;
+    }
+    setIsResetting(true);
+    try {
+        await sendPasswordResetEmail(auth, resetEmail);
+        toast({
+            title: "Email Sent",
+            description: "Check your inbox for a password reset link.",
+        });
+        setResetEmail("");
+        // This will close the dialog, which we can do by finding a way to trigger the close button if needed,
+        // but for now, the user can close it manually. A better UX could involve a prop to control the open state.
+    } catch (error: any) {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: error.message || "Failed to send password reset email.",
+        });
+    } finally {
+        setIsResetting(false);
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm">
@@ -83,7 +128,47 @@ export default function LoginPage() {
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="password">Password</Label>
+             <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                 <Dialog>
+                    <DialogTrigger asChild>
+                        <Button variant="link" className="px-0 h-auto text-xs">
+                            Esqueceu sua senha?
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Reset Password</DialogTitle>
+                            <DialogDescription>
+                                Enter your email address and we'll send you a link to reset your password.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="reset-email">Email</Label>
+                                <Input
+                                    id="reset-email"
+                                    type="email"
+                                    placeholder="m@example.com"
+                                    value={resetEmail}
+                                    onChange={(e) => setResetEmail(e.target.value)}
+                                />
+                            </div>
+                        </div>
+                        <DialogFooter>
+                          <DialogClose asChild>
+                            <Button type="button" variant="secondary">
+                              Cancel
+                            </Button>
+                          </DialogClose>
+                           <Button onClick={handlePasswordReset} disabled={isResetting}>
+                                {isResetting ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                Send Reset Link
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            </div>
             <Input 
               id="password" 
               type="password" 
