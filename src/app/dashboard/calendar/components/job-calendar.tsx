@@ -35,7 +35,7 @@ export function JobCalendar({ jobs }: { jobs: Job[] }) {
               head_row: "w-full",
               row: "w-full",
               caption_label: "font-headline",
-              day_selected: "bg-transparent text-primary hover:bg-transparent hover:text-primary focus:bg-transparent focus:text-primary font-bold",
+              day_selected: "text-primary font-bold",
               day_today: "bg-accent text-accent-foreground",
             }}
             modifiers={{
