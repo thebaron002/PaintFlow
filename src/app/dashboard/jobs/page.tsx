@@ -2,7 +2,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { format } from "date-fns";
 import type { Job, GeneralSettings } from "@/app/lib/types";
@@ -27,12 +26,13 @@ import {
 } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, MapPin, User, Upload } from "lucide-react";
+import { PlusCircle, MapPin, User, Upload, LoaderCircle } from "lucide-react";
 import { JobActions } from "@/app/dashboard/job-actions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from "@/firebase";
+import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser, addDocumentNonBlocking } from "@/firebase";
 import { collection, query, where, doc } from "firebase/firestore";
+import { jobs as migrationJobs } from "@/app/lib/data";
 
 
 const JobsTable = ({ jobs, isLoading, hourlyRate }: { jobs: Job[] | null, isLoading: boolean, hourlyRate: number }) => {
@@ -201,6 +201,8 @@ export default function JobsPage() {
   const jobStatuses: Job["status"][] = ["Not Started", "In Progress", "Complete", "Open Payment", "Finalized"];
   const firestore = useFirestore();
   const { user } = useUser();
+  const { toast } = useToast();
+  const [isMigrating, setIsMigrating] = useState(false);
 
   const settingsRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -208,14 +210,51 @@ export default function JobsPage() {
   }, [firestore]);
   const { data: settings } = useDoc<GeneralSettings>(settingsRef);
   const hourlyRate = settings?.hourlyRate ?? 0;
+
+  const handleMigrateJobs = async () => {
+    if (!firestore || !user) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "You must be logged in to migrate jobs.",
+      });
+      return;
+    }
+    
+    setIsMigrating(true);
+
+    try {
+      const jobsCollection = collection(firestore, 'users', user.uid, 'jobs');
+      for (const jobData of migrationJobs) {
+        // We can ignore the ID from the mock data, Firestore will generate one
+        const { id, ...jobToAdd } = jobData;
+        await addDocumentNonBlocking(jobsCollection, jobToAdd);
+      }
+      
+      toast({
+        title: "Migration Successful!",
+        description: `${migrationJobs.length} jobs have been added to your account.`,
+      });
+
+    } catch (error) {
+      console.error("Migration failed:", error);
+      toast({
+        variant: "destructive",
+        title: "Migration Failed",
+        description: "Could not migrate jobs. Please try again.",
+      });
+    } finally {
+      setIsMigrating(false);
+    }
+  };
   
   return (
     <div>
       <PageHeader title="My Jobs">
         <div className="flex items-center gap-2">
-            <Button variant="outline">
-                <Upload className="mr-2 h-4 w-4" />
-                Migrate Jobs
+            <Button variant="outline" onClick={handleMigrateJobs} disabled={isMigrating}>
+                {isMigrating ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                {isMigrating ? 'Migrating...' : 'Migrate Jobs'}
             </Button>
             <Button asChild>
                 <Link href="/dashboard/jobs/new">
