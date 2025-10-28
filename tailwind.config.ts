@@ -12,19 +12,6 @@ export default {
     container: { center: true, padding: "2rem" },
     extend: {
       colors: {
-        // escala de cinza suave tipo iOS/macOS
-        zinc: {
-          50:  "#fafafa",
-          100: "#f5f5f6",
-          200: "#eef1f4",
-          300: "#e9edf1",
-          400: "#dfe3e8",
-          500: "#c9ced6",
-          600: "#9aa3af",
-          700: "#6b7280",
-          800: "#4b5563",
-          900: "#111827",
-        },
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
@@ -60,11 +47,11 @@ export default {
         },
       },
       borderRadius: {
-        lg: '16px',
-        md: 'calc(16px - 2px)',
-        sm: 'calc(16px - 4px)',
-        xl: "20px",
-        "2xl": "28px",
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
+        xl: "calc(var(--radius) + 4px)",
+        "2xl": "calc(var(--radius) + 12px)",
       },
       boxShadow: {
         glass: "0 10px 30px rgba(17,24,39,0.07)",
