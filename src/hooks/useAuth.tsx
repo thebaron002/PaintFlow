@@ -1,3 +1,4 @@
+
 'use client';
 import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { auth } from "../firebase/clean-firebase";
@@ -8,6 +9,7 @@ type AuthContextValue = {
   user: User | null;
   loading: boolean;
   auth: Auth;
+  getIdToken: () => Promise<string | null>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -31,10 +33,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
+  const getIdToken = async () => {
+    if (auth.currentUser) {
+      return auth.currentUser.getIdToken();
+    }
+    return null;
+  };
+
+
   const value: AuthContextValue = {
     user,
     loading,
     auth,
+    getIdToken,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -15,6 +15,7 @@ import {
   Settings,
   Users,
   User as UserIcon,
+  HardHat, // Ícone para a página de migração
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -45,6 +46,7 @@ const navItems = [
   { href: "/dashboard/crew", icon: Users, label: "Crew" },
   { href: "/dashboard/profile", icon: UserIcon, label: "Profile" },
   { href: "/dashboard/settings", icon: Settings, label: "Settings" },
+  { href: "/dashboard/migrate", icon: HardHat, label: "Migrate" },
 ];
 
 const BottomNavBar = () => {

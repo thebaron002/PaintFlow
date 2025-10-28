@@ -1,5 +1,6 @@
 
 import type {NextConfig} from 'next';
+import { getAuth } from 'firebase-admin/auth';
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -50,6 +51,19 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async headers() {
+    return [
+      {
+        source: '/dashboard/migrate',
+        headers: [
+          {
+            key: 'Authorization',
+            value: 'Bearer ' // Este valor será preenchido pelo cliente
+          }
+        ]
+      }
+    ]
+  }
 };
 
 export default nextConfig;
