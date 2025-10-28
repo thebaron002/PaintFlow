@@ -2,24 +2,18 @@
 "use client";
 
 import * as React from "react";
-import { format, isSameDay, isPast, isFuture, isToday } from "date-fns";
+import { format, isSameDay } from "date-fns";
 import type { Job } from "@/app/lib/types";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-
 export function JobCalendar({ jobs }: { jobs: Job[] }) {
   const [date, setDate] = React.useState<Date | undefined>(new Date());
-  
-  const isLoading = false;
 
   const jobStartDates = jobs.map((job) => new Date(job.startDate));
   const productionDays = jobs.flatMap(job => job.productionDays?.map(d => new Date(d)) ?? []);
 
-  const pastStartDates = jobStartDates.filter(d => isPast(d) && !isToday(d));
-  const futureStartDates = jobStartDates.filter(d => isFuture(d) && !isToday(d));
-  
   const selectedDayJobs = date
     ? jobs.filter((job) => isSameDay(new Date(job.deadline), date) || isSameDay(new Date(job.startDate), date) || (job.productionDays || []).some(d => isSameDay(new Date(d), date)))
     : [];
@@ -45,22 +39,20 @@ export function JobCalendar({ jobs }: { jobs: Job[] }) {
               day_today: "bg-accent text-accent-foreground",
             }}
             modifiers={{
-              pastJobStart: pastStartDates,
+              jobStart: jobStartDates,
               productionDay: productionDays,
-              futureJobStart: futureStartDates,
             }}
             modifiersClassNames={{
-              pastJobStart: "bg-chart-1 text-primary-foreground",
-              productionDay: "bg-chart-1/50",
-              futureJobStart: "relative",
+              jobStart: "bg-chart-1 text-primary-foreground",
+              productionDay: "relative",
             }}
             components={{
                 DayContent: (props) => {
-                    const isFutureStart = futureStartDates.some(d => isSameDay(d, props.date));
+                    const isProductionDay = productionDays.some(d => isSameDay(d, props.date));
                     return (
                         <div className="relative h-full w-full flex items-center justify-center">
                             {props.date.getDate()}
-                            {isFutureStart && <div className="absolute bottom-1 h-1 w-1 rounded-full bg-chart-1" />}
+                            {isProductionDay && <div className="absolute bottom-1 h-1 w-1 rounded-full bg-chart-1" />}
                         </div>
                     );
                 }
@@ -102,4 +94,3 @@ export function JobCalendar({ jobs }: { jobs: Job[] }) {
     </div>
   );
 }
-
