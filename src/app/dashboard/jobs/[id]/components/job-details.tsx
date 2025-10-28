@@ -555,7 +555,7 @@ export function JobDetails({
       
         {/* Edit Invoice Modal */}
         <Dialog open={invoiceModal.isOpen && !!invoiceModal.item} onOpenChange={(isOpen) => setInvoiceModal({ isOpen, item: isOpen ? invoiceModal.item : null })}>
-            <DialogContent>
+            <DialogContent aria-describedby={undefined}>
                 <DialogHeader>
                     <DialogTitle>Edit Invoice</DialogTitle>
                 </DialogHeader>
@@ -571,7 +571,7 @@ export function JobDetails({
 
         {/* Edit Adjustment Modal */}
          <Dialog open={adjustmentModal.isOpen && !!adjustmentModal.item} onOpenChange={(isOpen) => setAdjustmentModal({ isOpen, item: isOpen ? adjustmentModal.item : null })}>
-            <DialogContent>
+            <DialogContent aria-describedby={undefined}>
                 <DialogHeader>
                     <DialogTitle>Edit Adjustment</DialogTitle>
                 </DialogHeader>
@@ -587,5 +587,7 @@ export function JobDetails({
     </div>
   );
 }
+
+    
 
     
