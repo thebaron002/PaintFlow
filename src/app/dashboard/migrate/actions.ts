@@ -1,9 +1,19 @@
 
 'use server';
 
+import * as admin from 'firebase-admin';
 import { getAuth } from 'firebase-admin/auth';
 import { adminDb } from '@/lib/firebase-admin';
 import { headers } from 'next/headers';
+
+// Garante que o Firebase Admin seja inicializado apenas uma vez.
+if (!admin.apps.length) {
+  try {
+    admin.initializeApp();
+  } catch (error) {
+    console.error('Firebase admin initialization error in actions.', error);
+  }
+}
 
 const SOURCE_UID = '7aDfCRJ90HNiN2se655nys4glUX2';
 const DESTINATION_UID = 'm2QQbgIIKoQldL7iE4yDR1ItkYL2';
