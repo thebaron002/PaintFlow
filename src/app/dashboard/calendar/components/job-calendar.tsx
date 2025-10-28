@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import { format, isSameDay } from "date-fns";
+import { format, isSameDay, isFuture, isPast } from "date-fns";
 import type { Job } from "@/app/lib/types";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,14 +36,14 @@ export function JobCalendar({ jobs }: { jobs: Job[] }) {
               row: "w-full",
               caption_label: "font-headline",
               day_selected: "bg-primary text-primary-foreground hover:bg-primary/90 focus:bg-primary/90",
-              day_today: "bg-accent-foreground text-accent",
+              day_today: "bg-accent text-accent-foreground",
             }}
             modifiers={{
               jobStart: jobStartDates,
               productionDay: productionDays,
             }}
             modifiersClassNames={{
-              jobStart: "bg-chart-1/30 text-primary-foreground",
+              jobStart: "bg-chart-1/30",
               productionDay: "relative",
             }}
             components={{
