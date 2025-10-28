@@ -58,18 +58,21 @@ const BottomNavBar = () => {
   const maxItems = 5;
   const navGridCols = `grid-cols-${mobileNavItems.length > maxItems ? maxItems : mobileNavItems.length}`;
 
+  const isDashboard = pathname === '/dashboard';
+  const navBgClass = isDashboard ? 'bg-transparent border-t-0' : 'bg-background/80 backdrop-blur-sm border-t';
+
   return (
-    <div className="md:hidden fixed bottom-0 left-0 z-50 w-full h-16 bg-background border-t">
+    <div className={cn("md:hidden fixed bottom-0 left-0 z-50 w-full h-16", navBgClass)}>
       <div className={cn("grid h-full max-w-lg mx-auto font-medium", navGridCols)}>
         {mobileNavItems.slice(0, maxItems).map(({ href, icon: Icon, label }) => (
           <Link
             key={label}
             href={href}
             className={cn(
-              "inline-flex flex-col items-center justify-center px-1 hover:bg-muted group text-center",
-              (pathname.startsWith(href) && href !== '/dashboard') || (pathname === href)
-                ? "text-primary"
-                : "text-muted-foreground"
+              "inline-flex flex-col items-center justify-center px-1 group text-center",
+               (pathname.startsWith(href) && href !== '/dashboard') || (pathname === href)
+                ? (isDashboard ? "text-white" : "text-primary")
+                : (isDashboard ? "text-white/60 hover:text-white" : "text-muted-foreground hover:bg-muted")
             )}
           >
             <Icon className="w-5 h-5 mb-1" />
@@ -84,8 +87,10 @@ const BottomNavBar = () => {
 
 function DashboardGuard({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, loading } = useAuth();
   const isMobile = useIsMobile();
+  const isDashboardPage = pathname === '/dashboard';
 
   useEffect(() => {
     if (!loading && !user) {
@@ -104,20 +109,24 @@ function DashboardGuard({ children }: { children: ReactNode }) {
   if (!user) {
     return null;
   }
+  
+  const sidebarVariant = isDashboardPage ? 'floating' : 'sidebar';
+  const sidebarClass = isDashboardPage ? 'text-white border-white/20' : '';
+  const insetClass = isDashboardPage ? 'bg-transparent' : 'bg-background';
 
   return (
      <SidebarProvider>
-      <Sidebar>
+      <Sidebar variant={sidebarVariant} className={sidebarClass}>
         <SidebarHeader>
           <div className="p-2">
-            <Logo className="text-sidebar-foreground" />
+            <Logo className={isDashboardPage ? 'text-white' : 'text-sidebar-foreground'} />
           </div>
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
             {navItems.map(({ href, icon: Icon, label }) => (
                <SidebarMenuItem key={label}>
-                <SidebarMenuButton asChild tooltip={label}>
+                <SidebarMenuButton asChild tooltip={label} isActive={pathname === href}>
                   <Link href={href}>
                     <Icon />
                     <span>{label}</span>
@@ -129,14 +138,20 @@ function DashboardGuard({ children }: { children: ReactNode }) {
         </SidebarContent>
         <SidebarFooter>{/* Footer content if any */}</SidebarFooter>
       </Sidebar>
-      <SidebarInset>
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/80 backdrop-blur-sm px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 py-4">
-          <SidebarTrigger className="sm:hidden" />
-          <div className="ml-auto flex items-center gap-4">
-            <UserNav />
-          </div>
-        </header>
-        <main className="flex-1 p-4 sm:px-6 sm:py-0 pb-20 md:pb-4 flex flex-col">
+      <SidebarInset className={insetClass}>
+        {!isDashboardPage && (
+            <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/80 backdrop-blur-sm px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 py-4">
+            <SidebarTrigger className="sm:hidden" />
+            <div className="ml-auto flex items-center gap-4">
+                <UserNav />
+            </div>
+            </header>
+        )}
+        <main className={cn(
+            "flex-1 flex flex-col",
+            !isDashboardPage && "p-4 sm:px-6 sm:py-0",
+            "pb-20 md:pb-4"
+        )}>
           {children}
         </main>
       </SidebarInset>

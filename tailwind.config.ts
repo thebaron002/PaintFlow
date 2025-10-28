@@ -65,6 +65,12 @@ export default {
           border: 'hsl(var(--sidebar-border))',
           ring: 'hsl(var(--sidebar-ring))',
         },
+         brand: {
+          50: "#EEF2FF",
+          400: "#93C5FD",
+          500: "#60A5FA",
+          600: "#3B82F6",
+        },
       },
       borderRadius: {
         lg: 'var(--radius)',
