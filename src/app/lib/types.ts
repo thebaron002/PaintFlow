@@ -54,6 +54,14 @@ export type Job = {
   expenses?: { id: string; category: string; description: string; amount: number; date: string; }[];
 };
 
+export type GeneralExpense = {
+  id: string;
+  category: string;
+  description: string;
+  amount: number;
+  date: string; // ISO date string
+};
+
 export type Expense = {
   id: string;
   jobId: string; 

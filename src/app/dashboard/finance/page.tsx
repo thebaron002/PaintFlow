@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useState } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,6 +11,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   Tabs,
   TabsContent,
@@ -26,11 +34,13 @@ import {
 } from "@/components/ui/table";
 import { DollarSign, FileDown, PlusCircle } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import type { Job, GeneralSettings } from "@/app/lib/types";
+import type { Job, GeneralSettings, GeneralExpense } from "@/app/lib/types";
 import { CashFlowChart } from "./components/cash-flow-chart";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc } from "firebase/firestore";
+import { AddGeneralExpenseForm } from "./components/add-general-expense-form";
+import { useToast } from "@/hooks/use-toast";
 
 type IncomeItem = {
     id: string;
@@ -43,9 +53,9 @@ type IncomeItem = {
 
 type ExpenseItem = {
     id: string;
-    jobId: string;
-    jobTitle: string;
-    clientName: string;
+    jobId?: string; // Optional for general expenses
+    jobTitle?: string;
+    clientName?: string;
     category: string;
     description: string;
     date: string; // ISO
@@ -54,6 +64,8 @@ type ExpenseItem = {
 
 
 export default function FinancePage() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
   
@@ -62,6 +74,12 @@ export default function FinancePage() {
     return collection(firestore, 'users', user.uid, 'jobs');
   }, [firestore, user]);
   const { data: jobs, isLoading: isLoadingJobs } = useCollection<Job>(jobsQuery);
+
+  const generalExpensesQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return collection(firestore, 'users', user.uid, 'generalExpenses');
+  }, [firestore, user]);
+  const { data: generalExpenses, isLoading: isLoadingGeneralExpenses } = useCollection<GeneralExpense>(generalExpensesQuery);
   
   const settingsRef = useMemoFirebase(() => {
       if (!firestore) return null;
@@ -69,7 +87,7 @@ export default function FinancePage() {
   }, [firestore]);
   const { data: settings } = useDoc<GeneralSettings>(settingsRef);
 
-  const isLoading = isLoadingJobs;
+  const isLoading = isLoadingJobs || isLoadingGeneralExpenses;
 
   const income: IncomeItem[] = jobs
     ?.filter(job => job.status === 'Finalized')
@@ -92,7 +110,7 @@ export default function FinancePage() {
         }
     }) ?? [];
 
-  const expenses: ExpenseItem[] = jobs
+  const jobExpenses: ExpenseItem[] = jobs
     ?.flatMap(job => 
         (job.invoices || []).map(invoice => ({
             id: invoice.id,
@@ -105,11 +123,31 @@ export default function FinancePage() {
             amount: invoice.amount,
         }))
     ) ?? [];
+  
+  const otherExpenses: ExpenseItem[] = generalExpenses?.map(exp => ({
+    id: exp.id,
+    category: exp.category,
+    description: exp.description,
+    date: exp.date,
+    amount: exp.amount
+  })) ?? [];
+
+  const allExpenses = [...jobExpenses, ...otherExpenses].sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime());
 
 
   const totalIncome = income?.reduce((acc, item) => acc + item.amount, 0) ?? 0;
-  const totalExpenses = expenses?.reduce((acc, item) => acc + item.amount, 0) ?? 0;
+  const totalExpenses = allExpenses?.reduce((acc, item) => acc + item.amount, 0) ?? 0;
   const netProfit = totalIncome - totalExpenses;
+
+  const expenseCategories = [...new Set(allExpenses.map(e => e.category))];
+
+  const handleExpenseFormSuccess = () => {
+    setIsModalOpen(false);
+    toast({
+      title: "Expense Added",
+      description: "The new expense has been recorded successfully.",
+    });
+  };
 
   const renderStatCard = (title: string, value: number, colorClass: string = '', isLoading: boolean) => (
      <Card>
@@ -131,10 +169,20 @@ export default function FinancePage() {
             <FileDown className="mr-2 h-4 w-4" />
             Export Report
           </Button>
-          <Button>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Add Transaction
-          </Button>
+          <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+            <DialogTrigger asChild>
+                <Button>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Add Transaction
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Add General Expense</DialogTitle>
+                </DialogHeader>
+                <AddGeneralExpenseForm categories={expenseCategories} onSuccess={handleExpenseFormSuccess} />
+            </DialogContent>
+          </Dialog>
         </div>
       </PageHeader>
       <Tabs defaultValue="overview">
@@ -155,7 +203,7 @@ export default function FinancePage() {
               <CardDescription>Income vs. Expenses over the last 6 months.</CardDescription>
             </CardHeader>
             <CardContent>
-              <CashFlowChart income={income} expenses={expenses} isLoading={isLoading} />
+              <CashFlowChart income={income} expenses={allExpenses} isLoading={isLoading} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -212,7 +260,7 @@ export default function FinancePage() {
           <Card>
             <CardHeader>
               <CardTitle>Expenses</CardTitle>
-              <CardDescription>List of all logged expenses from job invoices.</CardDescription>
+              <CardDescription>List of all logged expenses from job invoices and general business costs.</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
@@ -234,13 +282,13 @@ export default function FinancePage() {
                         <TableCell className="text-right"><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
                       </TableRow>
                     ))
-                  ) : expenses?.length > 0 ? (
-                    expenses.map((item) => {
+                  ) : allExpenses?.length > 0 ? (
+                    allExpenses.map((item) => {
                     return(
                       <TableRow key={item.id}>
                         <TableCell>
                           <div className="font-medium">{item.description}</div>
-                           <div className="text-sm text-muted-foreground">{item?.jobTitle} ({item?.clientName})</div>
+                           {item.jobTitle && <div className="text-sm text-muted-foreground">{item.jobTitle} ({item?.clientName})</div>}
                         </TableCell>
                         <TableCell>{item.category}</TableCell>
                         <TableCell>{format(parseISO(item.date), "MMM dd, yyyy")}</TableCell>
