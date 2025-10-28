@@ -28,7 +28,7 @@ import { Button } from "@/components/ui/button";
 import { PlusCircle, MapPin, User, GitBranch } from "lucide-react";
 import { JobActions } from "@/app/dashboard/job-actions";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from "@/firebase";
+import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { collection, query, where, doc, getDocs, writeBatch } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 
@@ -208,7 +208,7 @@ export default function JobsPage() {
   const { data: settings } = useDoc<GeneralSettings>(settingsRef);
   const hourlyRate = settings?.hourlyRate ?? 0;
   
-  const handleMigrateJobs = async () => {
+  const handleMigrateJobs = () => {
     if (!firestore || !user) {
         toast({
             variant: "destructive",
@@ -221,7 +221,6 @@ export default function JobsPage() {
     const sourceUserId = "7aDfCRJ90HNiN2se655nys4glUX2";
     const targetUserId = "m2QQbgIIKoQldL7iE4yDR1ItkYL2";
 
-    // Double-check if the current user is the target user
     if (user.uid !== targetUserId) {
         toast({
             variant: "destructive",
@@ -233,10 +232,9 @@ export default function JobsPage() {
 
     toast({ title: "Starting Migration", description: "Please wait..." });
 
-    try {
-        const sourceJobsRef = collection(firestore, 'users', sourceUserId, 'jobs');
-        const sourceJobsSnap = await getDocs(sourceJobsRef);
-
+    const sourceJobsRef = collection(firestore, 'users', sourceUserId, 'jobs');
+    
+    getDocs(sourceJobsRef).then(sourceJobsSnap => {
         if (sourceJobsSnap.empty) {
             toast({
                 variant: "destructive",
@@ -255,26 +253,21 @@ export default function JobsPage() {
             migratedCount++;
         });
 
-        await batch.commit();
-
-        toast({
-            title: "Migration Successful!",
-            description: `${migratedCount} jobs have been migrated to your account. The page will now reload.`,
+        return batch.commit().then(() => {
+             toast({
+                title: "Migration Successful!",
+                description: `${migratedCount} jobs have been migrated to your account. The page will now reload.`,
+            });
+            setTimeout(() => window.location.reload(), 1500);
         });
 
-        // Reload to show the new data
-        setTimeout(() => {
-            window.location.reload();
-        }, 1500);
-
-    } catch (error) {
-        console.error("Migration failed:", error);
-        toast({
-            variant: "destructive",
-            title: "Migration Failed",
-            description: "An error occurred during the migration process. Check the console for details.",
+    }).catch(serverError => {
+        const permissionError = new FirestorePermissionError({
+            path: sourceJobsRef.path,
+            operation: 'list',
         });
-    }
+        errorEmitter.emit('permission-error', permissionError);
+    });
   };
 
   return (
