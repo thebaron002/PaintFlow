@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import { format, isSameDay, isFuture, isPast } from "date-fns";
+import { format, isSameDay, isFuture } from "date-fns";
 import type { Job } from "@/app/lib/types";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,28 +15,34 @@ export function JobCalendar({ jobs }: { jobs: Job[] }) {
   const productionDays = jobs.flatMap(job => job.productionDays?.map(d => new Date(d)) ?? []);
 
   const selectedDayJobs = date
-    ? jobs.filter((job) => isSameDay(new Date(job.deadline), date) || isSameDay(new Date(job.startDate), date) || (job.productionDays || []).some(d => isSameDay(new Date(d), date)))
+    ? jobs.filter((job) => 
+        isSameDay(new Date(job.startDate), date) || 
+        (job.productionDays || []).some(d => isSameDay(new Date(d), date))
+      )
     : [];
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-      <Card className="lg:col-span-4">
-        <CardContent className="p-0">
-          <Calendar
+    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
+      <div className="lg:col-span-4">
+        <Calendar
             mode="single"
             selected={date}
             onSelect={setDate}
             className="p-0"
             classNames={{
-              root: "w-full",
+              root: "w-full glass-card p-4",
               months: "w-full",
               month: "w-full",
               table: "w-full",
               head_row: "w-full",
+              head_cell: "text-muted-foreground/80 dark:text-muted-foreground/60 font-medium",
               row: "w-full",
-              caption_label: "font-headline",
-              day_selected: "text-primary font-bold",
-              day_today: "bg-accent text-accent-foreground",
+              day: "h-12 w-12 text-base transition-transform ease-in-out hover:scale-105",
+              day_today: "text-primary font-bold",
+              day_selected: "bg-primary/25 text-primary-foreground border-2 border-primary rounded-full",
+              day_outside: "text-muted-foreground/50",
+              caption_label: "font-headline text-2xl font-bold",
+              nav_button: "h-10 w-10 hover:bg-primary/10 hover:text-primary rounded-full transition-colors",
             }}
             modifiers={{
               jobStart: jobStartDates,
@@ -44,7 +50,6 @@ export function JobCalendar({ jobs }: { jobs: Job[] }) {
             }}
             modifiersClassNames={{
               jobStart: "bg-chart-1/30",
-              productionDay: "relative",
             }}
             components={{
                 DayContent: (props) => {
@@ -52,45 +57,42 @@ export function JobCalendar({ jobs }: { jobs: Job[] }) {
                     return (
                         <div className="relative h-full w-full flex items-center justify-center">
                             {props.date.getDate()}
-                            {isProductionDay && <div className="absolute bottom-1 h-1 w-1 rounded-full bg-chart-1" />}
+                            {isProductionDay && <div className="absolute bottom-1.5 h-1.5 w-1.5 rounded-full bg-chart-1" />}
                         </div>
                     );
                 }
             }}
           />
-        </CardContent>
-      </Card>
-      <Card className="lg:col-span-3">
-        <CardHeader>
-          <CardTitle className="font-headline">
+      </div>
+      <div className="lg:col-span-3 glass-card p-4">
+        <h3 className="font-headline text-xl font-bold mb-4">
             {date ? format(date, "MMMM dd, yyyy") : "Select a day"}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4">
+        </h3>
+        <div className="grid gap-4">
           {selectedDayJobs.length > 0 ? (
             selectedDayJobs.map((job) => {
               return (
-                <div key={job.id} className="grid gap-1">
+                <div key={job.id} className="bg-background/40 dark:bg-background/20 p-4 rounded-lg border border-white/30">
                   <div className="flex items-center justify-between">
                     <p className="font-semibold">{job.title}</p>
-                    <Badge variant="outline" className="capitalize">
+                    <Badge variant="outline" className="capitalize bg-transparent border-foreground/30">
                       {job.status}
                     </Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground/80 dark:text-muted-foreground">
                     Client: {job.clientName || 'N/A'}
                   </p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground/80 dark:text-muted-foreground">
                     Address: {job.address}
                   </p>
                 </div>
               )
             })
           ) : (
-            <p className="text-sm text-muted-foreground">No jobs scheduled for this day.</p>
+            <p className="text-sm text-muted-foreground/80 dark:text-muted-foreground">No jobs scheduled for this day.</p>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
