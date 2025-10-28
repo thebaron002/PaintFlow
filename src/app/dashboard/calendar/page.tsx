@@ -23,9 +23,9 @@ export default function CalendarPage() {
     return (
       <div>
         <PageHeader title="Calendar" />
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-          <Skeleton className="lg:col-span-4 h-[370px]" />
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
           <Skeleton className="lg:col-span-3 h-[370px]" />
+          <Skeleton className="lg:col-span-2 h-[370px]" />
         </div>
       </div>
     );

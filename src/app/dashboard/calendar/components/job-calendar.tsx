@@ -22,8 +22,8 @@ export function JobCalendar({ jobs }: { jobs: Job[] }) {
     : [];
 
   return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
-      <div className="lg:col-span-4">
+    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
+      <div className="lg:col-span-3">
         <Calendar
             mode="single"
             selected={date}
@@ -36,7 +36,7 @@ export function JobCalendar({ jobs }: { jobs: Job[] }) {
             modifiersClassNames={{
               jobStart: "bg-accent/30",
               today: "text-accent-foreground bg-accent",
-              selected: "text-primary-foreground bg-primary hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+              selected: "text-primary font-bold",
             }}
             components={{
                 DayContent: (props) => {
@@ -44,14 +44,14 @@ export function JobCalendar({ jobs }: { jobs: Job[] }) {
                     return (
                         <div className="relative h-full w-full flex items-center justify-center">
                             {props.date.getDate()}
-                            {isProductionDay && <div className="absolute bottom-1.5 h-1.5 w-1.5 rounded-full bg-chart-1" />}
+                            {isProductionDay && <div className="absolute bottom-1.5 h-1.5 w-1.5 rounded-full bg-accent" />}
                         </div>
                     );
                 }
             }}
           />
       </div>
-      <div className="lg:col-span-3 glass-card p-4">
+      <div className="lg:col-span-2 glass-card p-4">
         <h3 className="font-headline text-xl font-bold mb-4">
             {date ? format(date, "MMMM dd, yyyy") : "Select a day"}
         </h3>
