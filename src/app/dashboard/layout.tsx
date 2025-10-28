@@ -9,7 +9,6 @@ import {
   Calendar,
   LayoutDashboard,
   DollarSign,
-  PanelLeft,
   Landmark,
   Settings,
   Users,
@@ -28,7 +27,6 @@ import {
   SidebarTrigger,
   SidebarInset,
 } from '@/components/ui/sidebar';
-import { Button } from '@/components/ui/button';
 import { UserNav } from '@/components/user-nav';
 import { Logo } from '@/components/logo';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -59,7 +57,6 @@ const BottomNavBar = () => {
   const maxItems = 5;
   const navGridCols = `grid-cols-${mobileNavItems.length > maxItems ? maxItems : mobileNavItems.length}`;
   
-  // Always use the default background for mobile nav bar
   const navBgClass = 'bg-background/80 backdrop-blur-sm border-t';
 
   return (
@@ -111,31 +108,34 @@ function DashboardGuard({ children }: { children: ReactNode }) {
   
   return (
      <SidebarProvider>
-      <Sidebar variant="sidebar">
+      <Sidebar variant="floating" className="bg-white/40 backdrop-blur-sm">
         <SidebarHeader>
           <div className="p-2">
-            <Logo className="text-sidebar-foreground" />
+            <Logo />
           </div>
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
-            {navItems.map(({ href, icon: Icon, label }) => (
-               <SidebarMenuItem key={label}>
-                <SidebarMenuButton asChild tooltip={label} isActive={pathname.startsWith(href)}>
-                  <Link href={href}>
-                    <Icon />
-                    <span>{label}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
+            {navItems.map(({ href, icon: Icon, label }) => {
+              const isActive = (href === '/dashboard' && pathname === href) || (href !== '/dashboard' && pathname.startsWith(href));
+              return (
+                <SidebarMenuItem key={label}>
+                  <SidebarMenuButton asChild tooltip={label} isActive={isActive}>
+                    <Link href={href}>
+                      <Icon />
+                      <span>{label}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              );
+            })}
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
           <UserNav />
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset className="app-bg bg-background">
+      <SidebarInset className="bg-transparent">
         <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/80 backdrop-blur-sm px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 py-4">
           <SidebarTrigger className="sm:hidden" />
           <div className="ml-auto flex items-center gap-4">
