@@ -25,11 +25,12 @@ import {
 } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, MapPin, User } from "lucide-react";
+import { PlusCircle, MapPin, User, GitBranch } from "lucide-react";
 import { JobActions } from "@/app/dashboard/job-actions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from "@/firebase";
-import { collection, query, where, doc } from "firebase/firestore";
+import { collection, query, where, doc, getDocs, writeBatch } from "firebase/firestore";
+import { useToast } from "@/hooks/use-toast";
 
 
 const JobsTable = ({ jobs, isLoading, hourlyRate }: { jobs: Job[] | null, isLoading: boolean, hourlyRate: number }) => {
@@ -197,6 +198,8 @@ const JobsTabContent = ({ status, hourlyRate }: { status: Job["status"], hourlyR
 export default function JobsPage() {
   const jobStatuses: Job["status"][] = ["Not Started", "In Progress", "Complete", "Open Payment", "Finalized"];
   const firestore = useFirestore();
+  const { user } = useUser();
+  const { toast } = useToast();
 
   const settingsRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -205,15 +208,90 @@ export default function JobsPage() {
   const { data: settings } = useDoc<GeneralSettings>(settingsRef);
   const hourlyRate = settings?.hourlyRate ?? 0;
   
+  const handleMigrateJobs = async () => {
+    if (!firestore || !user) {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "User not logged in or Firestore not available.",
+        });
+        return;
+    }
+
+    const sourceUserId = "7aDfCRJ90HNiN2se655nys4glUX2";
+    const targetUserId = "m2QQbgIIKoQldL7iE4yDR1ItkYL2";
+
+    // Double-check if the current user is the target user
+    if (user.uid !== targetUserId) {
+        toast({
+            variant: "destructive",
+            title: "Migration Error",
+            description: "You are not logged in as the target user (m2QQ...).",
+        });
+        return;
+    }
+
+    toast({ title: "Starting Migration", description: "Please wait..." });
+
+    try {
+        const sourceJobsRef = collection(firestore, 'users', sourceUserId, 'jobs');
+        const sourceJobsSnap = await getDocs(sourceJobsRef);
+
+        if (sourceJobsSnap.empty) {
+            toast({
+                variant: "destructive",
+                title: "No Jobs Found",
+                description: "The source user has no jobs to migrate.",
+            });
+            return;
+        }
+
+        const batch = writeBatch(firestore);
+        let migratedCount = 0;
+
+        sourceJobsSnap.forEach(jobDoc => {
+            const targetJobRef = doc(firestore, 'users', targetUserId, 'jobs', jobDoc.id);
+            batch.set(targetJobRef, jobDoc.data());
+            migratedCount++;
+        });
+
+        await batch.commit();
+
+        toast({
+            title: "Migration Successful!",
+            description: `${migratedCount} jobs have been migrated to your account. The page will now reload.`,
+        });
+
+        // Reload to show the new data
+        setTimeout(() => {
+            window.location.reload();
+        }, 1500);
+
+    } catch (error) {
+        console.error("Migration failed:", error);
+        toast({
+            variant: "destructive",
+            title: "Migration Failed",
+            description: "An error occurred during the migration process. Check the console for details.",
+        });
+    }
+  };
+
   return (
     <div>
       <PageHeader title="My Jobs">
-        <Button asChild>
-            <Link href="/dashboard/jobs/new">
-                <PlusCircle className="mr-2 h-4 w-4" />
-                New Job
-            </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+           <Button onClick={handleMigrateJobs} variant="outline">
+             <GitBranch className="mr-2 h-4 w-4" />
+              Migrate Jobs
+            </Button>
+            <Button asChild>
+                <Link href="/dashboard/jobs/new">
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    New Job
+                </Link>
+            </Button>
+        </div>
       </PageHeader>
       <Tabs defaultValue="Not Started">
         <TabsList className="grid w-full grid-cols-5 mb-4">
