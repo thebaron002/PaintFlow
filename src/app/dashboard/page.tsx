@@ -1,9 +1,11 @@
+
 "use client";
 
 import { DashboardHeader } from "@/components/dashboard/header";
 import { GlassCard } from "@/components/ui/glass-card";
 import { ModernCalendar } from "@/components/calendar/ModernCalendar";
 import { RecentProjects } from "@/components/dashboard/RecentProjects";
+import { CompletedProjects } from "@/components/dashboard/CompletedProjects";
 
 export default function DashboardPage() {
   return (
@@ -41,13 +43,7 @@ export default function DashboardPage() {
 
       <div className="grid lg:grid-cols-3 gap-6">
         <ModernCalendar busyDays={["2025-10-23", "2025-10-24", "2025-10-27"]} />
-        <GlassCard className="lg:col-span-2">
-          <h3 className="text-lg font-semibold mb-4">Proposal Progress</h3>
-          <div className="h-48 rounded-xl bg-white/70 border border-white/60 shadow-soft grid place-items-center">
-            {/* Substituir depois por gráfico real */}
-            <p className="text-zinc-700">Coming next: charts</p>
-          </div>
-        </GlassCard>
+        <CompletedProjects />
       </div>
     </div>
   );
