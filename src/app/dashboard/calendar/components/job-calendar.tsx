@@ -6,6 +6,7 @@ import { format, isSameDay } from "date-fns";
 import type { Job } from "@/app/lib/types";
 import { Calendar } from "@/components/ui/calendar";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 export function JobCalendar({ jobs }: { jobs: Job[] }) {
   const [date, setDate] = React.useState<Date | undefined>(new Date());
@@ -34,6 +35,8 @@ export function JobCalendar({ jobs }: { jobs: Job[] }) {
             }}
             modifiersClassNames={{
               jobStart: "bg-chart-1/30",
+              today: "text-accent-foreground bg-accent",
+              selected: "text-primary-foreground bg-primary hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
             }}
             components={{
                 DayContent: (props) => {
