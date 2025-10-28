@@ -5,7 +5,7 @@ let adminDb: admin.firestore.Firestore;
 
 if (!admin.apps.length) {
   try {
-    // Quando implantado no App Hosting, as credenciais são obtidas 
+    // Quando implantado no App Hosting, as credenciais são obtidas
     // automaticamente do ambiente do Google Cloud.
     admin.initializeApp();
   } catch (error: any) {
