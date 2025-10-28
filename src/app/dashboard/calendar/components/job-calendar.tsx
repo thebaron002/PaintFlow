@@ -36,7 +36,7 @@ export function JobCalendar({ jobs }: { jobs: Job[] }) {
               row: "w-full",
               caption_label: "font-headline",
               day_selected: "bg-primary text-primary-foreground hover:bg-primary/90 focus:bg-primary/90",
-              day_today: "bg-accent text-accent-foreground",
+              day_today: "bg-accent-foreground text-accent",
             }}
             modifiers={{
               jobStart: jobStartDates,
@@ -94,4 +94,3 @@ export function JobCalendar({ jobs }: { jobs: Job[] }) {
     </div>
   );
 }
-
