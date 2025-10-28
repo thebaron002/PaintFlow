@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { LoaderCircle } from "lucide-react";
@@ -188,6 +189,13 @@ export default function LoginPage() {
             {status === "authenticating" ? <LoaderCircle className="h-4 w-4 animate-spin" /> : "Login"}
           </Button>
         </form>
+
+        <p className="mt-4 text-center text-sm text-muted-foreground">
+          Não tem uma conta?{' '}
+          <Link href="/signup" className="underline hover:text-primary">
+            Crie uma
+          </Link>
+        </p>
 
         <p className="px-8 text-center text-sm text-muted-foreground mt-6">
           Ao clicar em continuar, você concorda com nossos{" "}
