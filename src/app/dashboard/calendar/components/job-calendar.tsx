@@ -43,7 +43,7 @@ export function JobCalendar({ jobs }: { jobs: Job[] }) {
               productionDay: productionDays,
             }}
             modifiersClassNames={{
-              jobStart: "bg-chart-1 text-primary-foreground",
+              jobStart: "bg-chart-1/50 text-primary-foreground",
               productionDay: "relative",
             }}
             components={{
