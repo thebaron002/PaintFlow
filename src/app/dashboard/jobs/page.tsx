@@ -171,7 +171,7 @@ const JobsTable = ({ jobs, isLoading, hourlyRate }: { jobs: Job[] | null, isLoad
 
 
 export default function JobsPage() {
-  const jobStatuses: Job["status"][] = ["Not Started", "In Progress", "Complete", "Open Payment", "Finalized"];
+  const allJobStatuses: (Job["status"] | 'All')[] = ["All", "Not Started", "In Progress", "Complete", "Open Payment", "Finalized"];
   const firestore = useFirestore();
   const { user } = useUser();
   
@@ -190,6 +190,7 @@ export default function JobsPage() {
   const { data: allJobs, isLoading } = useCollection<Job>(jobsQuery);
 
   const jobsByStatus = {
+    "All": allJobs || [],
     "Not Started": allJobs?.filter(j => j.status === 'Not Started') || [],
     "In Progress": allJobs?.filter(j => j.status === 'In Progress') || [],
     "Complete": allJobs?.filter(j => j.status === 'Complete') || [],
@@ -209,13 +210,13 @@ export default function JobsPage() {
             </Button>
         </div>
       </PageHeader>
-      <Tabs defaultValue="Not Started">
-        <TabsList className="grid w-full grid-cols-5 mb-4 bg-white/10 text-white/70">
-            {jobStatuses.map(status => (
+      <Tabs defaultValue="All">
+        <TabsList className="grid w-full grid-cols-6 mb-4 bg-white/10 text-white/70">
+            {allJobStatuses.map(status => (
                  <TabsTrigger key={status} value={status} className="data-[state=active]:bg-white/20 data-[state=active]:text-white">{status}</TabsTrigger>
             ))}
         </TabsList>
-        {jobStatuses.map(status => (
+        {allJobStatuses.map(status => (
           <TabsContent key={status} value={status}>
             <JobsTable jobs={jobsByStatus[status]} isLoading={isLoading} hourlyRate={hourlyRate} />
           </TabsContent>
