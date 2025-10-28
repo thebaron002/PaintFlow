@@ -1,3 +1,4 @@
+
 "use client"
 
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts"
@@ -5,15 +6,8 @@ import {
   ChartContainer,
   ChartTooltipContent,
 } from "@/components/ui/chart"
-
-const chartData = [
-  { month: "January", income: 1860, expenses: 800 },
-  { month: "February", income: 3050, expenses: 2000 },
-  { month: "March", income: 2370, expenses: 1200 },
-  { month: "April", income: 730, expenses: 1900 },
-  { month: "May", income: 2090, expenses: 1300 },
-  { month: "June", income: 2140, expenses: 1400 },
-]
+import { format, subMonths, startOfMonth, endOfMonth, isWithinInterval, parseISO } from "date-fns"
+import { Skeleton } from "@/components/ui/skeleton";
 
 const chartConfig = {
   income: {
@@ -24,11 +18,47 @@ const chartConfig = {
     label: "Expenses",
     color: "hsl(var(--chart-2))",
   },
+} as const;
+
+interface CashFlowChartProps {
+    income: { date: string, amount: number }[];
+    expenses: { date: string, amount: number }[];
+    isLoading: boolean;
 }
 
-export function CashFlowChart() {
+export function CashFlowChart({ income, expenses, isLoading }: CashFlowChartProps) {
+
+  const chartData = React.useMemo(() => {
+    const data = [];
+    const now = new Date();
+    for(let i = 5; i >= 0; i--) {
+        const date = subMonths(now, i);
+        const monthStart = startOfMonth(date);
+        const monthEnd = endOfMonth(date);
+        
+        const monthIncome = income
+            .filter(item => isWithinInterval(parseISO(item.date), { start: monthStart, end: monthEnd }))
+            .reduce((sum, item) => sum + item.amount, 0);
+
+        const monthExpenses = expenses
+            .filter(item => isWithinInterval(parseISO(item.date), { start: monthStart, end: monthEnd }))
+            .reduce((sum, item) => sum + item.amount, 0);
+
+        data.push({
+            month: format(monthStart, 'MMM'),
+            income: monthIncome,
+            expenses: monthExpenses,
+        });
+    }
+    return data;
+  }, [income, expenses]);
+
+  if (isLoading) {
+    return <Skeleton className="h-[250px] w-full" />
+  }
+
   return (
-    <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
+    <ChartContainer config={chartConfig} className="min-h-[250px] w-full">
       <BarChart accessibilityLayer data={chartData}>
         <CartesianGrid vertical={false} />
         <XAxis
@@ -36,13 +66,12 @@ export function CashFlowChart() {
           tickLine={false}
           tickMargin={10}
           axisLine={false}
-          tickFormatter={(value) => value.slice(0, 3)}
         />
         <YAxis 
           tickLine={false}
           axisLine={false}
           tickMargin={10}
-          tickFormatter={(value) => `$${value/1000}k`}
+          tickFormatter={(value) => `$${Number(value)/1000}k`}
         />
         <Tooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
         <Legend />

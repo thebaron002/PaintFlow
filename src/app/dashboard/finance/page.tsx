@@ -25,45 +25,87 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { DollarSign, FileDown, PlusCircle } from "lucide-react";
-import { format } from "date-fns";
-import type { Job, Income, Expense } from "@/app/lib/types"; // Note: Income/Expense types might be refactored
+import { format, parseISO } from "date-fns";
+import type { Job, GeneralSettings } from "@/app/lib/types";
 import { CashFlowChart } from "./components/cash-flow-chart";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
-import { collection } from "firebase/firestore";
+import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from "@/firebase";
+import { collection, doc } from "firebase/firestore";
 
-// MOCKED DATA until backend structure is finalized for finance
-const mockIncome: (Income & {jobTitle?: string, description: string})[] = [
-    { id: '1', jobId: '1', amount: 2500, date: new Date().toISOString(), description: '50% upfront for Johnson Residence', jobTitle: 'Johnson Residence #WO-001' },
-    { id: '2', jobId: '2', amount: 3000, date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString(), description: 'Final payment for Smith Exterior', jobTitle: 'Smith Exterior #WO-002' },
-];
-const mockExpenses: (Expense & {jobTitle?: string, clientName?: string})[] = [
-    { id: '1', jobId: '1', category: 'Materials', description: 'Paint and brushes', amount: 450, date: new Date().toISOString(), jobTitle: 'Johnson Residence', clientName: 'John Doe' },
-    { id: '2', jobId: '2', category: 'Labor', description: 'Helper for 2 days', amount: 400, date: new Date(Date.now() - 1000 * 60 * 60 * 24 * 6).toISOString(), jobTitle: 'Smith Exterior', clientName: 'Jane Smith' },
-    { id: '3', jobId: '1', category: 'Transportation', description: 'Gas for truck', amount: 50, date: new Date().toISOString(), jobTitle: 'Johnson Residence', clientName: 'John Doe' },
-];
+type IncomeItem = {
+    id: string;
+    jobId: string;
+    jobTitle: string;
+    description: string;
+    date: string; // ISO
+    amount: number;
+}
+
+type ExpenseItem = {
+    id: string;
+    jobId: string;
+    jobTitle: string;
+    clientName: string;
+    category: string;
+    description: string;
+    date: string; // ISO
+    amount: number;
+}
 
 
 export default function FinancePage() {
   const firestore = useFirestore();
   const { user } = useUser();
-
-  // The queries for income and expenses are removed to prevent 403 error.
-  // We will use mocked data for now.
-  const income = mockIncome;
-  const expenses = mockExpenses;
-  const isLoadingIncome = false;
-  const isLoadingExpenses = false;
-
-
+  
   const jobsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return collection(firestore, 'users', user.uid, 'jobs');
   }, [firestore, user]);
-  
   const { data: jobs, isLoading: isLoadingJobs } = useCollection<Job>(jobsQuery);
   
-  const isLoading = isLoadingIncome || isLoadingExpenses || isLoadingJobs;
+  const settingsRef = useMemoFirebase(() => {
+      if (!firestore) return null;
+      return doc(firestore, "settings", "global");
+  }, [firestore]);
+  const { data: settings } = useDoc<GeneralSettings>(settingsRef);
+
+  const isLoading = isLoadingJobs;
+
+  const income: IncomeItem[] = jobs
+    ?.filter(job => job.status === 'Finalized')
+    .map(job => {
+        const totalAdjustments = job.adjustments?.reduce((sum, adj) => {
+            if (adj.type === 'Time') {
+                const rate = adj.hourlyRate ?? settings?.hourlyRate ?? 0;
+                return sum + (adj.value * rate);
+            }
+            return sum + adj.value;
+        }, 0) ?? 0;
+
+        return {
+            id: job.id,
+            jobId: job.id,
+            jobTitle: job.title || `${job.clientName} #${job.workOrderNumber}`,
+            description: "Job payment finalized",
+            date: job.deadline,
+            amount: job.initialValue + totalAdjustments,
+        }
+    }) ?? [];
+
+  const expenses: ExpenseItem[] = jobs
+    ?.flatMap(job => 
+        (job.invoices || []).map(invoice => ({
+            id: invoice.id,
+            jobId: job.id,
+            jobTitle: job.title || `${job.clientName} #${job.workOrderNumber}`,
+            clientName: job.clientName,
+            category: invoice.origin,
+            description: invoice.notes || `Invoice from ${invoice.origin}`,
+            date: invoice.date,
+            amount: invoice.amount,
+        }))
+    ) ?? [];
+
 
   const totalIncome = income?.reduce((acc, item) => acc + item.amount, 0) ?? 0;
   const totalExpenses = expenses?.reduce((acc, item) => acc + item.amount, 0) ?? 0;
@@ -113,7 +155,7 @@ export default function FinancePage() {
               <CardDescription>Income vs. Expenses over the last 6 months.</CardDescription>
             </CardHeader>
             <CardContent>
-              <CashFlowChart />
+              <CashFlowChart income={income} expenses={expenses} isLoading={isLoading} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -121,7 +163,7 @@ export default function FinancePage() {
           <Card>
             <CardHeader>
               <CardTitle>Income</CardTitle>
-              <CardDescription>List of all payments received.</CardDescription>
+              <CardDescription>List of all payments received from finalized jobs.</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
@@ -149,7 +191,7 @@ export default function FinancePage() {
                           <div className="font-medium">{item?.jobTitle}</div>
                           <div className="text-sm text-muted-foreground">{item.description}</div>
                         </TableCell>
-                        <TableCell>{format(new Date(item.date), "MMM dd, yyyy")}</TableCell>
+                        <TableCell>{format(parseISO(item.date), "MMM dd, yyyy")}</TableCell>
                         <TableCell className="text-right text-green-600 font-semibold">${item.amount.toLocaleString()}</TableCell>
                       </TableRow>
                     )
@@ -157,7 +199,7 @@ export default function FinancePage() {
                   ) : (
                     <TableRow>
                       <TableCell colSpan={3} className="h-24 text-center">
-                        No income recorded.
+                        No income recorded from finalized jobs.
                       </TableCell>
                     </TableRow>
                   )}
@@ -170,7 +212,7 @@ export default function FinancePage() {
           <Card>
             <CardHeader>
               <CardTitle>Expenses</CardTitle>
-              <CardDescription>List of all logged expenses.</CardDescription>
+              <CardDescription>List of all logged expenses from job invoices.</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
@@ -201,7 +243,7 @@ export default function FinancePage() {
                            <div className="text-sm text-muted-foreground">{item?.jobTitle} ({item?.clientName})</div>
                         </TableCell>
                         <TableCell>{item.category}</TableCell>
-                        <TableCell>{format(new Date(item.date), "MMM dd, yyyy")}</TableCell>
+                        <TableCell>{format(parseISO(item.date), "MMM dd, yyyy")}</TableCell>
                         <TableCell className="text-right text-red-600 font-semibold">${item.amount.toLocaleString()}</TableCell>
                       </TableRow>
                     )
