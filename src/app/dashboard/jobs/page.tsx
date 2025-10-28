@@ -25,12 +25,11 @@ import {
 } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, MapPin, User, GitBranch } from "lucide-react";
+import { PlusCircle, MapPin, User } from "lucide-react";
 import { JobActions } from "@/app/dashboard/job-actions";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser, errorEmitter, FirestorePermissionError } from "@/firebase";
-import { collection, query, where, doc, getDocs, writeBatch } from "firebase/firestore";
-import { useToast } from "@/hooks/use-toast";
+import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from "@/firebase";
+import { collection, query, where, doc } from "firebase/firestore";
 
 
 const JobsTable = ({ jobs, isLoading, hourlyRate }: { jobs: Job[] | null, isLoading: boolean, hourlyRate: number }) => {
@@ -198,9 +197,7 @@ const JobsTabContent = ({ status, hourlyRate }: { status: Job["status"], hourlyR
 export default function JobsPage() {
   const jobStatuses: Job["status"][] = ["Not Started", "In Progress", "Complete", "Open Payment", "Finalized"];
   const firestore = useFirestore();
-  const { user } = useUser();
-  const { toast } = useToast();
-
+  
   const settingsRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return doc(firestore, "settings", "global");
@@ -208,76 +205,10 @@ export default function JobsPage() {
   const { data: settings } = useDoc<GeneralSettings>(settingsRef);
   const hourlyRate = settings?.hourlyRate ?? 0;
   
-  const handleMigrateJobs = () => {
-    if (!firestore || !user) {
-        toast({
-            variant: "destructive",
-            title: "Error",
-            description: "User not logged in or Firestore not available.",
-        });
-        return;
-    }
-
-    const sourceUserId = "7aDfCRJ90HNiN2se655nys4glUX2";
-    const targetUserId = "m2QQbgIIKoQldL7iE4yDR1ItkYL2";
-
-    if (user.uid !== targetUserId) {
-        toast({
-            variant: "destructive",
-            title: "Migration Error",
-            description: "You are not logged in as the target user (m2QQ...).",
-        });
-        return;
-    }
-
-    toast({ title: "Starting Migration", description: "Please wait..." });
-
-    const sourceJobsRef = collection(firestore, 'users', sourceUserId, 'jobs');
-    
-    getDocs(sourceJobsRef).then(sourceJobsSnap => {
-        if (sourceJobsSnap.empty) {
-            toast({
-                variant: "destructive",
-                title: "No Jobs Found",
-                description: "The source user has no jobs to migrate.",
-            });
-            return;
-        }
-
-        const batch = writeBatch(firestore);
-        let migratedCount = 0;
-
-        sourceJobsSnap.forEach(jobDoc => {
-            const targetJobRef = doc(firestore, 'users', targetUserId, 'jobs', jobDoc.id);
-            batch.set(targetJobRef, jobDoc.data());
-            migratedCount++;
-        });
-
-        return batch.commit().then(() => {
-             toast({
-                title: "Migration Successful!",
-                description: `${migratedCount} jobs have been migrated to your account. The page will now reload.`,
-            });
-            setTimeout(() => window.location.reload(), 1500);
-        });
-
-    }).catch(serverError => {
-        const permissionError = new FirestorePermissionError({
-            path: sourceJobsRef.path,
-            operation: 'list',
-        });
-        errorEmitter.emit('permission-error', permissionError);
-    });
-  };
-
   return (
     <div>
       <PageHeader title="My Jobs">
         <div className="flex items-center gap-2">
-           <Button onClick={handleMigrateJobs} variant="outline">
-             <GitBranch className="mr-2 h-4 w-4" />
-              Migrate Jobs
-            </Button>
             <Button asChild>
                 <Link href="/dashboard/jobs/new">
                     <PlusCircle className="mr-2 h-4 w-4" />
