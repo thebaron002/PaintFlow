@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, MapPin, User } from "lucide-react";
+import { PlusCircle, MapPin, User, Upload } from "lucide-react";
 import { JobActions } from "@/app/dashboard/job-actions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
@@ -212,12 +212,18 @@ export default function JobsPage() {
   return (
     <div>
       <PageHeader title="My Jobs">
-         <Button asChild>
-            <Link href="/dashboard/jobs/new">
-                <PlusCircle className="mr-2 h-4 w-4" />
-                New Job
-            </Link>
-         </Button>
+        <div className="flex items-center gap-2">
+            <Button variant="outline">
+                <Upload className="mr-2 h-4 w-4" />
+                Migrate Jobs
+            </Button>
+            <Button asChild>
+                <Link href="/dashboard/jobs/new">
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    New Job
+                </Link>
+            </Button>
+        </div>
       </PageHeader>
       <Tabs defaultValue="Not Started">
         <TabsList className="grid w-full grid-cols-5 mb-4">
