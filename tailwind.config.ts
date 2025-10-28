@@ -1,3 +1,4 @@
+
 import type {Config} from 'tailwindcss';
 
 export default {
@@ -59,11 +60,11 @@ export default {
         },
       },
       borderRadius: {
-        lg: "16px",
-        xl: "20px",
-        "2xl": "28px",
+        lg: '16px',
         md: 'calc(16px - 2px)',
         sm: 'calc(16px - 4px)',
+        xl: "20px",
+        "2xl": "28px",
       },
       boxShadow: {
         glass: "0 10px 30px rgba(17,24,39,0.07)",
