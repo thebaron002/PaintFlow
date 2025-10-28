@@ -26,7 +26,7 @@ import { PlusCircle, MapPin, User } from "lucide-react";
 import { JobActions } from "@/app/dashboard/job-actions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from "@/firebase";
-import { collection, query, where, doc } from "firebase/firestore";
+import { collection, doc } from "firebase/firestore";
 
 
 const JobsTable = ({ jobs, isLoading, hourlyRate }: { jobs: Job[] | null, isLoading: boolean, hourlyRate: number }) => {
@@ -169,27 +169,11 @@ const JobsTable = ({ jobs, isLoading, hourlyRate }: { jobs: Job[] | null, isLoad
   )
 };
 
-const JobsTabContent = ({ status, hourlyRate }: { status: Job["status"], hourlyRate: number }) => {
-  const firestore = useFirestore();
-  const { user } = useUser();
-  
-  const jobsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(collection(firestore, 'users', user.uid, 'jobs'), where('status', '==', status));
-  }, [firestore, user, status]);
-
-  const { data: filteredJobs, isLoading: isLoadingJobs } = useCollection<Job>(jobsQuery);
-  
-  return (
-    <TabsContent value={status}>
-      <JobsTable jobs={filteredJobs} isLoading={isLoadingJobs} hourlyRate={hourlyRate} />
-    </TabsContent>
-  );
-};
 
 export default function JobsPage() {
   const jobStatuses: Job["status"][] = ["Not Started", "In Progress", "Complete", "Open Payment", "Finalized"];
   const firestore = useFirestore();
+  const { user } = useUser();
   
   const settingsRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -197,6 +181,21 @@ export default function JobsPage() {
   }, [firestore]);
   const { data: settings } = useDoc<GeneralSettings>(settingsRef);
   const hourlyRate = settings?.hourlyRate ?? 0;
+
+  const jobsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return collection(firestore, 'users', user.uid, 'jobs');
+  }, [firestore, user]);
+
+  const { data: allJobs, isLoading } = useCollection<Job>(jobsQuery);
+
+  const jobsByStatus = {
+    "Not Started": allJobs?.filter(j => j.status === 'Not Started') || [],
+    "In Progress": allJobs?.filter(j => j.status === 'In Progress') || [],
+    "Complete": allJobs?.filter(j => j.status === 'Complete') || [],
+    "Open Payment": allJobs?.filter(j => j.status === 'Open Payment') || [],
+    "Finalized": allJobs?.filter(j => j.status === 'Finalized') || [],
+  };
   
   return (
     <div>
@@ -217,7 +216,9 @@ export default function JobsPage() {
             ))}
         </TabsList>
         {jobStatuses.map(status => (
-          <JobsTabContent key={status} status={status} hourlyRate={hourlyRate} />
+          <TabsContent key={status} value={status}>
+            <JobsTable jobs={jobsByStatus[status]} isLoading={isLoading} hourlyRate={hourlyRate} />
+          </TabsContent>
         ))}
       </Tabs>
     </div>
