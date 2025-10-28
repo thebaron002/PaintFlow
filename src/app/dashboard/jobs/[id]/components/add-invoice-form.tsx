@@ -37,10 +37,11 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Switch } from "@/components/ui/switch";
+import { ResponsiveDatePicker } from "@/components/ui/responsive-date-picker";
 
 const invoiceSchema = z.object({
   origin: z.string().min(1, "Origin is required."),
-  date: z.string().min(1, 'Date is required').refine((val) => !isNaN(Date.parse(val)), { message: 'Invalid date' }),
+  date: z.date({ required_error: "Date is required."}),
   amount: z.coerce.number().min(0.01, "Amount must be greater than 0."),
   notes: z.string().optional(),
   isPayoutDiscount: z.boolean().default(false),
@@ -65,13 +66,13 @@ export function AddInvoiceForm({ jobId, existingInvoices, origins, onSuccess, in
     resolver: zodResolver(invoiceSchema),
     defaultValues: isEditing ? {
         ...invoiceToEdit,
-        date: format(parseISO(invoiceToEdit.date), 'yyyy-MM-dd'),
+        date: parseISO(invoiceToEdit.date),
         isPayoutDiscount: invoiceToEdit.isPayoutDiscount || false,
     } : {
       origin: "",
       amount: 0,
       notes: "",
-      date: "",
+      date: undefined,
       isPayoutDiscount: false,
     },
   });
@@ -91,15 +92,15 @@ export function AddInvoiceForm({ jobId, existingInvoices, origins, onSuccess, in
 
     if(isEditing) {
         updatedInvoices = existingInvoices.map(inv => 
-            inv.id === invoiceToEdit.id ? { ...inv, ...data, date: new Date(data.date + 'T12:00:00').toISOString() } : inv
+            inv.id === invoiceToEdit.id ? { ...inv, ...data, date: data.date.toISOString() } : inv
         );
     } else {
         const newInvoice = {
             id: uuidv4(),
             ...data,
-            date: new Date(data.date + 'T12:00:00').toISOString(),
+            date: data.date.toISOString(),
         };
-        updatedInvoices = [...existingInvoices, newInvoice];
+        updatedInvoices = [...(existingInvoices || []), newInvoice];
     }
 
     const jobRef = doc(firestore, 'users', user.uid, 'jobs', jobId);
@@ -143,19 +144,19 @@ export function AddInvoiceForm({ jobId, existingInvoices, origins, onSuccess, in
           )}
         />
         
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField
             control={form.control}
             name="date"
             render={({ field }) => (
                 <FormItem className="flex flex-col">
                 <FormLabel>Date</FormLabel>
-                    <input
-                        type="date"
-                        className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                        value={field.value ?? ''}
-                        onChange={(e) => field.onChange(e.target.value)}
-                    />
+                <FormControl>
+                   <ResponsiveDatePicker
+                      value={field.value}
+                      onChange={field.onChange}
+                   />
+                </FormControl>
                 <FormMessage />
                 </FormItem>
             )}
