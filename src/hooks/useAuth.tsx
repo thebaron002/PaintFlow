@@ -1,14 +1,13 @@
 'use client';
 import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { auth } from "../firebase/clean-firebase";
-import { onAuthStateChanged, type User } from "firebase/auth";
-import * as CleanAuth from "../firebase/clean-auth";
+import { onAuthStateChanged, type User, type Auth } from "firebase/auth";
 import { createUserProfileIfNotExists } from "@/firebase/auth-helpers";
 
 type AuthContextValue = {
   user: User | null;
   loading: boolean;
-  signInWithGoogle: () => Promise<void>;
+  auth: Auth;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -35,9 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value: AuthContextValue = {
     user,
     loading,
-    signInWithGoogle: async () => {
-      await CleanAuth.signInWithGoogle();
-    },
+    auth,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

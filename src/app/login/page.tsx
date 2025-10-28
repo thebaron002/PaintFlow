@@ -1,63 +1,65 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { LoaderCircle } from "lucide-react";
 import { Logo } from "@/components/logo";
-import { getAuthReady, signInWithGoogle } from "@/firebase/auth-live-like";
+import { useAuth } from "@/hooks/useAuth";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { signInWithEmailAndPassword } from "firebase/auth";
 
 export default function LoginPage() {
   const router = useRouter();
-  const search = useSearchParams();
-  const [status, setStatus] = useState<"idle" | "authenticating" | "error">("authenticating");
+  const { user, loading, auth } = useAuth();
+  const [status, setStatus] = useState<"idle" | "authenticating" | "error">("idle");
   const [message, setMessage] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const { user } = await getAuthReady();
-        if (!mounted) return;
-        if (user) {
-          router.replace(search.get("callbackUrl") || "/dashboard");
-        } else {
-          setStatus("idle");
-        }
-      } catch (e: any) {
-        if (!mounted) return;
-        setStatus("error");
-        setMessage(e?.message || "Falha ao inicializar autenticação.");
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, [router, search]);
-
-  async function handleGoogle() {
-    try {
-      setStatus("authenticating");
-      await signInWithGoogle();
-      // popup: volta aqui e o onAuthStateChanged resolve; redirect: sai da página e retorna
-    } catch (e: any) {
-      setStatus("error");
-      setMessage(e?.message || "Não foi possível iniciar o login.");
-    }
-  }
-
-  if (status === "authenticating") {
-    return (
+  if (loading) {
+     return (
       <div className="flex flex-col min-h-screen items-center justify-center bg-background p-4">
         <div className="flex flex-col items-center justify-center text-center space-y-4">
           <Logo />
-          <p className="text-muted-foreground">Autenticando…</p>
           <LoaderCircle className="h-6 w-6 animate-spin" />
         </div>
       </div>
     );
   }
+
+  if (user) {
+    router.replace("/dashboard");
+    return (
+       <div className="flex flex-col min-h-screen items-center justify-center bg-background p-4">
+        <div className="flex flex-col items-center justify-center text-center space-y-4">
+          <Logo />
+           <p className="text-muted-foreground">Redirecionando...</p>
+          <LoaderCircle className="h-6 w-6 animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStatus("authenticating");
+    setMessage("");
+
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      router.replace("/dashboard");
+    } catch (error: any) {
+      setStatus("error");
+      if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+        setMessage("Invalid email or password.");
+      } else {
+        setMessage(error.message || "An unexpected error occurred.");
+      }
+    }
+  };
 
   return (
     <div className="flex flex-col min-h-screen items-center justify-center bg-background p-4">
@@ -67,16 +69,41 @@ export default function LoginPage() {
           <h1 className="text-2xl font-semibold mt-4">Bem-vindo</h1>
           <p className="text-muted-foreground">Faça login para gerenciar seu negócio de pintura.</p>
         </div>
-        {status === "error" && (
-          <div className="mb-4 rounded border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-            {message}
+        
+        <form onSubmit={handleLogin} className="grid gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="m@example.com"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </div>
-        )}
-        <div className="grid gap-4">
-          <Button variant="outline" className="w-full" onClick={handleGoogle}>
-            Entrar com Google
+          <div className="grid gap-2">
+            <Label htmlFor="password">Password</Label>
+            <Input 
+              id="password" 
+              type="password" 
+              required 
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+
+          {status === "error" && (
+            <div className="rounded border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+              {message}
+            </div>
+          )}
+
+          <Button type="submit" className="w-full" disabled={status === "authenticating"}>
+            {status === "authenticating" ? <LoaderCircle className="h-4 w-4 animate-spin" /> : "Login"}
           </Button>
-        </div>
+        </form>
+
         <p className="px-8 text-center text-sm text-muted-foreground mt-6">
           Ao clicar em continuar, você concorda com nossos{" "}
           <a href="#" className="underline underline-offset-4 hover:text-primary">
