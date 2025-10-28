@@ -2,10 +2,9 @@
 "use client";
 
 import * as React from "react";
-import { format, isSameDay, isFuture } from "date-fns";
+import { format, isSameDay } from "date-fns";
 import type { Job } from "@/app/lib/types";
 import { Calendar } from "@/components/ui/calendar";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 export function JobCalendar({ jobs }: { jobs: Job[] }) {
@@ -28,22 +27,7 @@ export function JobCalendar({ jobs }: { jobs: Job[] }) {
             mode="single"
             selected={date}
             onSelect={setDate}
-            className="p-0"
-            classNames={{
-              root: "w-full glass-card p-4",
-              months: "w-full",
-              month: "w-full",
-              table: "w-full",
-              head_row: "w-full",
-              head_cell: "text-muted-foreground/80 dark:text-muted-foreground/60 font-medium",
-              row: "w-full",
-              day: "h-12 w-12 text-base transition-transform ease-in-out hover:scale-105",
-              day_today: "text-primary font-bold",
-              day_selected: "bg-primary/25 text-primary-foreground border-2 border-primary rounded-full",
-              day_outside: "text-muted-foreground/50",
-              caption_label: "font-headline text-2xl font-bold",
-              nav_button: "h-10 w-10 hover:bg-primary/10 hover:text-primary rounded-full transition-colors",
-            }}
+            className="glass-card p-4 rounded-lg border"
             modifiers={{
               jobStart: jobStartDates,
               productionDay: productionDays,
