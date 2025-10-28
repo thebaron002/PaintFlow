@@ -1,43 +1,18 @@
-import type {Metadata} from 'next';
-import { Poppins, PT_Sans } from 'next/font/google'
+import "./globals.css";
+import { cn } from "@/lib/utils";
+import { ReactNode } from "react";
 import { Toaster } from "@/components/ui/toaster";
-import './globals.css';
-import { AuthProvider } from '@/hooks/useAuth';
-import { FirebaseClientProvider } from '@/firebase';
+import { AuthProvider } from "@/hooks/useAuth";
+import { FirebaseClientProvider } from "@/firebase";
 
-const poppins = Poppins({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-poppins',
-  weight: ['400', '500', '600', '700']
-})
-
-const ptSans = PT_Sans({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-pt-sans',
-  weight: ['400', '700']
-})
-
-export const metadata: Metadata = {
-  title: 'PaintFlow',
-  description: 'Manage your painting business with ease.',
-  manifest: '/manifest.webmanifest',
-};
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${poppins.variable} ${ptSans.variable}`}>
-      <head />
-      <body className="font-body antialiased">
+    <html lang="pt-BR">
+      <body className={cn("app-bg min-h-dvh antialiased text-zinc-900")}>
         <AuthProvider>
-            <FirebaseClientProvider>
-                {children}
-            </FirebaseClientProvider>
+          <FirebaseClientProvider>
+            <div className="container max-w-7xl py-8">{children}</div>
+          </FirebaseClientProvider>
         </AuthProvider>
         <Toaster />
       </body>
