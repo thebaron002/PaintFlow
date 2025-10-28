@@ -49,24 +49,31 @@ const navItems = [
   { href: "/dashboard/migrate", icon: HardHat, label: "Migrate" },
 ];
 
+const mobileNavItems = navItems.filter(item => 
+    !["/dashboard/migrate", "/dashboard/profile", "/dashboard/settings"].includes(item.href)
+);
+
 const BottomNavBar = () => {
   const pathname = usePathname();
+  const maxItems = 5;
+  const navGridCols = `grid-cols-${mobileNavItems.length > maxItems ? maxItems : mobileNavItems.length}`;
+
   return (
     <div className="md:hidden fixed bottom-0 left-0 z-50 w-full h-16 bg-background border-t">
-      <div className="grid h-full max-w-lg grid-cols-8 mx-auto font-medium">
-        {navItems.map(({ href, icon: Icon, label }) => (
+      <div className={cn("grid h-full max-w-lg mx-auto font-medium", navGridCols)}>
+        {mobileNavItems.slice(0, maxItems).map(({ href, icon: Icon, label }) => (
           <Link
             key={label}
             href={href}
             className={cn(
-              "inline-flex flex-col items-center justify-center px-5 hover:bg-muted group",
-              pathname.startsWith(href) && href !== '/dashboard' || pathname === href
+              "inline-flex flex-col items-center justify-center px-1 hover:bg-muted group text-center",
+              (pathname.startsWith(href) && href !== '/dashboard') || (pathname === href)
                 ? "text-primary"
                 : "text-muted-foreground"
             )}
           >
             <Icon className="w-5 h-5 mb-1" />
-            <span className="text-xs">{label}</span>
+            <span className="text-[10px] leading-tight">{label}</span>
           </Link>
         ))}
       </div>
