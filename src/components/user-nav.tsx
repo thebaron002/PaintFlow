@@ -19,11 +19,13 @@ import Link from "next/link";
 import { Skeleton } from "./ui/skeleton";
 import { getAuth, signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
+import { useSidebar } from "./ui/sidebar";
 
 export function UserNav() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
+  const { state: sidebarState } = useSidebar();
 
   const userProfileRef = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -57,6 +59,25 @@ export function UserNav() {
     )
   }
 
+  // Version for expanded sidebar (in footer)
+  if (sidebarState === 'expanded') {
+    return (
+      <div className="flex items-center gap-3 p-2">
+        <Avatar className="h-9 w-9">
+          {avatarUrl && <AvatarImage src={avatarUrl} alt={name} />}
+          <AvatarFallback>{fallback}</AvatarFallback>
+        </Avatar>
+        <div className="flex flex-col space-y-1">
+          <p className="text-sm font-medium leading-none">{name}</p>
+          <p className="text-xs leading-none text-muted-foreground">
+            {email}
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // Default version for collapsed sidebar and header nav
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>

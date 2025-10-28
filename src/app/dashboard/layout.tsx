@@ -58,28 +58,31 @@ const BottomNavBar = () => {
   const pathname = usePathname();
   const maxItems = 5;
   const navGridCols = `grid-cols-${mobileNavItems.length > maxItems ? maxItems : mobileNavItems.length}`;
-
-  const isDashboard = pathname === '/dashboard';
-  const navBgClass = isDashboard ? 'bg-transparent' : 'bg-background/80 backdrop-blur-sm border-t';
+  
+  // Always use the default background for mobile nav bar
+  const navBgClass = 'bg-background/80 backdrop-blur-sm border-t';
 
   return (
     <div className={cn("md:hidden fixed bottom-0 left-0 z-50 w-full h-16", navBgClass)}>
       <div className={cn("grid h-full max-w-lg mx-auto font-medium", navGridCols)}>
-        {mobileNavItems.slice(0, maxItems).map(({ href, icon: Icon, label }) => (
-          <Link
-            key={label}
-            href={href}
-            className={cn(
-              "inline-flex flex-col items-center justify-center px-1 group text-center",
-               (pathname.startsWith(href) && href !== '/dashboard') || (pathname === href)
-                ? (isDashboard ? "text-white" : "text-primary")
-                : (isDashboard ? "text-white/60 hover:text-white" : "text-muted-foreground hover:bg-muted")
-            )}
-          >
-            <Icon className="w-5 h-5 mb-1" />
-            <span className="text-[10px] leading-tight">{label}</span>
-          </Link>
-        ))}
+        {mobileNavItems.slice(0, maxItems).map(({ href, icon: Icon, label }) => {
+          const isCurrent = (pathname.startsWith(href) && href !== '/dashboard') || (pathname === href);
+          return (
+            <Link
+              key={label}
+              href={href}
+              className={cn(
+                "inline-flex flex-col items-center justify-center px-1 group text-center",
+                isCurrent
+                  ? "text-primary"
+                  : "text-muted-foreground hover:bg-muted"
+              )}
+            >
+              <Icon className="w-5 h-5 mb-1" />
+              <span className="text-[10px] leading-tight">{label}</span>
+            </Link>
+          )
+        })}
       </div>
     </div>
   );
@@ -106,17 +109,12 @@ function DashboardGuard({ children }: { children: ReactNode }) {
     );
   }
   
-  const isDashboardPage = pathname === '/dashboard';
-  const sidebarVariant = isDashboardPage ? 'floating' : 'sidebar';
-  const sidebarClass = isDashboardPage ? 'text-white border-white/20' : '';
-  const insetClass = isDashboardPage ? 'bg-transparent' : 'bg-background';
-
   return (
      <SidebarProvider>
-      <Sidebar variant={sidebarVariant} className={sidebarClass}>
+      <Sidebar variant="sidebar">
         <SidebarHeader>
           <div className="p-2">
-            <Logo className={isDashboardPage ? 'text-white' : ''} />
+            <Logo className="text-sidebar-foreground" />
           </div>
         </SidebarHeader>
         <SidebarContent>
@@ -133,21 +131,19 @@ function DashboardGuard({ children }: { children: ReactNode }) {
             ))}
           </SidebarMenu>
         </SidebarContent>
-        <SidebarFooter>{/* Footer content if any */}</SidebarFooter>
+        <SidebarFooter>
+          <UserNav />
+        </SidebarFooter>
       </Sidebar>
-      <SidebarInset className={cn('app-bg', insetClass)}>
-        {!isDashboardPage && (
-            <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/80 backdrop-blur-sm px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 py-4">
-            <SidebarTrigger className="sm:hidden" />
-            <div className="ml-auto flex items-center gap-4">
-                <UserNav />
-            </div>
-            </header>
-        )}
+      <SidebarInset className="app-bg bg-background">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/80 backdrop-blur-sm px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 py-4">
+          <SidebarTrigger className="sm:hidden" />
+          <div className="ml-auto flex items-center gap-4">
+              <UserNav />
+          </div>
+        </header>
         <main className={cn(
-            "flex-1 flex flex-col",
-            isDashboardPage ? "p-0" : "p-4 sm:px-6 sm:py-0",
-            "pb-20 md:pb-4"
+            "flex-1 flex flex-col p-4 sm:px-6 sm:py-0 pb-20 md:pb-4"
         )}>
           {children}
         </main>
