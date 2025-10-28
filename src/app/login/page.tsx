@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -35,25 +35,20 @@ export default function LoginPage() {
   const [resetEmail, setResetEmail] = useState("");
   const [isResetting, setIsResetting] = useState(false);
 
-  if (loading) {
-     return (
+  useEffect(() => {
+    if (!loading && user) {
+      router.replace("/dashboard");
+    }
+  }, [user, loading, router]);
+
+
+  if (loading || user) {
+    return (
       <div className="flex flex-col min-h-screen items-center justify-center bg-background p-4">
         <div className="flex flex-col items-center justify-center text-center space-y-4">
           <Logo />
           <LoaderCircle className="h-6 w-6 animate-spin" />
-        </div>
-      </div>
-    );
-  }
-
-  if (user) {
-    router.replace("/dashboard");
-    return (
-       <div className="flex flex-col min-h-screen items-center justify-center bg-background p-4">
-        <div className="flex flex-col items-center justify-center text-center space-y-4">
-          <Logo />
-           <p className="text-muted-foreground">Redirecionando...</p>
-          <LoaderCircle className="h-6 w-6 animate-spin" />
+           {user && <p className="text-muted-foreground">Redirecionando...</p>}
         </div>
       </div>
     );
@@ -66,7 +61,7 @@ export default function LoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      router.replace("/dashboard");
+      // The useEffect will handle the redirect
     } catch (error: any) {
       setStatus("error");
       if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
