@@ -264,48 +264,50 @@ export default function JobsPage() {
             <CardHeader className="pb-2">
               <div className="text-sm text-neutral-500">Table view</div>
             </CardHeader>
-            <CardContent className="overflow-x-auto">
-              <table className="min-w-[840px] w-full text-sm">
-                <thead className="text-neutral-500">
-                  <tr className="[&_th]:text-left [&_th]:py-2">
-                    <th>Job</th>
-                    <th>Client</th>
-                    <th>Address</th>
-                    <th>Status</th>
-                    <th>Payout</th>
-                    <th>Deadline</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody className="text-neutral-800">
-                  {filtered.map((j) => (
-                    <tr key={j.id} className="border-t border-neutral-100">
-                      <td className="py-3 font-medium">{j.name}</td>
-                      <td>{j.clientName}</td>
-                      <td className="max-w-[280px] truncate">{j.address}</td>
-                      <td><StatusBadge status={j.status} /></td>
-                      <td className={cn(j.payout < 0 ? "text-red-600" : "")}>
-                        {Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(j.payout)}
-                      </td>
-                      <td>{j.deadline ? format(new Date(j.deadline), "MMM dd, yyyy") : "—"}</td>
-                      <td className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-neutral-500">
-                              <MoreVertical className="h-5 w-5" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-40">
-                            <DropdownMenuItem onClick={() => router.push(`/dashboard/jobs/${j.id}`)}>Open</DropdownMenuItem>
-                            <DropdownMenuItem>Edit</DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-600">Delete</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </td>
+            <CardContent>
+               <div className="overflow-x-auto">
+                <table className="min-w-[840px] w-full text-sm">
+                    <thead className="text-neutral-500">
+                    <tr className="[&_th]:text-left [&_th]:py-2">
+                        <th>Job</th>
+                        <th>Client</th>
+                        <th>Address</th>
+                        <th>Status</th>
+                        <th>Payout</th>
+                        <th>Deadline</th>
+                        <th></th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                    </thead>
+                    <tbody className="text-neutral-800">
+                    {filtered.map((j) => (
+                        <tr key={j.id} className="border-t border-neutral-100">
+                        <td className="py-3 font-medium">{j.name}</td>
+                        <td>{j.clientName}</td>
+                        <td className="max-w-[280px] truncate">{j.address}</td>
+                        <td><StatusBadge status={j.status} /></td>
+                        <td className={cn(j.payout < 0 ? "text-red-600" : "")}>
+                            {Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(j.payout)}
+                        </td>
+                        <td>{j.deadline ? format(new Date(j.deadline), "MMM dd, yyyy") : "—"}</td>
+                        <td className="text-right">
+                            <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-neutral-500">
+                                <MoreVertical className="h-5 w-5" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-40">
+                                <DropdownMenuItem onClick={() => router.push(`/dashboard/jobs/${j.id}`)}>Open</DropdownMenuItem>
+                                <DropdownMenuItem>Edit</DropdownMenuItem>
+                                <DropdownMenuItem className="text-red-600">Delete</DropdownMenuItem>
+                            </DropdownMenuContent>
+                            </DropdownMenu>
+                        </td>
+                        </tr>
+                    ))}
+                    </tbody>
+                </table>
+               </div>
             </CardContent>
           </Card>
         )}
@@ -313,5 +315,3 @@ export default function JobsPage() {
     </div>
   );
 }
-
-    
