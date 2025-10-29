@@ -78,37 +78,29 @@ const StatusStepper = ({ statuses, current, onStatusChange }: { statuses: Job['s
     const currentIndex = statuses.indexOf(current);
 
     return (
-        <div className="w-full">
-            <div className="flex items-center justify-between">
+         <div className="w-full">
+            <div className="flex flex-wrap items-start justify-center gap-x-2 gap-y-4 sm:gap-x-4 md:gap-x-6">
                 {statuses.map((status, index) => (
-                    <React.Fragment key={status}>
-                        <div className="flex flex-col items-center gap-2">
-                             <Button 
-                                size="icon"
-                                className={cn(
-                                    "rounded-full h-10 w-10 transition-all duration-300",
-                                    index < currentIndex ? "bg-primary text-primary-foreground" :
-                                    index === currentIndex ? "bg-primary ring-4 ring-primary/30 text-primary-foreground" :
-                                    "bg-muted text-muted-foreground hover:bg-muted-foreground/20"
-                                )}
-                                onClick={() => onStatusChange(status)}
-                             >
-                                {index < currentIndex ? <Check className="h-5 w-5" /> : index + 1}
-                             </Button>
-                             <p className={cn(
-                                 "text-xs text-center font-medium",
-                                 index <= currentIndex ? "text-primary" : "text-muted-foreground"
-                             )}>
-                                 {status}
-                             </p>
-                        </div>
-                        {index < statuses.length - 1 && (
-                             <div className={cn(
-                                 "flex-1 h-1 mx-2 mb-8",
-                                 index < currentIndex ? "bg-primary" : "bg-border"
-                             )}/>
-                        )}
-                    </React.Fragment>
+                    <div key={status} className="flex flex-col items-center gap-2 w-20">
+                        <Button 
+                            size="icon"
+                            className={cn(
+                                "rounded-full h-10 w-10 transition-all duration-300",
+                                index < currentIndex ? "bg-primary text-primary-foreground" :
+                                index === currentIndex ? "bg-primary ring-4 ring-primary/30 text-primary-foreground" :
+                                "bg-muted text-muted-foreground hover:bg-muted-foreground/20"
+                            )}
+                            onClick={() => onStatusChange(status)}
+                        >
+                            {index < currentIndex ? <Check className="h-5 w-5" /> : index + 1}
+                        </Button>
+                        <p className={cn(
+                            "text-xs text-center font-medium leading-tight",
+                            index <= currentIndex ? "text-primary" : "text-muted-foreground"
+                        )}>
+                            {status}
+                        </p>
+                    </div>
                 ))}
             </div>
         </div>
@@ -604,7 +596,7 @@ export function JobDetails({
         </Dialog>
         
         {/* Floating Edit Button */}
-        <div className="fixed bottom-0 left-0 right-0 md:hidden bg-background/80 backdrop-blur-sm p-4 border-t">
+        <div className="fixed bottom-16 left-0 right-0 md:hidden bg-background/80 backdrop-blur-sm p-4 border-t">
              <Button asChild className="w-full">
                 <Link href={`/dashboard/jobs/${job.id}/edit`}>
                     <Pencil className="mr-2 h-4 w-4" />
