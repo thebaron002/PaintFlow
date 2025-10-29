@@ -32,7 +32,10 @@ export default function JobDetailsPage() {
   if (isLoading) {
     return (
         <div className="p-4 sm:px-6 sm:py-0">
-            <Skeleton className="h-10 w-64 mb-8" />
+            <div className="flex items-center gap-4 mb-8">
+              <Skeleton className="h-10 w-10 rounded-full" />
+              <Skeleton className="h-10 w-64" />
+            </div>
             <div className="grid gap-6 lg:grid-cols-3">
                 <div className="lg:col-span-2 grid gap-6">
                     <Skeleton className="h-48" />
