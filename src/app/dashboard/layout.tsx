@@ -1,6 +1,6 @@
 'use client';
 import { ReactNode, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { LoaderCircle, Palette } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -12,7 +12,7 @@ import {
   Settings,
   Users,
   User as UserIcon,
-  HardHat, // Ícone para a página de migração
+  HardHat,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -30,7 +30,6 @@ import { UserNav } from '@/components/user-nav';
 import { Logo } from '@/components/logo';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
-import { usePathname } from 'next/navigation';
 import { useUser } from '@/firebase';
 
 
@@ -51,18 +50,31 @@ const mobileNavItems = navItems.filter(item =>
     !["/dashboard/migrate", "/dashboard/profile", "/dashboard/settings", "/dashboard/styleguide"].includes(item.href)
 );
 
+const getNavGridCols = (count: number) => {
+    switch (count) {
+        case 1: return 'grid-cols-1';
+        case 2: return 'grid-cols-2';
+        case 3: return 'grid-cols-3';
+        case 4: return 'grid-cols-4';
+        case 5: return 'grid-cols-5';
+        case 6: return 'grid-cols-6';
+        default: return 'grid-cols-5';
+    }
+}
+
 const BottomNavBar = () => {
   const pathname = usePathname();
   const maxItems = 5;
-  const navGridCols = `grid-cols-${mobileNavItems.length > maxItems ? maxItems : mobileNavItems.length}`;
+  const itemsToShow = mobileNavItems.slice(0, maxItems);
+  const navGridCols = getNavGridCols(itemsToShow.length);
   
   const navBgClass = 'bg-background/80 backdrop-blur-sm border-t';
 
   return (
     <div className={cn("md:hidden fixed bottom-0 left-0 z-50 w-full h-16", navBgClass)}>
       <div className={cn("grid h-full max-w-lg mx-auto font-medium", navGridCols)}>
-        {mobileNavItems.slice(0, maxItems).map(({ href, icon: Icon, label }) => {
-          const isCurrent = (pathname.startsWith(href) && href !== '/dashboard') || (pathname === href);
+        {itemsToShow.map(({ href, icon: Icon, label }) => {
+          const isCurrent = (pathname === href) || (href !== '/dashboard' && pathname.startsWith(href));
           return (
             <Link
               key={label}
@@ -89,7 +101,6 @@ function DashboardGuard({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, isUserLoading } = useUser();
-  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -147,7 +158,7 @@ function DashboardGuard({ children }: { children: ReactNode }) {
           {children}
         </main>
       </SidebarInset>
-      {isMobile && <BottomNavBar />}
+      <BottomNavBar />
     </SidebarProvider>
   );
 }
