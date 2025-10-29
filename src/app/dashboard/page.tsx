@@ -123,16 +123,9 @@ function QuickActions() {
       <SectionHeader
         title="Quick Actions"
         subtitle="Faça o que mais importa em 1 clique."
-        right={
-          <div className="hidden sm:block">
-            <Link href="/dashboard/jobs/new">
-              <Button className="gap-2"><PlusCircle className="h-4 w-4" /> New Job</Button>
-            </Link>
-          </div>
-        }
       />
       <Separator className="my-4" />
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Link href="/dashboard/jobs">
           <Card className="group cursor-pointer rounded-xl bg-white/50 p-4 shadow-sm backdrop-blur transition hover:bg-white/80 dark:bg-zinc-900/50 dark:hover:bg-zinc-900/70">
             <CardContent className="p-0">
@@ -152,7 +145,7 @@ function QuickActions() {
           </Card>
         </Link>
 
-        <Link href="/dashboard/jobs/new" className="sm:hidden">
+        <Link href="/dashboard/jobs/new">
           <Card className="group cursor-pointer rounded-xl bg-white/50 p-4 shadow-sm backdrop-blur transition hover:bg-white/80 dark:bg-zinc-900/50 dark:hover:bg-zinc-900/70">
             <CardContent className="p-0">
               <div className="flex items-center justify-between">
@@ -163,25 +156,6 @@ function QuickActions() {
                   <div>
                     <div className="font-semibold">New Job</div>
                     <div className="text-xs text-zinc-600 dark:text-zinc-400">Criar projeto</div>
-                  </div>
-                </div>
-                <ArrowRight className="h-4 w-4 text-zinc-400 transition group-hover:translate-x-0.5" />
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link href="/dashboard/finance">
-          <Card className="group cursor-pointer rounded-xl bg-white/50 p-4 shadow-sm backdrop-blur transition hover:bg-white/80 dark:bg-zinc-900/50 dark:hover:bg-zinc-900/70">
-            <CardContent className="p-0">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900">
-                    <BarChart3 className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <div className="font-semibold">Revenue Overview</div>
-                    <div className="text-xs text-zinc-600 dark:text-zinc-400">Performance mensal</div>
                   </div>
                 </div>
                 <ArrowRight className="h-4 w-4 text-zinc-400 transition group-hover:translate-x-0.5" />
