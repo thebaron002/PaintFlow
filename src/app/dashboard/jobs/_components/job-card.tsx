@@ -1,15 +1,13 @@
 
 "use client";
 
-import { MapPin, MoreVertical, CircleDot, CheckCircle2, Clock, Wallet2 } from 'lucide-react';
+import { MapPin, CircleDot, CheckCircle2, Clock, Wallet2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import type { Job } from '@/app/lib/types';
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
 import { JobActions } from '../../job-actions';
 
 function StatusBadge({ status }: { status: Job['status'] }) {
@@ -22,7 +20,7 @@ function StatusBadge({ status }: { status: Job['status'] }) {
   };
   const s = statusMap[status];
   return (
-    <Badge className={cn("gap-1.5 px-2.5 py-1 text-xs rounded-full", s.className)}>
+    <Badge className={cn("gap-1.5 px-2.5 py-1 text-xs rounded-full shrink-0 whitespace-nowrap", s.className)}>
       {s.icon}
       {s.label}
     </Badge>
@@ -31,9 +29,9 @@ function StatusBadge({ status }: { status: Job['status'] }) {
 
 function Info({label, value, className}: {label: string; value: string | React.ReactNode, className?: string}) {
   return (
-    <div className={className}>
+    <div className={cn("min-w-0", className)}>
       <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="text-sm font-medium">{value}</p>
+      <p className="text-sm font-medium truncate">{value}</p>
     </div>
   );
 }
@@ -71,19 +69,26 @@ export function JobCard({ job }: { job: Job }) {
 
         <div className="min-w-0 flex-1">
           {/* Header: Title and Badge/Actions */}
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-            <h3 className="text-base sm:text-lg font-semibold truncate pr-8 sm:pr-0">{title}</h3>
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+                <h3 className="text-base sm:text-lg font-semibold truncate">{title}</h3>
+                <p className="text-muted-foreground text-sm mt-0.5 truncate">
+                    Client: <span className="font-medium text-foreground">{job.clientName}</span>
+                </p>
+            </div>
             <div className="shrink-0 flex items-center gap-2 -mt-1 sm:mt-0">
-               <StatusBadge status={job.status} />
+               <div className="hidden sm:block">
+                 <StatusBadge status={job.status} />
+               </div>
                 <div onClick={(e) => e.stopPropagation()}>
                     <JobActions job={job} />
                 </div>
             </div>
           </div>
 
-          <p className="text-muted-foreground text-sm mt-0.5 truncate">
-            Client: <span className="font-medium text-foreground">{job.clientName}</span>
-          </p>
+          <div className="sm:hidden mt-2">
+            <StatusBadge status={job.status} />
+          </div>
 
           {/* Address */}
           <div className="flex items-start gap-2 mt-2 text-sm text-muted-foreground">
@@ -92,7 +97,7 @@ export function JobCard({ job }: { job: Job }) {
           </div>
 
           {/* Info Grid */}
-          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="mt-3 grid grid-cols-2 gap-3">
             <Info label="Payout" value={payoutFmt} />
             <Info label="Deadline" value={deadline} />
           </div>
