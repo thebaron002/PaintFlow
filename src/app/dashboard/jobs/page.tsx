@@ -4,7 +4,6 @@ import * as React from "react";
 import { useMemo, useState } from "react";
 import type { Job as JobType } from "@/app/lib/types";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Search, Plus } from "lucide-react";
 import Link from "next/link";
