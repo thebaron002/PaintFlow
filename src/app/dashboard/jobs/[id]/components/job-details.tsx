@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -206,19 +205,25 @@ export function JobDetails({
   return (
     <div>
       <PageHeader title={jobTitle}>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" asChild>
+        <div className="flex items-center gap-4">
+          <Button variant="outline" size="icon" className="rounded-full" asChild>
             <Link href="/dashboard/jobs">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Jobs
+              <ArrowLeft />
             </Link>
           </Button>
-          <Button asChild>
-            <Link href={`/dashboard/jobs/${job.id}/edit`}>
-              <Pencil className="mr-2 h-4 w-4" />
-              Edit Job
-            </Link>
-          </Button>
+          <div className="flex-1">
+            <h2 className="text-3xl font-bold tracking-tight font-headline">
+              {jobTitle}
+            </h2>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button asChild>
+              <Link href={`/dashboard/jobs/${job.id}/edit`}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Edit Job
+              </Link>
+            </Button>
+          </div>
         </div>
       </PageHeader>
 
@@ -587,7 +592,3 @@ export function JobDetails({
     </div>
   );
 }
-
-    
-
-    
