@@ -22,6 +22,8 @@ const TABS: { key: JobType['status'] | 'all', label: string }[] = [
   { key: 'Finalized', label: 'Finalized' },
 ] as const;
 
+const STATUS_ORDER: JobType['status'][] = ["In Progress", "Not Started", "Open Payment", "Complete", "Finalized"];
+
 
 export default function JobsPage() {
   const [tab, setTab] = useState<(typeof TABS)[number]['key']>('all');
@@ -54,7 +56,21 @@ export default function JobsPage() {
       );
     };
 
-    return jobs.filter(byTab).filter(byQuery);
+    const statusOrderMap = new Map(STATUS_ORDER.map((status, index) => [status, index]));
+
+    return jobs
+      .filter(byTab)
+      .filter(byQuery)
+      .sort((a, b) => {
+        // Sort by status first
+        const statusA = statusOrderMap.get(a.status) ?? 99;
+        const statusB = statusOrderMap.get(b.status) ?? 99;
+        if (statusA !== statusB) {
+          return statusA - statusB;
+        }
+        // Then sort by newest start date
+        return new Date(b.startDate).getTime() - new Date(a.startDate).getTime();
+      });
   }, [jobs, tab, q]);
 
   return (
