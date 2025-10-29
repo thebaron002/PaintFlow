@@ -100,6 +100,7 @@ const BottomNavBar = () => {
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { user, isUserLoading } = useUser();
+  const pathname = usePathname();
 
   // The guard logic is now handled globally by UseAuthRouteGuard
   if (isUserLoading || !user) {
