@@ -1,5 +1,6 @@
+
 'use client';
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { auth } from "../firebase/clean-firebase";
 import { onAuthStateChanged, type User, type Auth } from "firebase/auth";
 import { createUserProfileIfNotExists } from "@/firebase/auth-helpers";
