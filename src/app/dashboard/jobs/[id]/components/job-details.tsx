@@ -212,11 +212,7 @@ export function JobDetails({
               <ArrowLeft />
             </Link>
           </Button>
-          <div className="flex-1">
-            <h2 className="text-3xl font-bold tracking-tight font-headline">
-              {jobTitle}
-            </h2>
-          </div>
+          <div className="flex-1" />
           <div className="flex items-center gap-2">
             <Button asChild>
               <Link href={`/dashboard/jobs/${job.id}/edit`}>

@@ -17,12 +17,10 @@ export function PageHeader({
         className
       )}
     >
-      <div className="flex items-center gap-4">
         <h2 className="text-3xl font-bold tracking-tight font-headline">
           {title}
         </h2>
-      </div>
-      {children && <div className="shrink-0">{children}</div>}
+      {children && <div className="shrink-0 flex items-center gap-4">{children}</div>}
     </div>
   );
 }
