@@ -97,7 +97,10 @@ function JobCard({ job }: { job: Job }) {
     }).format(Math.abs(job.payout || 0));
 
   return (
-    <Card className="border-0 shadow-sm backdrop-blur-sm bg-white/75 dark:bg-neutral-900/60">
+    <Card 
+        className="border-0 shadow-sm backdrop-blur-sm bg-white/75 dark:bg-neutral-900/60 cursor-pointer hover:bg-white/90 transition-colors"
+        onClick={() => router.push(`/dashboard/jobs/${job.id}`)}
+    >
       <CardContent className="p-4 sm:p-5">
         <div className="flex items-start gap-4">
           <Avatar className="h-10 w-10 bg-neutral-200 dark:bg-neutral-800">
@@ -119,17 +122,17 @@ function JobCard({ job }: { job: Job }) {
               <div className="flex items-center gap-2">
                 <StatusBadge status={job.status} />
                 <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
+                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-neutral-500">
                       <MoreVertical className="h-5 w-5" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-40">
-                    <DropdownMenuItem onClick={() => router.push(`/dashboard/jobs/${job.id}`)}>
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); router.push(`/dashboard/jobs/${job.id}`) }}>
                       Open
                     </DropdownMenuItem>
-                    <DropdownMenuItem>Edit</DropdownMenuItem>
-                    <DropdownMenuItem className="text-red-600">Delete</DropdownMenuItem>
+                    <DropdownMenuItem onClick={(e) => e.stopPropagation()}>Edit</DropdownMenuItem>
+                    <DropdownMenuItem className="text-red-600" onClick={(e) => e.stopPropagation()}>Delete</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -310,3 +313,5 @@ export default function JobsPage() {
     </div>
   );
 }
+
+    
