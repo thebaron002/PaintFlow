@@ -35,15 +35,10 @@ import {
   Clock,
   ChevronsUpDown,
   TrendingDown,
+  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -78,6 +73,48 @@ type ModalState<T> = {
     isOpen: boolean;
     item: T | null;
 }
+
+const StatusStepper = ({ statuses, current, onStatusChange }: { statuses: Job['status'][], current: Job['status'], onStatusChange: (status: Job['status']) => void }) => {
+    const currentIndex = statuses.indexOf(current);
+
+    return (
+        <div className="w-full">
+            <div className="flex items-center justify-between">
+                {statuses.map((status, index) => (
+                    <React.Fragment key={status}>
+                        <div className="flex flex-col items-center gap-2">
+                             <Button 
+                                size="icon"
+                                className={cn(
+                                    "rounded-full h-10 w-10 transition-all duration-300",
+                                    index < currentIndex ? "bg-primary text-primary-foreground" :
+                                    index === currentIndex ? "bg-primary ring-4 ring-primary/30 text-primary-foreground" :
+                                    "bg-muted text-muted-foreground hover:bg-muted-foreground/20"
+                                )}
+                                onClick={() => onStatusChange(status)}
+                             >
+                                {index < currentIndex ? <Check className="h-5 w-5" /> : index + 1}
+                             </Button>
+                             <p className={cn(
+                                 "text-xs text-center font-medium",
+                                 index <= currentIndex ? "text-primary" : "text-muted-foreground"
+                             )}>
+                                 {status}
+                             </p>
+                        </div>
+                        {index < statuses.length - 1 && (
+                             <div className={cn(
+                                 "flex-1 h-1 mx-2 mb-8",
+                                 index < currentIndex ? "bg-primary" : "bg-border"
+                             )}/>
+                        )}
+                    </React.Fragment>
+                ))}
+            </div>
+        </div>
+    );
+};
+
 
 export function JobDetails({
   job,
@@ -214,10 +251,20 @@ export function JobDetails({
             </Link>
           </Button>
         }
-      />
+      >
+      </PageHeader>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 grid gap-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Job Status</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <StatusStepper statuses={jobStatuses} current={currentStatus} onStatusChange={handleStatusChange} />
+                </CardContent>
+            </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Job Overview</CardTitle>
@@ -378,29 +425,6 @@ export function JobDetails({
         </div>
 
         <div className="lg:col-span-1 grid gap-6 content-start">
-          <Card>
-            <CardHeader>
-              <CardTitle>Job Status</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col items-center justify-center gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="w-full capitalize">
-                    {currentStatus}
-                    <ChevronDown className="ml-2 h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56">
-                  {jobStatuses.map((s) => (
-                    <DropdownMenuItem key={s} onSelect={() => handleStatusChange(s)}>
-                      {s}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </CardContent>
-          </Card>
-          
            <Card>
              <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Crew</CardTitle>
