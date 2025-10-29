@@ -1,41 +1,28 @@
-
 "use client";
 
 import * as React from "react";
 import Link from "next/link";
 import { format } from "date-fns";
 import {
-  Card, CardContent, CardHeader, CardTitle,
+  Card, CardContent,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PlusCircle, Receipt, BarChart3, ArrowRight, MapPin, CalendarDays } from "lucide-react";
-
-// Hooks / Firebase (mantive seus nomes/assinaturas)
+import { PlusCircle, Receipt, ArrowRight, MapPin, CalendarDays } from "lucide-react";
 import { useUser, useFirestore, useMemoFirebase, useCollection } from "@/firebase";
-import { collection, query, where, orderBy, limit } from "firebase/firestore";
+import { collection, query, where } from "firebase/firestore";
 import type { Job as JobType } from "@/app/lib/types";
+import { useToast } from "@/hooks/use-toast";
+import { JobSelectionModal } from "./components/job-selection-modal";
+import { AddInvoiceForm } from "./jobs/[id]/components/add-invoice-form";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 // Types (ajuste se necessário)
 type Invoice = { amount: number; date?: string; isPayoutDiscount?: boolean; source?: string };
 type Adjustment = { type: "Time" | "Material" | "General"; value: number; hourlyRate?: number };
-type Job = {
-  id: string;
-  title?: string;
-  clientName: string;
-  workOrderNumber: string;
-  address: string;
-  status: "Not Started" | "In Progress" | "Complete" | "Open Payment" | "Finalized";
-  startDate?: string; // ISO String
-  deadline?: string; // ISO String
-  budget?: number;       // usado quando não é fixed pay
-  initialValue?: number; // payout quando é fixed pay
-  isFixedPay?: boolean;
-  invoices?: Invoice[];
-  adjustments?: Adjustment[];
-};
+type Job = JobType;
 
 // ---------------------------------------------------------------------
 // UI helpers
@@ -117,55 +104,120 @@ function currency(n: number) {
 // ---------------------------------------------------------------------
 // Quick Actions (os 3 botões grandes)
 // ---------------------------------------------------------------------
-function QuickActions() {
-  return (
-    <GlassSection className="p-4">
-      <SectionHeader
-        title="Quick Actions"
-        subtitle="Faça o que mais importa em 1 clique."
-      />
-      <Separator className="my-4" />
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Link href="/dashboard/jobs">
-          <Card className="group cursor-pointer rounded-xl bg-white/50 p-4 shadow-sm backdrop-blur transition hover:bg-white/80 dark:bg-zinc-900/50 dark:hover:bg-zinc-900/70">
-            <CardContent className="p-0">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900">
-                    <Receipt className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <div className="font-semibold">Add Invoice</div>
-                    <div className="text-xs text-zinc-600 dark:text-zinc-400">Lançar no job atual</div>
-                  </div>
-                </div>
-                <ArrowRight className="h-4 w-4 text-zinc-400 transition group-hover:translate-x-0.5" />
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
+function QuickActions({ inProgressJobs }: { inProgressJobs: Job[] }) {
+    const { toast } = useToast();
+    const [isJobSelectionOpen, setJobSelectionOpen] = React.useState(false);
+    const [isSingleJobInvoiceOpen, setSingleJobInvoiceOpen] = React.useState(false);
+    
+    // This is needed to get all possible invoice origins for the combobox inside AddInvoiceForm
+    const { user } = useUser();
+    const firestore = useFirestore();
+    const allJobsQuery = useCollection(user ? collection(firestore, 'users', user.uid, 'jobs') : null);
+    const invoiceOrigins = [...new Set(allJobsQuery.data?.flatMap(j => j.invoices?.map(i => i.origin)).filter(Boolean) ?? [])];
 
-        <Link href="/dashboard/jobs/new">
-          <Card className="group cursor-pointer rounded-xl bg-white/50 p-4 shadow-sm backdrop-blur transition hover:bg-white/80 dark:bg-zinc-900/50 dark:hover:bg-zinc-900/70">
-            <CardContent className="p-0">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900">
-                    <PlusCircle className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <div className="font-semibold">New Job</div>
-                    <div className="text-xs text-zinc-600 dark:text-zinc-400">Criar projeto</div>
-                  </div>
+
+    const handleAddInvoiceClick = () => {
+        if (!inProgressJobs || inProgressJobs.length === 0) {
+            toast({
+                variant: "destructive",
+                title: "No Active Jobs",
+                description: "You must have at least one job 'In Progress' to add an invoice.",
+            });
+            return;
+        }
+
+        if (inProgressJobs.length > 1) {
+            setJobSelectionOpen(true);
+        } else {
+            setSingleJobInvoiceOpen(true);
+        }
+    };
+
+    const handleInvoiceFormSuccess = () => {
+        toast({
+          title: "Invoice Added!",
+          description: "The new invoice has been added successfully.",
+        });
+        setSingleJobInvoiceOpen(false);
+    }
+
+    const singleJob = inProgressJobs?.[0];
+
+    return (
+    <>
+        <GlassSection className="p-4">
+        <SectionHeader
+            title="Quick Actions"
+            subtitle="Faça o que mais importa em 1 clique."
+        />
+        <Separator className="my-4" />
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Card 
+                className="group cursor-pointer rounded-xl bg-white/50 p-4 shadow-sm backdrop-blur transition hover:bg-white/80 dark:bg-zinc-900/50 dark:hover:bg-zinc-900/70"
+                onClick={handleAddInvoiceClick}
+            >
+                <CardContent className="p-0">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900">
+                        <Receipt className="h-5 w-5" />
+                    </div>
+                    <div>
+                        <div className="font-semibold">Add Invoice</div>
+                        <div className="text-xs text-zinc-600 dark:text-zinc-400">Lançar no job atual</div>
+                    </div>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-zinc-400 transition group-hover:translate-x-0.5" />
                 </div>
-                <ArrowRight className="h-4 w-4 text-zinc-400 transition group-hover:translate-x-0.5" />
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-      </div>
-    </GlassSection>
-  );
+                </CardContent>
+            </Card>
+
+            <Link href="/dashboard/jobs/new">
+            <Card className="group cursor-pointer rounded-xl bg-white/50 p-4 shadow-sm backdrop-blur transition hover:bg-white/80 dark:bg-zinc-900/50 dark:hover:bg-zinc-900/70">
+                <CardContent className="p-0">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900">
+                        <PlusCircle className="h-5 w-5" />
+                    </div>
+                    <div>
+                        <div className="font-semibold">New Job</div>
+                        <div className="text-xs text-zinc-600 dark:text-zinc-400">Criar projeto</div>
+                    </div>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-zinc-400 transition group-hover:translate-x-0.5" />
+                </div>
+                </CardContent>
+            </Card>
+            </Link>
+        </div>
+        </GlassSection>
+        
+        {/* Modal for multiple jobs */}
+        <JobSelectionModal 
+            jobs={inProgressJobs}
+            isOpen={isJobSelectionOpen}
+            onOpenChange={setJobSelectionOpen}
+        />
+
+        {/* Modal for single job */}
+        {singleJob && (
+            <Dialog open={isSingleJobInvoiceOpen} onOpenChange={setSingleJobInvoiceOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Add Invoice to: {singleJob.title}</DialogTitle>
+                    </DialogHeader>
+                    <AddInvoiceForm 
+                        jobId={singleJob.id}
+                        existingInvoices={singleJob.invoices || []}
+                        origins={invoiceOrigins}
+                        onSuccess={handleInvoiceFormSuccess}
+                    />
+                </DialogContent>
+            </Dialog>
+        )}
+    </>
+    );
 }
 
 // ---------------------------------------------------------------------
@@ -289,23 +341,21 @@ export default function DashboardPage() {
     if (!firestore || !user) return null;
     return query(
       collection(firestore, "users", user.uid, "jobs"),
-      where("status", "==", "In Progress"),
-      limit(10) // Fetch more than 1 to sort on client
+      where("status", "==", "In Progress")
     );
   }, [firestore, user]);
 
-  const { data: inProgressJobs, isLoading: loadingInProgress } = useCollection<JobType>(inProgressQuery);
+  const { data: inProgressJobs, isLoading: loadingInProgress } = useCollection<Job>(inProgressQuery);
 
   // Fallback: se não houver In Progress, pega 1 Not Started mais recente
   const notStartedQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(
       collection(firestore, "users", user.uid, "jobs"),
-      where("status", "==", "Not Started"),
-      limit(10) // Fetch more than 1 to sort on client
+      where("status", "==", "Not Started")
     );
   }, [firestore, user]);
-  const { data: notStartedJobs, isLoading: loadingNotStarted } = useCollection<JobType>(notStartedQuery);
+  const { data: notStartedJobs, isLoading: loadingNotStarted } = useCollection<Job>(notStartedQuery);
 
   // Para overview (pega até 50 jobs recentes; simples)
   const jobsQuery = useMemoFirebase(() => {
@@ -316,22 +366,23 @@ export default function DashboardPage() {
       limit(50)
     );
   }, [firestore, user]);
-  const { data: recentJobs, isLoading: loadingJobs } = useCollection<JobType>(jobsQuery);
+  const { data: recentJobs, isLoading: loadingJobs } = useCollection<Job>(jobsQuery);
 
   // hourly rate básico — se quiser, troque por leitura das GeneralSettings
   const hourlyRate = 0;
 
-  const getLatestJob = (jobs: JobType[] | null) => {
+  const getLatestJob = (jobs: Job[] | null) => {
     if (!jobs || jobs.length === 0) return null;
-    return jobs.sort((a, b) => new Date(b.startDate ?? 0).getTime() - new Date(a.startDate ?? 0).getTime())[0];
+    // sort by start date descending
+    return jobs.sort((a,b) => new Date(b.startDate ?? 0).getTime() - new Date(a.startDate ?? 0).getTime())[0];
   }
 
-  const currentJob = getLatestJob(inProgressJobs) || getLatestJob(notStartedJobs) || null;
+  const currentJob = getLatestJob(inProgressJobs) || getLatestJob(notStartedJobs);
 
   return (
     <div
       className={
-        "min-h-[calc(100dvh-4rem)] w-full px-4 pb-8 pt-4 text-zinc-900 " +
+        "min-h-[calc(100dvh-4rem)] w-full p-4 sm:p-6 text-zinc-900 " +
         "bg-[radial-gradient(1200px_600px_at_-200px_-100px,rgba(0,0,0,0.05),transparent),radial-gradient(1200px_600px_at_120%_20%,rgba(0,0,0,0.06),transparent)] " +
         "dark:text-zinc-50 dark:bg-[radial-gradient(1000px_500px_at_-200px_-100px,rgba(255,255,255,0.08),transparent),radial-gradient(1000px_500px_at_120%_20%,rgba(255,255,255,0.06),transparent)]"
       }
@@ -349,7 +400,7 @@ export default function DashboardPage() {
       {/* Grid principal */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <div className="xl:col-span-2 flex flex-col gap-4">
-          <QuickActions />
+          <QuickActions inProgressJobs={inProgressJobs || []} />
 
           {/* Current job */}
           {loadingInProgress || loadingNotStarted ? (
