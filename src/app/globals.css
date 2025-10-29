@@ -88,8 +88,8 @@ body {
 }
 
 /* esconder scroll horizontal sem matar acessibilidade */
-.hide-scrollbar {
+.scrollbar-none {
   -ms-overflow-style: none; /* IE/Edge */
   scrollbar-width: none;    /* Firefox */
 }
-.hide-scrollbar::-webkit-scrollbar { display: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }

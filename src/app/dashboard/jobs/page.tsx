@@ -13,8 +13,18 @@ import { collection } from "firebase/firestore";
 import { JobCard } from "./_components/job-card";
 import { Skeleton } from "@/components/ui/skeleton";
 
+const TABS: { key: JobType['status'] | 'all', label: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'Not Started', label: 'Not Started' },
+  { key: 'In Progress', label: 'In Progress' },
+  { key: 'Complete', label: 'Complete' },
+  { key: 'Open Payment', label: 'Open Payment' },
+  { key: 'Finalized', label: 'Finalized' },
+] as const;
+
+
 export default function JobsPage() {
-  const [tab, setTab] = useState<"all" | "Not Started" | "In Progress" | "Complete" | "Open Payment" | "Finalized">("all");
+  const [tab, setTab] = useState<(typeof TABS)[number]['key']>('all');
   const [q, setQ] = useState("");
   const firestore = useFirestore();
   const { user } = useUser();
@@ -64,20 +74,27 @@ export default function JobsPage() {
       </div>
 
       {/* Abas: roláveis no mobile */}
-      <Tabs value={tab} onValueChange={(v: any) => setTab(v)} className="mt-4 sm:mt-6">
-        <div className="relative -mx-4 px-4">
-          <TabsList className="w-full flex overflow-x-auto hide-scrollbar gap-2 rounded-xl bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/40 p-1">
-            <TabsTrigger value="all" className="whitespace-nowrap snap-start">All</TabsTrigger>
-            <TabsTrigger value="Not Started" className="whitespace-nowrap snap-start">Not Started</TabsTrigger>
-            <TabsTrigger value="In Progress" className="whitespace-nowrap snap-start">In Progress</TabsTrigger>
-            <TabsTrigger value="Complete" className="whitespace-nowrap snap-start">Complete</TabsTrigger>
-            <TabsTrigger value="Open Payment" className="whitespace-nowrap snap-start">Open Payment</TabsTrigger>
-            <TabsTrigger value="Finalized" className="whitespace-nowrap snap-start">Finalized</TabsTrigger>
-          </TabsList>
-        </div>
+      <div
+        className="
+          mt-4 -mx-4 px-4 md:mx-0 md:px-0
+          flex gap-2 overflow-x-auto scrollbar-none
+        "
+      >
+        {TABS.map(t => (
+          <Button
+            key={t.key}
+            variant={tab === t.key ? 'default' : 'secondary'}
+            size="sm"
+            className="rounded-full shrink-0"
+            onClick={() => setTab(t.key)}
+          >
+            {t.label}
+          </Button>
+        ))}
+      </div>
 
         {/* Search */}
-        <div className="mt-3 sm:mt-4">
+        <div className="mt-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -88,7 +105,6 @@ export default function JobsPage() {
             />
           </div>
         </div>
-      </Tabs>
       
       {/* Lista de cards */}
       <div className="flex-1 overflow-y-auto mt-4 sm:mt-6 -mx-4 px-4">
