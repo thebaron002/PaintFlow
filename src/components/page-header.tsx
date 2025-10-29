@@ -3,10 +3,12 @@ import { cn } from "@/lib/utils";
 
 export function PageHeader({
   title,
+  prefix,
   children,
   className,
 }: {
   title: string;
+  prefix?: ReactNode;
   children?: ReactNode;
   className?: string;
 }) {
@@ -17,9 +19,12 @@ export function PageHeader({
         className
       )}
     >
+      <div className="flex items-center gap-4">
+        {prefix}
         <h2 className="text-3xl font-bold tracking-tight font-headline">
           {title}
         </h2>
+      </div>
       {children && <div className="shrink-0 flex items-center gap-4">{children}</div>}
     </div>
   );
