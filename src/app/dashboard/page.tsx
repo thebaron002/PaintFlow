@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -315,8 +316,7 @@ export default function DashboardPage() {
     return query(
       collection(firestore, "users", user.uid, "jobs"),
       where("status", "==", "In Progress"),
-      orderBy("startDate", "desc"),
-      limit(1)
+      limit(10) // Fetch more than 1 to sort on client
     );
   }, [firestore, user]);
 
@@ -328,8 +328,7 @@ export default function DashboardPage() {
     return query(
       collection(firestore, "users", user.uid, "jobs"),
       where("status", "==", "Not Started"),
-      orderBy("startDate", "desc"),
-      limit(1)
+      limit(10) // Fetch more than 1 to sort on client
     );
   }, [firestore, user]);
   const { data: notStartedJobs, isLoading: loadingNotStarted } = useCollection<JobType>(notStartedQuery);
@@ -348,7 +347,12 @@ export default function DashboardPage() {
   // hourly rate básico — se quiser, troque por leitura das GeneralSettings
   const hourlyRate = 0;
 
-  const currentJob = (inProgressJobs && inProgressJobs[0]) || (notStartedJobs && notStartedJobs[0]) || null;
+  const getLatestJob = (jobs: JobType[] | null) => {
+    if (!jobs || jobs.length === 0) return null;
+    return jobs.sort((a, b) => new Date(b.startDate ?? 0).getTime() - new Date(a.startDate ?? 0).getTime())[0];
+  }
+
+  const currentJob = getLatestJob(inProgressJobs) || getLatestJob(notStartedJobs) || null;
 
   return (
     <div
