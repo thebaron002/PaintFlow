@@ -1,32 +1,27 @@
 "use client";
 
-import { DashboardHeader } from "@/components/dashboard/header";
-import { GlassCard } from "@/components/ui/glass-card";
-import { ModernCalendar } from "@/components/calendar/ModernCalendar";
-import { RecentProjects } from "@/components/dashboard/RecentProjects";
-import { CompletedProjects } from "@/components/dashboard/CompletedProjects";
-import { RevenueChart } from "./dashboard/components/revenue-chart";
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useUser } from '@/firebase';
+import { LoaderCircle } from 'lucide-react';
 
-export default function DashboardPage() {
+export default function RootPage() {
+  const { user, isUserLoading } = useUser();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isUserLoading) {
+      if (user) {
+        router.replace('/dashboard');
+      } else {
+        router.replace('/login');
+      }
+    }
+  }, [user, isUserLoading, router]);
+
   return (
-    <div className="space-y-6">
-      <DashboardHeader />
-
-      <div className="grid lg:grid-cols-3 gap-6">
-        <GlassCard className="lg:col-span-2">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold">Revenue Overview</h3>
-          </div>
-          <RevenueChart />
-        </GlassCard>
-
-        <RecentProjects />
-      </div>
-
-      <div className="grid lg:grid-cols-3 gap-6">
-        <ModernCalendar busyDays={["2025-10-23", "2025-10-24", "2025-10-27"]} />
-        <CompletedProjects />
-      </div>
+    <div className="flex min-h-screen items-center justify-center">
+      <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
     </div>
   );
 }

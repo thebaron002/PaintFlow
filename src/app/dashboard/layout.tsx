@@ -97,7 +97,7 @@ const BottomNavBar = () => {
 };
 
 
-function DashboardGuard({ children }: { children: ReactNode }) {
+export default function DashboardLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, isUserLoading } = useUser();
@@ -106,26 +106,16 @@ function DashboardGuard({ children }: { children: ReactNode }) {
     if (!isUserLoading && !user) {
       router.replace('/login');
     }
-    // Redirect from root '/' to '/dashboard' if logged in
-    if (!isUserLoading && user && pathname === '/') {
-        router.replace('/dashboard');
-    }
   }, [user, isUserLoading, router, pathname]);
 
-  if (isUserLoading || (!user && pathname !== '/login' && pathname !== '/signup')) {
+  if (isUserLoading || !user) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
-  
-  // If not logged in and on a public page, show the content
-  if (!user && (pathname === '/login' || pathname === '/signup')) {
-    return <>{children}</>;
-  }
-  
-  // If logged in, show the dashboard layout
+
   return (
      <SidebarProvider>
       <Sidebar variant="floating" className="bg-white/40 backdrop-blur-sm">
@@ -171,31 +161,4 @@ function DashboardGuard({ children }: { children: ReactNode }) {
       <BottomNavBar />
     </SidebarProvider>
   );
-}
-
-
-export default function DashboardLayout({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
-  const { user, isUserLoading } = useUser();
-
-  if (isUserLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  // Se o usuário não estiver logado e não estiver nas páginas de login/signup, redirecione para o login
-  if (!user && pathname !== '/login' && pathname !== '/signup') {
-    return <DashboardGuard><div/></DashboardGuard>; // O guard vai cuidar do redirect
-  }
-  
-  // Se estiver logado ou em uma página pública, renderiza o layout do dashboard
-  if(user && pathname.startsWith('/dashboard')) {
-    return <DashboardGuard>{children}</DashboardGuard>;
-  }
-
-  // Para páginas como login/signup, renderiza apenas o children
-  return <>{children}</>;
 }
