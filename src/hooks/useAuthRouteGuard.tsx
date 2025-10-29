@@ -32,7 +32,7 @@ export function UseAuthRouteGuard() {
     }
 
     // Autenticado:
-    // Só redireciona se estiver em '/' ou '/login'
+    // Só redireciona se estiver em '/' ou '/login' ou '/signup'
     if (pathname === "/" || pathname.startsWith("/login") || pathname.startsWith("/signup")) {
       const last = localStorage.getItem("pf:lastDashboardPath") || "/dashboard";
       router.replace(last);

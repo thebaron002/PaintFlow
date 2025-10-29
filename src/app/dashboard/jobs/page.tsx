@@ -49,7 +49,7 @@ export default function JobsPage() {
   }, [jobs, tab, q]);
 
   return (
-    <div className="pt-2 sm:pt-4 pb-[calc(16px+env(safe-area-inset-bottom))] px-4 sm:px-6 max-w-6xl mx-auto">
+    <div className="pt-2 sm:pt-4 pb-[calc(16px+env(safe-area-inset-bottom))] px-4 sm:px-6 max-w-6xl mx-auto h-full flex flex-col">
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -89,22 +89,24 @@ export default function JobsPage() {
             />
           </div>
         </div>
-
-        {/* Lista de cards */}
-        <div className="mt-4 sm:mt-6 space-y-3 sm:space-y-4">
-          {isLoading ? (
-             [...Array(3)].map((_, i) => <Skeleton key={i} className="h-32 w-full rounded-2xl" />)
-          ) : filteredJobs.length > 0 ? (
-            filteredJobs.map((job) => (
-              <JobCard key={job.id} job={job} />
-            ))
-          ) : (
-            <div className="text-center py-16">
-              <p className="text-muted-foreground">No jobs found for the selected filter.</p>
-            </div>
-          )}
-        </div>
       </Tabs>
+      
+      {/* Lista de cards */}
+      <div className="flex-1 overflow-y-auto mt-4 sm:mt-6 -mx-4 px-4">
+        <div className="space-y-3 sm:space-y-4">
+            {isLoading ? (
+                [...Array(3)].map((_, i) => <Skeleton key={i} className="h-32 w-full rounded-2xl" />)
+            ) : filteredJobs.length > 0 ? (
+                filteredJobs.map((job) => (
+                <JobCard key={job.id} job={job} />
+                ))
+            ) : (
+                <div className="text-center py-16">
+                <p className="text-muted-foreground">No jobs found for the selected filter.</p>
+                </div>
+            )}
+        </div>
+      </div>
     </div>
   );
 }
