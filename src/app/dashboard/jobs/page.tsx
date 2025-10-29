@@ -74,21 +74,11 @@ export default function JobsPage() {
       </div>
 
        {/* Tabs: roláveis no mobile */}
-      <div
-        className="
-          mt-4 -mx-4 px-4 md:mx-0 md:px-0
-          overflow-x-auto
-          whitespace-nowrap
-          scrollbar-none
-          [-webkit-overflow-scrolling:touch]
-        "
-      >
+      <div className="mt-4">
         <Tabs value={tab} onValueChange={(v: any) => setTab(v)} className="w-full">
           <TabsList
-            className="
-              w-max min-w-max
+            className="flex flex-wrap h-auto justify-start
               bg-transparent p-0 gap-2
-              data-[orientation=horizontal]:inline-flex
             "
           >
             {TABS.map(t => (
