@@ -11,7 +11,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className={cn("app-bg min-h-dvh antialiased text-zinc-900")}>
         <AuthProvider>
           <FirebaseClientProvider>
-            <div className="container max-w-7xl py-8">{children}</div>
+            {children}
           </FirebaseClientProvider>
         </AuthProvider>
         <Toaster />

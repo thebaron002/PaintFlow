@@ -1,34 +1,32 @@
 "use client";
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useUser } from '@/firebase';
-import { LoaderCircle } from 'lucide-react';
-import { Logo } from '@/components/logo';
+import { DashboardHeader } from "@/components/dashboard/header";
+import { GlassCard } from "@/components/ui/glass-card";
+import { ModernCalendar } from "@/components/calendar/ModernCalendar";
+import { RecentProjects } from "@/components/dashboard/RecentProjects";
+import { CompletedProjects } from "@/components/dashboard/CompletedProjects";
+import { RevenueChart } from "./dashboard/components/revenue-chart";
 
-// This page now acts as a loading gate.
-export default function RootPage() {
-  const router = useRouter();
-  const { user, isUserLoading } = useUser();
-
-  useEffect(() => {
-    // Only redirect when we are sure about the user's auth state.
-    if (!isUserLoading) {
-      if (user) {
-        router.push('/dashboard');
-      } else {
-        router.push('/login');
-      }
-    }
-  }, [user, isUserLoading, router]);
-
-  // Return a full-page loading indicator while we determine the auth state.
+export default function DashboardPage() {
   return (
-    <div className="flex flex-col min-h-screen items-center justify-center bg-background p-4">
-        <div className="flex flex-col items-center justify-center text-center space-y-4">
-            <Logo />
-            <LoaderCircle className="h-6 w-6 animate-spin" />
-        </div>
+    <div className="space-y-6">
+      <DashboardHeader />
+
+      <div className="grid lg:grid-cols-3 gap-6">
+        <GlassCard className="lg:col-span-2">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold">Revenue Overview</h3>
+          </div>
+          <RevenueChart />
+        </GlassCard>
+
+        <RecentProjects />
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-6">
+        <ModernCalendar busyDays={["2025-10-23", "2025-10-24", "2025-10-27"]} />
+        <CompletedProjects />
+      </div>
     </div>
   );
 }
