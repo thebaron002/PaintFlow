@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -215,12 +216,11 @@ export function JobDetails({
         }
       >
         <div className="flex items-center gap-2">
-          <Button asChild>
-            <Link href={`/dashboard/jobs/${job.id}/edit`}>
-              <Pencil className="mr-2 h-4 w-4" />
-              Edit Job
-            </Link>
-          </Button>
+            <Button asChild variant="ghost" size="icon" className="bg-foreground/20 rounded-full text-white">
+                <Link href={`/dashboard/jobs/${job.id}/edit`}>
+                    <Pencil />
+                </Link>
+            </Button>
         </div>
       </PageHeader>
 
