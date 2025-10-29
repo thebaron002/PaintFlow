@@ -3,23 +3,22 @@
 
 import "./globals.css";
 import { cn } from "@/lib/utils";
-import { ReactNode, useEffect } from "react";
+import { ReactNode } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/hooks/useAuth";
 import { FirebaseClientProvider } from "@/firebase";
-import { usePathname, useRouter } from "next/navigation";
+import { UseAuthRouteGuard } from "@/hooks/useAuthRouteGuard";
+import { Suspense } from 'react';
 
-function RootRedirect() {
-  const pathname = usePathname();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (pathname === '/') {
-      router.replace('/dashboard');
-    }
-  }, [pathname, router]);
-
-  return null;
+function RootLayoutContent({ children }: { children: ReactNode }) {
+  return (
+    <>
+      <Suspense fallback={null}>
+        <UseAuthRouteGuard />
+      </Suspense>
+      {children}
+    </>
+  );
 }
 
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -28,8 +27,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className={cn("app-bg min-h-dvh antialiased text-zinc-900")}>
         <AuthProvider>
           <FirebaseClientProvider>
-            <RootRedirect />
-            {children}
+            <RootLayoutContent>{children}</RootLayoutContent>
           </FirebaseClientProvider>
         </AuthProvider>
         <Toaster />

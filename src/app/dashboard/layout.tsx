@@ -1,3 +1,4 @@
+
 'use client';
 import { ReactNode, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
@@ -98,16 +99,9 @@ const BottomNavBar = () => {
 
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-  const router = useRouter();
-  const pathname = usePathname();
   const { user, isUserLoading } = useUser();
 
-  useEffect(() => {
-    if (!isUserLoading && !user) {
-      router.replace('/login');
-    }
-  }, [user, isUserLoading, router, pathname]);
-
+  // The guard logic is now handled globally by UseAuthRouteGuard
   if (isUserLoading || !user) {
     return (
       <div className="flex min-h-screen items-center justify-center">
