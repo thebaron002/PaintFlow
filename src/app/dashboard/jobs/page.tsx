@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -138,9 +137,9 @@ function JobCard({ job }: { job: Job }) {
               </div>
             </div>
 
-            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div className="flex items-center gap-2 text-sm text-neutral-600">
-                <MapPin className="h-4 w-4 text-neutral-400" />
+            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <div className="col-span-2 sm:col-span-1 flex items-center gap-2 text-sm text-neutral-600">
+                <MapPin className="h-4 w-4 text-neutral-400 shrink-0" />
                 <span className="truncate">{job.address}</span>
               </div>
               <div className="text-sm">
