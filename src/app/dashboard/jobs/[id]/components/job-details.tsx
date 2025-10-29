@@ -204,7 +204,7 @@ export function JobDetails({
     : (job.budget || 0) - totalInvoiced + totalAdjustments;
 
   return (
-    <div>
+    <div className="relative pb-24">
       <PageHeader
         title={jobTitle}
         prefix={
@@ -214,15 +214,7 @@ export function JobDetails({
             </Link>
           </Button>
         }
-      >
-        <div className="flex items-center gap-2">
-            <Button asChild variant="ghost" size="icon" className="bg-foreground/20 rounded-full text-white">
-                <Link href={`/dashboard/jobs/${job.id}/edit`}>
-                    <Pencil />
-                </Link>
-            </Button>
-        </div>
-      </PageHeader>
+      />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 grid gap-6">
@@ -586,6 +578,24 @@ export function JobDetails({
                 />
             </DialogContent>
         </Dialog>
+        
+        {/* Floating Edit Button */}
+        <div className="fixed bottom-0 left-0 right-0 md:hidden bg-background/80 backdrop-blur-sm p-4 border-t">
+             <Button asChild className="w-full">
+                <Link href={`/dashboard/jobs/${job.id}/edit`}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Edit Job
+                </Link>
+            </Button>
+        </div>
+        <div className="hidden md:flex justify-center mt-8">
+            <Button asChild>
+                <Link href={`/dashboard/jobs/${job.id}/edit`}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Edit Job
+                </Link>
+            </Button>
+        </div>
     </div>
   );
 }
