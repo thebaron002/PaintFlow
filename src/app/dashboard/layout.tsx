@@ -155,7 +155,7 @@ function DashboardGuard({ children }: { children: ReactNode }) {
           <UserNav />
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset className="bg-transparent">
+      <SidebarInset className="bg-transparent app-bg">
         <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/80 backdrop-blur-sm px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 py-4">
           <SidebarTrigger className="sm:hidden" />
           <div className="ml-auto flex items-center gap-4">
@@ -163,9 +163,9 @@ function DashboardGuard({ children }: { children: ReactNode }) {
           </div>
         </header>
         <main className={cn(
-            "flex-1 flex flex-col p-4 sm:px-6 sm:py-0 pb-20 md:pb-4"
+            "flex-1 flex flex-col pb-20 md:pb-4"
         )}>
-           {pathname === '/dashboard' ? children : <div className="container max-w-7xl py-8">{children}</div>}
+           {children}
         </main>
       </SidebarInset>
       <BottomNavBar />

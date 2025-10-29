@@ -30,6 +30,7 @@
     --sidebar-accent: 240 4.9% 19%;
     --sidebar-accent-foreground: 0 0% 98%;
     --sidebar-ring: 240 5.9% 90%;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
   }
   .dark {
     --background: 222.2 84% 4.9%;
@@ -85,3 +86,10 @@
 body {
   color: #111827;
 }
+
+/* esconder scroll horizontal sem matar acessibilidade */
+.hide-scrollbar {
+  -ms-overflow-style: none; /* IE/Edge */
+  scrollbar-width: none;    /* Firefox */
+}
+.hide-scrollbar::-webkit-scrollbar { display: none; }
