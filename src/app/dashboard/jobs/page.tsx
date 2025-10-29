@@ -11,6 +11,7 @@ import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebas
 import { collection } from "firebase/firestore";
 import { JobCard } from "./_components/job-card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const TABS: { key: JobType['status'] | 'all', label: string }[] = [
   { key: 'all', label: 'All' },
@@ -72,26 +73,43 @@ export default function JobsPage() {
         </div>
       </div>
 
-      {/* Abas: roláveis no mobile */}
+       {/* Tabs: roláveis no mobile */}
       <div
         className="
           mt-4 -mx-4 px-4 md:mx-0 md:px-0
-          flex gap-2 overflow-x-auto scrollbar-none
+          overflow-x-auto
+          whitespace-nowrap
+          scrollbar-none
+          [-webkit-overflow-scrolling:touch]
         "
       >
-        {TABS.map(t => (
-          <Button
-            key={t.key}
-            variant={tab === t.key ? 'default' : 'secondary'}
-            size="sm"
-            className="rounded-full shrink-0"
-            onClick={() => setTab(t.key)}
+        <Tabs value={tab} onValueChange={(v: any) => setTab(v)} className="w-full">
+          <TabsList
+            className="
+              w-max min-w-max
+              bg-transparent p-0 gap-2
+              data-[orientation=horizontal]:inline-flex
+            "
           >
-            {t.label}
-          </Button>
-        ))}
+            {TABS.map(t => (
+                 <TabsTrigger
+                    key={t.key}
+                    value={t.key}
+                    onClick={() => setTab(t.key)}
+                    className="
+                      shrink-0 rounded-full px-4 py-2 text-sm font-medium
+                      bg-white/70 backdrop-blur border border-black/10
+                      data-[state=active]:bg-black data-[state=active]:text-white
+                      data-[state=active]:border-black
+                    "
+                >
+                    {t.label}
+                </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
       </div>
-
+      
         {/* Search */}
         <div className="mt-4">
           <div className="relative">

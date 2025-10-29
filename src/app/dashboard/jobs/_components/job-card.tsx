@@ -107,3 +107,4 @@ export function JobCard({ job }: { job: Job }) {
   );
 }
 
+
