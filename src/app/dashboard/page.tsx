@@ -247,7 +247,7 @@ function CurrentJobCard({ job, hourlyRate }: { job: Job; hourlyRate: number }) {
         title="Current Job"
         subtitle="Seu projeto em foco"
         right={
-          <div className="hidden sm:flex">
+          <div>
             <Link href={`/dashboard/jobs/${job.id}`}>
               <Button variant="secondary" size="icon" className="rounded-full">
                 <ArrowRight className="h-4 w-4" />
@@ -461,3 +461,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
