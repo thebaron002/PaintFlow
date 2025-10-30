@@ -52,13 +52,13 @@ export function JobSelectionModal({ jobs, isOpen, onOpenChange }: JobSelectionMo
     }
   }
 
-  const title = selectedJob ? `Add Invoice to: ${selectedJob.title}` : "Select a Job";
+  const title = selectedJob ? selectedJob.title : "Select a Job";
 
   return (
     <Dialog open={isOpen} onOpenChange={handleDialogClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <DialogTitle className="text-xl">{title}</DialogTitle>
         </DialogHeader>
         {selectedJob ? (
           <AddInvoiceForm
