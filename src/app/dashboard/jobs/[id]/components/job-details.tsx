@@ -272,15 +272,20 @@ export function JobDetails({
                     <p className="text-lg font-semibold">{job.clientName || "N/A"}</p>
                     </div>
                 </div>
-                <div className="flex items-start gap-3">
+                <a 
+                    href={`https://maps.apple.com/?q=${encodeURIComponent(job.address)}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-start gap-3 group"
+                >
                     <div className="bg-muted p-2 rounded-md">
-                    <MapPin className="h-6 w-6 text-muted-foreground" />
+                        <MapPin className="h-6 w-6 text-muted-foreground" />
                     </div>
                     <div>
-                    <p className="text-sm font-medium text-muted-foreground">Address</p>
-                    <p className="text-lg font-semibold">{job.address}</p>
+                        <p className="text-sm font-medium text-muted-foreground">Address</p>
+                        <p className="text-lg font-semibold group-hover:underline">{job.address}</p>
                     </div>
-                </div>
+                </a>
                 <div className="flex items-start gap-3">
                     <div className="bg-muted p-2 rounded-md">
                     <Calendar className="h-6 w-6 text-muted-foreground" />
@@ -617,5 +622,7 @@ export function JobDetails({
     </div>
   );
 }
+
+    
 
     
