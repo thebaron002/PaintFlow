@@ -247,13 +247,11 @@ function CurrentJobCard({ job, hourlyRate }: { job: Job; hourlyRate: number }) {
         title="Current Job"
         subtitle="Seu projeto em foco"
         right={
-          <div>
-            <Link href={`/dashboard/jobs/${job.id}`}>
-              <Button variant="secondary" size="icon" className="rounded-full">
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
-          </div>
+          <Link href={`/dashboard/jobs/${job.id}`}>
+            <Button variant="secondary" size="icon" className="rounded-full">
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </Link>
         }
       />
       <Separator className="my-4" />
@@ -281,7 +279,6 @@ function CurrentJobCard({ job, hourlyRate }: { job: Job; hourlyRate: number }) {
           <div className="flex flex-wrap gap-3">
             <Metric label="Remaining Payout" value={currency(Math.max(remainingPayout, 0))} />
             <Metric label="Total Invoiced" value={currency(totalInvoiced)} />
-            <Metric label="Adjustments" value={currency(adjustments)} />
           </div>
         </div>
       </div>
@@ -382,7 +379,7 @@ export default function DashboardPage() {
     >
       {/* Header */}
       <div className="mb-5">
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Good {new Date().getHours() < 12 ? "morning" : "afternoon"}, {user?.displayName?.split(' ')[0] || 'User'} 👋</h1>
             <p className="text-sm text-zinc-600 dark:text-zinc-400">Let’s make today productive.</p>
@@ -461,5 +458,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
