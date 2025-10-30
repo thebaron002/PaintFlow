@@ -53,14 +53,14 @@ function SectionHeader({
   right?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex items-center justify-between">
       <div>
         <h2 className="text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">{title}</h2>
         {subtitle ? (
           <p className="text-sm text-zinc-600 dark:text-zinc-400">{subtitle}</p>
         ) : null}
       </div>
-      {right ? <div className="pt-1">{right}</div> : null}
+      {right ? <div>{right}</div> : null}
     </div>
   );
 }
