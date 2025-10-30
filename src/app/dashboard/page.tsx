@@ -258,9 +258,14 @@ function CurrentJobCard({ job, hourlyRate }: { job: Job; hourlyRate: number }) {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-2">
           <div className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">{sub}</div>
-          <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
+          <a 
+            href={`https://maps.google.com/?q=${encodeURIComponent(job.address)}`} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400 hover:underline"
+          >
             <MapPin className="h-4 w-4" /> {job.address}
-          </div>
+          </a>
           <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
             <CalendarDays className="h-4 w-4" />
             {job.startDate ? `Start: ${format(new Date(job.startDate), "MMM dd, yyyy")}` : "No start date"} · {job.deadline ? `Deadline: ${format(new Date(job.deadline), "MMM dd, yyyy")}` : "No deadline"}
@@ -345,7 +350,7 @@ export default function DashboardPage() {
         .sort((a,b) => a.getTime() - b.getTime())[0];
         
       return nextActivityDate ? { job, nextActivityDate } : null;
-    }).filter(Boolean);
+    }).filter((item): item is { job: Job, nextActivityDate: Date } => item !== null);
     
     return upcoming.sort((a, b) => a!.nextActivityDate.getTime() - b!.nextActivityDate.getTime());
     
@@ -441,7 +446,7 @@ export default function DashboardPage() {
                   </Link>
                 ))
               ) : (
-                <div className="rounded-lg border border-zinc-200/60 bg-white/60 p-3 text-sm backdrop-blur dark:border-white/10 dark:bg-zinc-900/50">
+                <div className="rounded-lg border border-zinc-200/60 bg-white/60 p-3 text-sm backdrop-blur dark:border-white/10 dark:bg-zinc-900/50 text-center text-muted-foreground">
                   No jobs scheduled for the next 7 days.
                 </div>
               )}
