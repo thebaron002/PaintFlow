@@ -342,7 +342,7 @@ export default function DashboardPage() {
   return (
     <div
       className={
-        "min-h-[calc(100dvh-4rem)] w-full p-4 sm:p-6 text-zinc-900 " +
+        "min-h-full w-full p-4 sm:p-6 text-zinc-900 " +
         "bg-[radial-gradient(1200px_600px_at_-200px_-100px,rgba(0,0,0,0.05),transparent),radial-gradient(1200px_600px_at_120%_20%,rgba(0,0,0,0.06),transparent)] " +
         "dark:text-zinc-50 dark:bg-[radial-gradient(1000px_500px_at_-200px_-100px,rgba(255,255,255,0.08),transparent),radial-gradient(1000px_500px_at_120%_20%,rgba(255,255,255,0.06),transparent)]"
       }
