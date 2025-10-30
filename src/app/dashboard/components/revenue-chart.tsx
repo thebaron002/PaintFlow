@@ -1,3 +1,4 @@
+
 "use client"
 
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts"
@@ -27,7 +28,7 @@ const chartConfig = {
   },
   expenses: {
     label: "Expenses",
-    color: "hsl(var(--chart-2))",
+    color: "hsl(var(--destructive))",
   },
 }
 
