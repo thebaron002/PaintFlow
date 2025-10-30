@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { JobSelectionModal } from "./components/job-selection-modal";
 import { AddInvoiceForm } from "./jobs/[id]/components/add-invoice-form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { RevenueChart } from "./components/revenue-chart";
 
 // Types (ajuste se necessário)
 type Invoice = { amount: number; date?: string; isPayoutDiscount?: boolean; source?: string };
@@ -225,40 +226,6 @@ function QuickActions({ inProgressJobs }: { inProgressJobs: Job[] }) {
 }
 
 // ---------------------------------------------------------------------
-// Revenue mini-overview (sem dependências externas de chart)
-// ---------------------------------------------------------------------
-function RevenueMini({ jobs, hourlyRate }: { jobs: Job[]; hourlyRate: number }) {
-  // KPIs simples
-  const completed = jobs.filter(j => j.status === "Complete" || j.status === "Finalized");
-  const inProgress = jobs.filter(j => j.status === "In Progress");
-
-  const totalInvoiced = completed.reduce((sum, j) => sum + sumInvoices(j.invoices), 0);
-  const totalAdjustments = completed.reduce((sum, j) => sum + sumAdjustments(j.adjustments, hourlyRate), 0);
-
-  return (
-    <GlassSection className="p-4">
-      <SectionHeader
-        title="Revenue Overview"
-        subtitle="Snapshot rápido do mês corrente"
-        right={
-          <Link href="/dashboard/finance">
-            <Button variant="ghost" className="gap-2">
-              Open Finance <ArrowRight className="h-4 w-4" />
-            </Button>
-          </Link>
-        }
-      />
-      <Separator className="my-4" />
-      <div className="flex flex-wrap items-stretch gap-3">
-        <Metric label="Invoiced (Completed)" value={currency(totalInvoiced)} />
-        <Metric label="Adjustments" value={currency(totalAdjustments)} />
-        <Metric label="Jobs In Progress" value={String(inProgress.length)} />
-      </div>
-    </GlassSection>
-  );
-}
-
-// ---------------------------------------------------------------------
 // Current Job snapshot (o último em progresso, fallback para Not Started)
 // ---------------------------------------------------------------------
 function CurrentJobCard({ job, hourlyRate }: { job: Job; hourlyRate: number }) {
@@ -361,17 +328,6 @@ export default function DashboardPage() {
   }, [firestore, user]);
   const { data: notStartedJobs, isLoading: loadingNotStarted } = useCollection<Job>(notStartedQuery);
 
-  // Para overview (pega até 50 jobs recentes; simples)
-  const jobsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(
-      collection(firestore, "users", user.uid, "jobs"),
-      orderBy("startDate", "desc"),
-      limit(50)
-    );
-  }, [firestore, user]);
-  const { data: recentJobs, isLoading: loadingJobs } = useCollection<Job>(jobsQuery);
-
   // hourly rate básico — se quiser, troque por leitura das GeneralSettings
   const hourlyRate = 0;
 
@@ -426,19 +382,9 @@ export default function DashboardPage() {
 
         {/* Revenue Overview */}
         <div className="flex flex-col gap-4">
-          {loadingJobs ? (
-            <GlassSection className="p-4">
-              <SectionHeader title="Revenue Overview" subtitle="Carregando..." />
-              <Separator className="my-4" />
-              <div className="grid grid-cols-3 gap-3">
-                <Skeleton className="h-20 rounded-xl" />
-                <Skeleton className="h-20 rounded-xl" />
-                <Skeleton className="h-20 rounded-xl" />
-              </div>
-            </GlassSection>
-          ) : (
-            <RevenueMini jobs={recentJobs || []} hourlyRate={hourlyRate} />
-          )}
+          <GlassSection className="p-4">
+            <RevenueChart />
+          </GlassSection>
 
           {/* Mini Calendar Preview (opcional / pode remover) */}
           <GlassSection className="p-4">
