@@ -246,6 +246,15 @@ function CurrentJobCard({ job, hourlyRate }: { job: Job; hourlyRate: number }) {
       <SectionHeader
         title="Current Job"
         subtitle="Seu projeto em foco"
+        right={
+          <div className="hidden sm:flex">
+            <Link href={`/dashboard/jobs/${job.id}`}>
+              <Button variant="secondary" size="icon" className="rounded-full">
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+        }
       />
       <Separator className="my-4" />
       <div className="flex items-center justify-between gap-4">
@@ -274,13 +283,6 @@ function CurrentJobCard({ job, hourlyRate }: { job: Job; hourlyRate: number }) {
             <Metric label="Total Invoiced" value={currency(totalInvoiced)} />
             <Metric label="Adjustments" value={currency(adjustments)} />
           </div>
-        </div>
-         <div className="hidden sm:flex">
-            <Link href={`/dashboard/jobs/${job.id}`}>
-                <Button variant="secondary" size="icon" className="rounded-full">
-                    <ArrowRight className="h-4 w-4" />
-                </Button>
-            </Link>
         </div>
       </div>
     </GlassSection>
