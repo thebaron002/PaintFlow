@@ -259,7 +259,7 @@ function CurrentJobCard({ job, hourlyRate }: { job: Job; hourlyRate: number }) {
         <div className="flex flex-col gap-2">
           <div className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">{sub}</div>
           <a 
-            href={`https://maps.google.com/?q=${encodeURIComponent(job.address)}`} 
+            href={`https://maps.apple.com/?q=${encodeURIComponent(job.address)}`} 
             target="_blank" 
             rel="noopener noreferrer"
             className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400 hover:underline"
@@ -457,3 +457,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
