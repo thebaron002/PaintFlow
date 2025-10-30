@@ -23,10 +23,16 @@ import type { Job } from "@/app/lib/types";
 
 // util local yyyy-MM-dd
 function toYYYYMMDD(d: Date | string) {
-  const date = typeof d === 'string' ? parseISO(d) : d;
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
+  if (typeof d === 'string') {
+    // Handle cases where date might already be in yyyy-MM-dd
+    if (d.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        return d;
+    }
+    d = parseISO(d);
+  }
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 }
 
@@ -42,7 +48,7 @@ type MonthJobsCalendarProps = {
   jobs: Job[];
   monthDate: Date;
   onMonthChange?: (d: Date) => void;
-  onSelectDay?: (isoDay: string) => void; // novo
+  onSelectDay?: (isoDay: string) => void;
 };
 
 export function MonthJobsCalendar({
@@ -56,7 +62,6 @@ export function MonthJobsCalendar({
   const gridStart = startOfWeek(monthStart, { weekStartsOn: 0 }); // domingo
   const gridEnd = endOfWeek(monthEnd, { weekStartsOn: 0 });
 
-  // pré-calcula lookup de dias
   const { dayInfoList } = React.useMemo(() => {
     const daysArr = eachDayOfInterval({ start: gridStart, end: gridEnd });
 
@@ -129,7 +134,6 @@ export function MonthJobsCalendar({
           const isoDay = toYYYYMMDD(d.date);
           const isToday = isSameDay(d.date, new Date());
 
-          // estilos base da célula
           const baseCell =
             "group relative flex h-16 sm:h-20 flex-col items-center justify-center rounded-lg border text-center shadow-sm transition-colors";
 
@@ -138,10 +142,8 @@ export function MonthJobsCalendar({
             d.isCurrentMonth
               ? "bg-white border-zinc-200 text-zinc-900 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-50"
               : "bg-zinc-50 border-zinc-200/70 text-zinc-400 dark:bg-zinc-900/50 dark:border-zinc-800/70 dark:text-zinc-600",
-            d.hasAnyStart &&
-              "bg-primary text-primary-foreground border-primary shadow-sm",
-            isToday && !d.hasAnyStart &&
-              "ring-2 ring-primary/50",
+            d.hasAnyStart && "bg-primary text-primary-foreground border-primary shadow-md",
+            isToday && !d.hasAnyStart && "ring-2 ring-accent dark:ring-accent/50",
             "active:scale-[0.97] touch-manipulation"
           );
 
@@ -155,21 +157,18 @@ export function MonthJobsCalendar({
                 {format(d.date, "d")}
               </div>
 
-              {/* pontinho de produção */}
               {d.hasAnyProduction && !d.hasAnyStart && (
                 <div className={cn(
                     "absolute bottom-2 h-1.5 w-1.5 rounded-full",
-                    d.isCurrentMonth ? "bg-primary" : "bg-muted-foreground",
-                    d.hasAnyStart ? "bg-primary-foreground" : ""
+                    d.isCurrentMonth ? "bg-accent" : "bg-muted-foreground",
                 )} />
               )}
 
-              {/* Today badge */}
               {isToday && !d.hasAnyStart && (
                 <div className="absolute right-1 top-1">
                   <Badge
                     variant="secondary"
-                    className="h-4 px-1.5 text-[9px] sm:h-5 sm:text-[10px] bg-primary/10 text-primary border-primary/20"
+                    className="h-4 px-1.5 text-[9px] sm:h-5 sm:text-[10px] bg-accent/20 text-accent-foreground border-accent/30"
                   >
                     Today
                   </Badge>
@@ -188,7 +187,7 @@ export function MonthJobsCalendar({
         </div>
         <div className="flex items-center gap-2">
           <div className="relative h-4 w-6 rounded border border-zinc-200 bg-white dark:bg-zinc-800 dark:border-zinc-700">
-            <div className="absolute bottom-[2px] left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-primary" />
+            <div className="absolute bottom-[2px] left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-accent" />
           </div>
           <span>Worked day</span>
         </div>
