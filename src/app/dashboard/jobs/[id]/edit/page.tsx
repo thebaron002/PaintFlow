@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useParams, useRouter } from 'next/navigation';
@@ -27,7 +26,7 @@ export default function EditJobPage() {
   const { data: job, isLoading: isLoadingJob } = useDoc<Job>(jobRef);
   
   const clientLastName = (job?.clientName || "").split(" ").pop() || "N/A";
-  const jobTitle = job ? `${clientLastName} #${job.quoteNumber}` : "Edit Job";
+  const jobTitle = job ? (job.title || `${clientLastName} #${job.quoteNumber}`) : "Edit Job";
 
   const handleSuccess = () => {
     router.push(`/dashboard/jobs/${id}`);
@@ -35,16 +34,16 @@ export default function EditJobPage() {
 
   if (isLoadingJob) {
     return (
-      <div>
+      <div className="p-4 sm:p-6 lg:p-8">
         <PageHeader title="Loading..." />
-        <Skeleton className="h-96 w-full" />
+        <Skeleton className="h-96 w-full max-w-2xl mx-auto" />
       </div>
     );
   }
 
   if (!job) {
     return (
-      <div>
+      <div className="p-4 sm:p-6 lg:p-8">
         <PageHeader title="Job not found" />
         <p>This job could not be found. It may have been deleted.</p>
         <Button variant="outline" asChild className="mt-4">
@@ -58,7 +57,7 @@ export default function EditJobPage() {
   }
 
   return (
-    <div>
+    <div className="p-4 sm:p-6 lg:p-8">
       <PageHeader title={`Edit: ${jobTitle}`}>
          <Button variant="outline" asChild>
             <Link href={`/dashboard/jobs/${id}`}>
