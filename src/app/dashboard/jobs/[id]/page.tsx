@@ -31,7 +31,7 @@ export default function JobDetailsPage() {
 
   if (isLoading) {
     return (
-        <div className="p-4 sm:px-6 sm:py-0">
+        <div className="p-4 sm:p-6 lg:p-8">
             <div className="flex items-center gap-4 mb-8">
               <Skeleton className="h-10 w-10 rounded-full" />
               <Skeleton className="h-10 w-64" />
@@ -75,11 +75,19 @@ export default function JobDetailsPage() {
         crew: [],
     }
 
-    return <JobDetails job={staticJob} allCrew={[]} jobTitle="Job Not Found" />;
+    return (
+      <div className="p-4 sm:p-6 lg:p-8">
+        <JobDetails job={staticJob} allCrew={[]} jobTitle="Job Not Found" />
+      </div>
+    );
   }
   
   const clientLastName = (job.clientName || "").split(" ").pop() || "N/A";
   const jobTitle = job.title || `${clientLastName} #${job.quoteNumber}`;
 
-  return <JobDetails job={job} allCrew={allCrew || []} jobTitle={jobTitle} />;
+  return (
+    <div className="p-4 sm:p-6 lg:p-8">
+      <JobDetails job={job} allCrew={allCrew || []} jobTitle={jobTitle} />
+    </div>
+  );
 }
