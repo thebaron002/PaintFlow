@@ -19,19 +19,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { Job as JobType } from "@/app/lib/types";
-
-// shape mínima que o calendário precisa
-export type CalendarJob = {
-  id: string;
-  title?: string;
-  clientName: string;
-  workOrderNumber: string;
-  address: string;
-  status: string;
-  startDate?: string;        // "yyyy-MM-dd"
-  productionDays?: string[]; // ["yyyy-MM-dd", ...]
-};
+import type { Job } from "@/app/lib/types";
 
 // util local yyyy-MM-dd
 function toYYYYMMDD(d: Date | string) {
@@ -51,7 +39,7 @@ type DayInfo = {
 };
 
 type MonthJobsCalendarProps = {
-  jobs: JobType[];
+  jobs: Job[];
   monthDate: Date;
   onMonthChange?: (d: Date) => void;
   onSelectDay?: (isoDay: string) => void; // novo

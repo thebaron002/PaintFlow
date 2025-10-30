@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -32,11 +33,14 @@ export default function CalendarPage() {
     return collection(firestore, "users", user.uid, "jobs");
   }, [firestore, user]);
 
-  const { data: jobs = [], isLoading } = useCollection<Job>(jobsQuery);
+  const { data: jobs, isLoading } = useCollection<Job>(jobsQuery);
 
   // quais dias têm atividade nesse mês?
   // também vamos montar o map dia -> jobs daquele dia
   const { daysMap, orderedDays } = React.useMemo(() => {
+    if (!jobs) {
+      return { daysMap: {}, orderedDays: [] };
+    }
     const map: Record<string, Job[]> = {};
     const start = startOfMonth(monthDate);
     const end = endOfMonth(monthDate);
@@ -130,7 +134,7 @@ export default function CalendarPage() {
               </div>
             ) : (
                 <MonthJobsCalendar
-                jobs={jobs}
+                jobs={jobs || []}
                 monthDate={monthDate}
                 onMonthChange={setMonthDate}
                 onSelectDay={(isoDay) => setSelectedDayISO(isoDay)}
