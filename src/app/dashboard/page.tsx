@@ -3,7 +3,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { format, startOfToday, addDays, isWithinInterval, parseISO, isSameDay, formatDistanceToNow } from "date-fns";
+import { format, startOfToday, addDays, isWithinInterval, parseISO, isSameDay, formatDistanceToNow, isFuture, isPast } from "date-fns";
 import {
   Card, CardContent,
 } from "@/components/ui/card";
@@ -331,9 +331,13 @@ export default function DashboardPage() {
     return allJobs?.filter(job => job.status === "In Progress") || [];
   }, [allJobs]);
 
-  // Fallback: se não houver In Progress, pega 1 Not Started mais recente
+  // Fallback: se não houver In Progress, pega 1 Not Started mais próximo do futuro
   const notStartedJobs = React.useMemo(() => {
-    return allJobs?.filter(job => job.status === "Not Started") || [];
+    const today = startOfToday();
+    return allJobs?.filter(job => {
+        const startDate = parseISO(job.startDate);
+        return job.status === "Not Started" && (isSameDay(startDate, today) || isFuture(startDate));
+    }) || [];
   }, [allJobs]);
   
   // Upcoming Jobs for the next 7 days
@@ -359,14 +363,20 @@ export default function DashboardPage() {
 
   // hourly rate básico — se quiser, troque por leitura das GeneralSettings
   const hourlyRate = 0;
-
-  const getLatestJob = (jobs: Job[] | null) => {
+  
+  const getNextJob = (jobs: Job[] | null): Job | null => {
+      if (!jobs || jobs.length === 0) return null;
+      // Sort by start date ascending to find the soonest
+      return [...jobs].sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())[0];
+  }
+  
+  const getLatestInProgressJob = (jobs: Job[] | null) => {
     if (!jobs || jobs.length === 0) return null;
-    // sort by start date descending
-    return jobs.sort((a,b) => new Date(b.startDate ?? 0).getTime() - new Date(a.startDate ?? 0).getTime())[0];
+    // sort by start date descending for in progress jobs
+    return [...jobs].sort((a,b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())[0];
   }
 
-  const currentJob = getLatestJob(inProgressJobs) || getLatestJob(notStartedJobs);
+  const currentJob = getLatestInProgressJob(inProgressJobs) || getNextJob(notStartedJobs);
   const isLoading = loadingAllJobs;
 
   return (
