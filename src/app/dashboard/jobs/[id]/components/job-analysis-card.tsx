@@ -9,14 +9,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { Activity, TrendingDown, TrendingUp } from "lucide-react";
+import { Activity, CircleDollarSign, PiggyBank, Wrench } from "lucide-react";
 
 interface JobAnalysisCardProps {
   job: Job;
   settings: GeneralSettings | null;
 }
 
-const StatItem = ({ icon: Icon, label, value, valueColor, subtext }: { icon: React.ElementType, label: string, value: string, valueColor?: string, subtext?: string }) => (
+const StatItem = ({ icon: Icon, label, value, valueColor }: { icon: React.ElementType, label: string, value: string, valueColor?: string }) => (
     <div className="flex items-start gap-3">
         <div className="bg-muted p-2 rounded-md">
             <Icon className="h-6 w-6 text-muted-foreground" />
@@ -24,17 +24,14 @@ const StatItem = ({ icon: Icon, label, value, valueColor, subtext }: { icon: Rea
         <div>
             <p className="text-sm font-medium text-muted-foreground">{label}</p>
             <p className={cn("text-lg font-semibold", valueColor)}>{value}</p>
-            {subtext && <p className="text-xs text-muted-foreground">{subtext}</p>}
         </div>
     </div>
 );
 
 export function JobAnalysisCard({ job, settings }: JobAnalysisCardProps) {
-  // 1. Calculate Total Material Cost from invoices
   const materialCost = job.invoices
     ?.reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
 
-  // 2. Calculate Total Adjustments value (for profit calculation)
   const globalHourlyRate = settings?.hourlyRate ?? 0;
   const totalAdjustmentsValue = job.adjustments?.reduce((sum, adj) => {
     if (adj.type === "Time") {
@@ -43,32 +40,13 @@ export function JobAnalysisCard({ job, settings }: JobAnalysisCardProps) {
     }
     return sum + adj.value;
   }, 0) ?? 0;
-
-  // 3. Calculate Profit.
-  // If fixed pay, profit is based on initialValue. Otherwise, it's based on budget.
-  const baseValue = job.isFixedPay ? job.initialValue : job.budget;
-  const totalRevenue = baseValue + totalAdjustmentsValue;
-  const profit = totalRevenue - materialCost;
-
-  // 4. Calculate Daily Profit
-  const dailyPayTarget = settings?.dailyPayTarget ?? 0;
-  const numProductionDays = job.productionDays?.length || 0;
-  const dailyProfit = numProductionDays > 0 ? profit / numProductionDays : 0;
-  const dailyProfitColor = dailyProfit < dailyPayTarget ? "text-red-600" : "text-green-600";
-  const dailyProfitIcon = dailyProfit < dailyPayTarget ? TrendingDown : TrendingUp;
-
-  // 5. Calculate Material Usage Percentage
-  const idealMaterialCostPercentage = settings?.idealMaterialCostPercentage ?? 0;
-  // Material usage should be compared against the initial value, as that's the base contract.
-  const materialUsagePercentage = job.initialValue > 0 ? (materialCost / job.initialValue) * 100 : 0;
-  const materialUsageColor = materialUsagePercentage > idealMaterialCostPercentage ? "text-red-600" : "text-green-600";
-  const materialUsageIcon = materialUsagePercentage > idealMaterialCostPercentage ? TrendingDown : TrendingUp;
-
-  // 6. Calculate Material Cost comparison
-  const materialCostColor = materialCost > job.idealMaterialCost ? "text-red-600" : "text-green-600";
-  const materialCostIcon = materialCost > job.idealMaterialCost ? TrendingDown : TrendingUp;
   
+  const baseValue = job.isFixedPay ? job.initialValue : job.budget;
+  const payout = baseValue + totalAdjustmentsValue;
+  const profit = payout - materialCost;
 
+  const profitColor = profit >= 0 ? "text-green-600" : "text-red-600";
+  
   return (
     <Card>
       <CardHeader>
@@ -76,30 +54,20 @@ export function JobAnalysisCard({ job, settings }: JobAnalysisCardProps) {
       </CardHeader>
       <CardContent className="grid sm:grid-cols-2 gap-6">
         <StatItem 
-            icon={Activity} 
-            label="Profit" 
-            value={`$${profit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
+            icon={CircleDollarSign} 
+            label="Payout" 
+            value={`$${payout.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
         />
         <StatItem
-            icon={dailyProfitIcon}
-            label="Daily Profit"
-            value={`$${dailyProfit.toFixed(2)}`}
-            valueColor={dailyProfitColor}
-            subtext={`Target: $${dailyPayTarget.toLocaleString()}/day`}
-        />
-        <StatItem
-            icon={materialCostIcon}
+            icon={Wrench}
             label="Material Cost"
-            value={`$${materialCost.toLocaleString()}`}
-            valueColor={materialCostColor}
-            subtext={`Ideal: $${job.idealMaterialCost.toLocaleString()}`}
+            value={`$${materialCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
         />
         <StatItem
-            icon={materialUsageIcon}
-            label="Material Usage"
-            value={`${materialUsagePercentage.toFixed(1)}%`}
-            valueColor={materialUsageColor}
-            subtext={`Ideal: ${idealMaterialCostPercentage}%`}
+            icon={PiggyBank}
+            label="Profit"
+            value={`$${profit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+            valueColor={profitColor}
         />
       </CardContent>
     </Card>
