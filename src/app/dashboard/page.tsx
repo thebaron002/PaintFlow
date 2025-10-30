@@ -246,39 +246,41 @@ function CurrentJobCard({ job, hourlyRate }: { job: Job; hourlyRate: number }) {
       <SectionHeader
         title="Current Job"
         subtitle="Seu projeto em foco"
-        right={
-          <Link href={`/dashboard/jobs/${job.id}`}>
-            <Button variant="secondary" size="icon" className="rounded-full">
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </Link>
-        }
       />
       <Separator className="my-4" />
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="flex flex-col gap-2">
-          <div className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">{sub}</div>
-          <a 
-            href={`https://maps.apple.com/?q=${encodeURIComponent(job.address)}`} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400 hover:underline"
-          >
-            <MapPin className="h-4 w-4" /> {job.address}
-          </a>
-          <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
-            <CalendarDays className="h-4 w-4" />
-            {job.startDate ? `Start: ${format(new Date(job.startDate), "MMM dd, yyyy")}` : "No start date"} · {job.deadline ? `Deadline: ${format(new Date(job.deadline), "MMM dd, yyyy")}` : "No deadline"}
+      <div className="flex items-center justify-between gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 flex-1">
+          <div className="flex flex-col gap-2">
+            <div className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">{sub}</div>
+            <a 
+              href={`https://maps.apple.com/?q=${encodeURIComponent(job.address)}`} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400 hover:underline"
+            >
+              <MapPin className="h-4 w-4" /> {job.address}
+            </a>
+            <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
+              <CalendarDays className="h-4 w-4" />
+              {job.startDate ? `Start: ${format(new Date(job.startDate), "MMM dd, yyyy")}` : "No start date"} · {job.deadline ? `Deadline: ${format(new Date(job.deadline), "MMM dd, yyyy")}` : "No deadline"}
+            </div>
+            <div className="pt-2">
+              <Badge variant="outline" className="capitalize">{job.status}</Badge>
+            </div>
           </div>
-          <div className="pt-2">
-            <Badge variant="outline" className="capitalize">{job.status}</Badge>
+
+          <div className="flex flex-wrap gap-3">
+            <Metric label="Remaining Payout" value={currency(Math.max(remainingPayout, 0))} />
+            <Metric label="Total Invoiced" value={currency(totalInvoiced)} />
+            <Metric label="Adjustments" value={currency(adjustments)} />
           </div>
         </div>
-
-        <div className="flex flex-wrap gap-3">
-          <Metric label="Remaining Payout" value={currency(Math.max(remainingPayout, 0))} />
-          <Metric label="Total Invoiced" value={currency(totalInvoiced)} />
-          <Metric label="Adjustments" value={currency(adjustments)} />
+         <div className="hidden sm:flex">
+            <Link href={`/dashboard/jobs/${job.id}`}>
+                <Button variant="secondary" size="icon" className="rounded-full">
+                    <ArrowRight className="h-4 w-4" />
+                </Button>
+            </Link>
         </div>
       </div>
     </GlassSection>
