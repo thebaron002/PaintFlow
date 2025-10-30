@@ -1,8 +1,9 @@
+
 "use client";
 
 import * as React from "react";
 import Link from "next/link";
-import { format } from "date-fns";
+import { format, startOfToday, addDays, isWithinInterval, parseISO, isSameDay, formatDistanceToNow } from "date-fns";
 import {
   Card, CardContent,
 } from "@/components/ui/card";
@@ -10,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PlusCircle, Receipt, ArrowRight, MapPin, CalendarDays } from "lucide-react";
+import { PlusCircle, Receipt, ArrowRight, MapPin, CalendarDays, CalendarCheck } from "lucide-react";
 import { useUser, useFirestore, useMemoFirebase, useCollection } from "@/firebase";
 import { collection, query, where, orderBy, limit } from "firebase/firestore";
 import type { Job as JobType } from "@/app/lib/types";
@@ -19,6 +20,7 @@ import { JobSelectionModal } from "./components/job-selection-modal";
 import { AddInvoiceForm } from "./jobs/[id]/components/add-invoice-form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RevenueChart } from "./components/revenue-chart";
+import { cn } from "@/lib/utils";
 
 // Types (ajuste se necessário)
 type Invoice = { amount: number; date?: string; isPayoutDiscount?: boolean; source?: string };
@@ -307,26 +309,47 @@ export default function DashboardPage() {
   const { user } = useUser();
   const firestore = useFirestore();
 
-  // Jobs "In Progress" (pega 1 como atual)
-  const inProgressQuery = useMemoFirebase(() => {
+  // Query for all jobs to be used across the dashboard
+  const allJobsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(
       collection(firestore, "users", user.uid, "jobs"),
-      where("status", "==", "In Progress")
+      orderBy("startDate", "desc")
     );
   }, [firestore, user]);
 
-  const { data: inProgressJobs, isLoading: loadingInProgress } = useCollection<Job>(inProgressQuery);
+  const { data: allJobs, isLoading: loadingAllJobs } = useCollection<Job>(allJobsQuery);
+
+  // Jobs "In Progress"
+  const inProgressJobs = React.useMemo(() => {
+    return allJobs?.filter(job => job.status === "In Progress") || [];
+  }, [allJobs]);
 
   // Fallback: se não houver In Progress, pega 1 Not Started mais recente
-  const notStartedQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(
-      collection(firestore, "users", user.uid, "jobs"),
-      where("status", "==", "Not Started")
-    );
-  }, [firestore, user]);
-  const { data: notStartedJobs, isLoading: loadingNotStarted } = useCollection<Job>(notStartedQuery);
+  const notStartedJobs = React.useMemo(() => {
+    return allJobs?.filter(job => job.status === "Not Started") || [];
+  }, [allJobs]);
+  
+  // Upcoming Jobs for the next 7 days
+  const upcomingJobs = React.useMemo(() => {
+    if (!allJobs) return [];
+    
+    const today = startOfToday();
+    const nextWeek = addDays(today, 7);
+    
+    const upcoming = allJobs.map(job => {
+      const allDates = [job.startDate, ...(job.productionDays || [])];
+      const nextActivityDate = allDates
+        .map(d => parseISO(d))
+        .filter(d => isWithinInterval(d, { start: today, end: nextWeek }))
+        .sort((a,b) => a.getTime() - b.getTime())[0];
+        
+      return nextActivityDate ? { job, nextActivityDate } : null;
+    }).filter(Boolean);
+    
+    return upcoming.sort((a, b) => a!.nextActivityDate.getTime() - b!.nextActivityDate.getTime());
+    
+  }, [allJobs]);
 
   // hourly rate básico — se quiser, troque por leitura das GeneralSettings
   const hourlyRate = 0;
@@ -338,6 +361,7 @@ export default function DashboardPage() {
   }
 
   const currentJob = getLatestJob(inProgressJobs) || getLatestJob(notStartedJobs);
+  const isLoading = loadingAllJobs;
 
   return (
     <div
@@ -363,7 +387,7 @@ export default function DashboardPage() {
           <QuickActions inProgressJobs={inProgressJobs || []} />
 
           {/* Current job */}
-          {loadingInProgress || loadingNotStarted ? (
+          {isLoading ? (
             <GlassSection className="p-4">
               <SectionHeader title="Current Job" subtitle="Carregando..." />
               <Separator className="my-4" />
@@ -380,15 +404,14 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Revenue Overview */}
+        {/* Side Column */}
         <div className="flex flex-col gap-4">
           <RevenueChart />
-
-          {/* Mini Calendar Preview (opcional / pode remover) */}
+          
           <GlassSection className="p-4">
             <SectionHeader
-              title="Upcoming (3 days)"
-              subtitle="Pequeno preview — abra o Calendar para completo"
+              title="Upcoming"
+              subtitle="Jobs scheduled for the next 7 days"
               right={
                 <Link href="/dashboard/calendar">
                   <Button variant="ghost" className="gap-2">
@@ -399,9 +422,29 @@ export default function DashboardPage() {
             />
             <Separator className="my-4" />
             <div className="grid grid-cols-1 gap-3">
-              <div className="rounded-lg border border-zinc-200/60 bg-white/60 p-3 text-sm backdrop-blur dark:border-white/10 dark:bg-zinc-900/50">
-                No events scheduled.
-              </div>
+             {isLoading ? (
+                <>
+                  <Skeleton className="h-14 w-full" />
+                  <Skeleton className="h-14 w-full" />
+                  <Skeleton className="h-14 w-full" />
+                </>
+              ) : upcomingJobs && upcomingJobs.length > 0 ? (
+                upcomingJobs.map(({ job, nextActivityDate }) => (
+                  <Link href={`/dashboard/jobs/${job!.id}`} key={job!.id + nextActivityDate.toISOString()} className="block rounded-lg border border-zinc-200/60 bg-white/60 p-3 text-sm backdrop-blur dark:border-white/10 dark:bg-zinc-900/50 hover:bg-white/80 transition-colors">
+                     <div className="flex justify-between items-center">
+                        <span className="font-semibold truncate pr-2">{job!.title || `${job!.clientName} #${job!.workOrderNumber}`}</span>
+                         <Badge variant="secondary" className={cn(isSameDay(nextActivityDate, new Date()) && "bg-primary/10 text-primary border-primary/20")}>
+                           <CalendarCheck className="h-3 w-3 mr-1.5" />
+                           {formatDistanceToNow(nextActivityDate, { addSuffix: true })}
+                        </Badge>
+                     </div>
+                  </Link>
+                ))
+              ) : (
+                <div className="rounded-lg border border-zinc-200/60 bg-white/60 p-3 text-sm backdrop-blur dark:border-white/10 dark:bg-zinc-900/50">
+                  No jobs scheduled for the next 7 days.
+                </div>
+              )}
             </div>
           </GlassSection>
         </div>
