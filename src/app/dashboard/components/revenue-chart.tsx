@@ -2,6 +2,13 @@
 
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
@@ -105,99 +112,105 @@ export function RevenueChart() {
 
 
   if (isLoading) {
-    return <Skeleton className="h-[250px] w-full" />
+    return <Skeleton className="h-[350px] w-full" />
   }
 
   return (
-    <div className="min-h-[250px] w-full">
-      <ChartContainer config={chartConfig} className="h-full w-full">
-        <AreaChart
-          accessibilityLayer
-          data={chartData}
-          margin={{
-            left: -20,
-            right: 12,
-            top: 10,
-          }}
-        >
-          <CartesianGrid vertical={false} />
-          <XAxis
-            dataKey="month"
-            tickLine={false}
-            axisLine={false}
-            tickMargin={8}
-          />
-          <YAxis
-            tickLine={false}
-            axisLine={false}
-            tickMargin={8}
-            tickFormatter={(value) => `$${Number(value) / 1000}k`}
-          />
-          <ChartTooltip
-            cursor={false}
-            content={<ChartTooltipContent
-              indicator="dot"
-              formatter={(value, name) => {
-                const currencyValue = value.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 });
-                return (
-                  <div className="flex min-w-[120px] items-center justify-between">
-                    <div className="flex items-center gap-2">
-                       <div className={
-                          "h-2 w-2 shrink-0 rounded-[2px] border-[--color-border] bg-[--color-bg]"
-                       } style={{
-                          "--color-bg": `var(--color-${name})`,
-                          "--color-border": `var(--color-${name})`,
-                       } as React.CSSProperties} />
-                       <p className="capitalize text-muted-foreground">{name}</p>
+    <Card className="bg-white/70 backdrop-blur-md border-white/50 shadow-xl dark:bg-zinc-900/60 dark:border-white/10">
+      <CardHeader>
+        <CardTitle>Revenue Overview</CardTitle>
+        <CardDescription>Income vs. Expenses over the last 6 months</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <ChartContainer config={chartConfig} className="h-full w-full min-h-[200px]">
+          <AreaChart
+            accessibilityLayer
+            data={chartData}
+            margin={{
+              left: -20,
+              right: 12,
+              top: 10,
+            }}
+          >
+            <CartesianGrid vertical={false} />
+            <XAxis
+              dataKey="month"
+              tickLine={false}
+              axisLine={false}
+              tickMargin={8}
+            />
+            <YAxis
+              tickLine={false}
+              axisLine={false}
+              tickMargin={8}
+              tickFormatter={(value) => `$${Number(value) / 1000}k`}
+            />
+            <ChartTooltip
+              cursor={false}
+              content={<ChartTooltipContent
+                indicator="dot"
+                formatter={(value, name) => {
+                  const currencyValue = value.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                  return (
+                    <div className="flex min-w-[120px] items-center justify-between">
+                      <div className="flex items-center gap-2">
+                         <div className={
+                            "h-2 w-2 shrink-0 rounded-[2px] border-[--color-border] bg-[--color-bg]"
+                         } style={{
+                            "--color-bg": `var(--color-${name})`,
+                            "--color-border": `var(--color-${name})`,
+                         } as React.CSSProperties} />
+                         <p className="capitalize text-muted-foreground">{name}</p>
+                      </div>
+                      <p className="font-medium">{currencyValue}</p>
                     </div>
-                    <p className="font-medium">{currencyValue}</p>
-                  </div>
-                )
-              }}
-            />}
-          />
-          <defs>
-            <linearGradient id="fillIncome" x1="0" y1="0" x2="0" y2="1">
-              <stop
-                offset="5%"
-                stopColor="var(--color-income)"
-                stopOpacity={0.8}
-              />
-              <stop
-                offset="95%"
-                stopColor="var(--color-income)"
-                stopOpacity={0.1}
-              />
-            </linearGradient>
-            <linearGradient id="fillExpenses" x1="0" y1="0" x2="0" y2="1">
-              <stop
-                offset="5%"
-                stopColor="var(--color-expenses)"
-                stopOpacity={0.8}
-              />
-              <stop
-                offset="95%"
-                stopColor="var(--color-expenses)"
-                stopOpacity={0.1}
-              />
-            </linearGradient>
-          </defs>
-          <Area
-            dataKey="expenses"
-            type="natural"
-            fill="url(#fillExpenses)"
-            fillOpacity={0.4}
-            stroke="var(--color-expenses)"
-          />
-          <Area
-            dataKey="income"
-            type="natural"
-            fill="url(#fillIncome)"
-            fillOpacity={0.4}
-            stroke="var(--color-income)"
-          />
-        </AreaChart>
-      </ChartContainer>
-    </div>
+                  )
+                }}
+              />}
+            />
+            <defs>
+              <linearGradient id="fillIncome" x1="0" y1="0" x2="0" y2="1">
+                <stop
+                  offset="5%"
+                  stopColor="var(--color-income)"
+                  stopOpacity={0.8}
+                />
+                <stop
+                  offset="95%"
+                  stopColor="var(--color-income)"
+                  stopOpacity={0.1}
+                />
+              </linearGradient>
+              <linearGradient id="fillExpenses" x1="0" y1="0" x2="0" y2="1">
+                <stop
+                  offset="5%"
+                  stopColor="var(--color-expenses)"
+                  stopOpacity={0.8}
+                />
+                <stop
+                  offset="95%"
+                  stopColor="var(--color-expenses)"
+                  stopOpacity={0.1}
+                />
+              </linearGradient>
+            </defs>
+            <Area
+              dataKey="expenses"
+              type="natural"
+              fill="url(#fillExpenses)"
+              fillOpacity={0.4}
+              stroke="var(--color-expenses)"
+            />
+            <Area
+              dataKey="income"
+              type="natural"
+              fill="url(#fillIncome)"
+              fillOpacity={0.4}
+              stroke="var(--color-income)"
+            />
+          </AreaChart>
+        </ChartContainer>
+      </CardContent>
+    </Card>
   )
 }

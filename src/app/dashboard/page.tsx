@@ -382,9 +382,7 @@ export default function DashboardPage() {
 
         {/* Revenue Overview */}
         <div className="flex flex-col gap-4">
-          <GlassSection className="p-4">
-            <RevenueChart />
-          </GlassSection>
+          <RevenueChart />
 
           {/* Mini Calendar Preview (opcional / pode remover) */}
           <GlassSection className="p-4">
