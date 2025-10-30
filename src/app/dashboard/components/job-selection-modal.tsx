@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -6,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { AddInvoiceForm } from "@/app/dashboard/jobs/[id]/components/add-invoice-form";
 import { useToast } from "@/hooks/use-toast";
-import { useCollection, useFirestore, useUser } from "@/firebase";
+import { useCollection, useFirestore, useUser, useMemoFirebase } from "@/firebase";
 import { collection } from "firebase/firestore";
 
 interface JobSelectionModalProps {
@@ -22,8 +23,13 @@ export function JobSelectionModal({ jobs, isOpen, onOpenChange }: JobSelectionMo
   const { user } = useUser();
 
   // This is needed to get all possible invoice origins for the combobox inside AddInvoiceForm
-  const allJobsQuery = useCollection(user ? collection(firestore, 'users', user.uid, 'jobs') : null);
-  const invoiceOrigins = [...new Set(allJobsQuery.data?.flatMap(j => j.invoices?.map(i => i.origin)).filter(Boolean) ?? [])];
+  const allJobsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return collection(firestore, 'users', user.uid, 'jobs');
+  }, [firestore, user]);
+
+  const { data: allJobsData } = useCollection(allJobsQuery);
+  const invoiceOrigins = [...new Set(allJobsData?.flatMap(j => j.invoices?.map(i => i.origin)).filter(Boolean) ?? [])];
 
 
   const handleSelectJob = (job: Job) => {
