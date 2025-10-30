@@ -53,7 +53,7 @@ function SectionHeader({
   right?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <h2 className="text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">{title}</h2>
         {subtitle ? (
@@ -457,4 +457,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
