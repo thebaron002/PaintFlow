@@ -52,13 +52,13 @@ export function JobSelectionModal({ jobs, isOpen, onOpenChange }: JobSelectionMo
     }
   }
 
-  const title = selectedJob ? selectedJob.title : "Select a Job";
+  const title = selectedJob ? (selectedJob.title || `${selectedJob.clientName} #${selectedJob.workOrderNumber}`) : "Select a Job";
 
   return (
     <Dialog open={isOpen} onOpenChange={handleDialogClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle className="text-xl">{title}</DialogTitle>
+          <DialogTitle className="text-2xl font-bold">{title}</DialogTitle>
         </DialogHeader>
         {selectedJob ? (
           <AddInvoiceForm
@@ -80,7 +80,7 @@ export function JobSelectionModal({ jobs, isOpen, onOpenChange }: JobSelectionMo
                     className="cursor-pointer"
                   >
                     <div className="flex flex-col">
-                      <span>{job.title}</span>
+                      <span>{job.title || `${job.clientName} #${job.workOrderNumber}`}</span>
                       <span className="text-xs text-muted-foreground">{job.clientName} - {job.address}</span>
                     </div>
                   </CommandItem>
