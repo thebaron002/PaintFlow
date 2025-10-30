@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -173,7 +174,7 @@ export default function CalendarPage() {
             <div className="space-y-4">
               {sortedJobs.map((job) => {
                  const jobDays = getDaysForJobInMonth(job);
-                 const displayTitle = job.title || `${job.clientName.split(" ").pop() || ""} #${job.workOrderNumber}`;
+                 const displayTitle = job.title || `${job.clientName.split(" ").pop() || ""} #${job.quoteNumber}`;
 
                 return (
                   <Link href={`/dashboard/jobs/${job.id}`} key={job.id}

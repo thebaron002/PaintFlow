@@ -27,7 +27,7 @@ export default function EditJobPage() {
   const { data: job, isLoading: isLoadingJob } = useDoc<Job>(jobRef);
   
   const clientLastName = (job?.clientName || "").split(" ").pop() || "N/A";
-  const jobTitle = job ? `${clientLastName} #${job.workOrderNumber}` : "Edit Job";
+  const jobTitle = job ? `${clientLastName} #${job.quoteNumber}` : "Edit Job";
 
   const handleSuccess = () => {
     router.push(`/dashboard/jobs/${id}`);

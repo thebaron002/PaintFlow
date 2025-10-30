@@ -343,7 +343,7 @@ export default function PayrollPage() {
                     ))
                   ) : jobsToPay && jobsToPay.length > 0 ? jobsToPay.map(job => {
                      const clientLastName = job.clientName.split(" ").pop() || "N/A";
-                     const jobTitle = `${clientLastName} #${job.workOrderNumber}`;
+                     const jobTitle = `${clientLastName} #${job.quoteNumber}`;
                      const totalAdjustments = job.adjustments?.reduce((sum, adj) => {
                         if (adj.type === 'Time') {
                             const rate = adj.hourlyRate ?? settings?.hourlyRate ?? 0;

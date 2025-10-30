@@ -103,7 +103,7 @@ export default function FinancePage() {
         return {
             id: job.id,
             jobId: job.id,
-            jobTitle: job.title || `${job.clientName} #${job.workOrderNumber}`,
+            jobTitle: job.title || `${job.clientName} #${job.quoteNumber}`,
             description: "Job payment finalized",
             date: job.deadline,
             amount: job.initialValue + totalAdjustments,
@@ -115,7 +115,7 @@ export default function FinancePage() {
         (job.invoices || []).map(invoice => ({
             id: invoice.id,
             jobId: job.id,
-            jobTitle: job.title || `${job.clientName} #${job.workOrderNumber}`,
+            jobTitle: job.title || `${job.clientName} #${job.quoteNumber}`,
             clientName: job.clientName,
             category: invoice.origin,
             description: invoice.notes || `Invoice from ${invoice.origin}`,

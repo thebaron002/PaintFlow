@@ -23,11 +23,12 @@ import { format, parseISO } from "date-fns";
 const jobSchema = z.object({
   title: z.string().optional(),
   clientName: z.string().min(1, "Client name is required"),
-  workOrderNumber: z.string().min(1, "Work order number is required"),
+  quoteNumber: z.string().min(1, "Quote number is required"),
   address: z.string().min(1, "Address is required"),
   startDate: z.string().min(1, 'Start date is required').refine((val) => !isNaN(Date.parse(val)), {
     message: 'Invalid date',
   }),
+  deadline: z.string().optional(),
   initialValue: z.coerce.number().min(0, "Initial value must be a positive number"),
   isFixedPay: z.boolean().default(false),
 });
@@ -42,15 +43,18 @@ interface EditJobFormProps {
 export function EditJobForm({ job, onSuccess }: EditJobFormProps) {
   const firestore = useFirestore();
   const { user } = useUser();
+  const isCompleted = ['Complete', 'Open Payment', 'Finalized'].includes(job.status);
+
 
   const form = useForm<JobFormValues>({
     resolver: zodResolver(jobSchema),
     defaultValues: {
       title: job.title || "",
       clientName: job.clientName || "",
-      workOrderNumber: job.workOrderNumber || "",
+      quoteNumber: job.quoteNumber || "",
       address: job.address || "",
       startDate: format(parseISO(job.startDate), 'yyyy-MM-dd'),
+      deadline: isCompleted ? format(parseISO(job.deadline), 'yyyy-MM-dd') : undefined,
       initialValue: job.initialValue || 0,
       isFixedPay: job.isFixedPay || false,
     },
@@ -62,7 +66,7 @@ export function EditJobForm({ job, onSuccess }: EditJobFormProps) {
     let finalTitle = data.title;
     if (!finalTitle) {
       const clientLastName = data.clientName.split(" ").pop() || "";
-      finalTitle = `${clientLastName} #${data.workOrderNumber}`;
+      finalTitle = `${clientLastName} #${data.quoteNumber}`;
     }
     
     // Fetch settings to calculate ideal values
@@ -81,10 +85,11 @@ export function EditJobForm({ job, onSuccess }: EditJobFormProps) {
     
     const updatedJobData = {
       title: finalTitle,
-      workOrderNumber: data.workOrderNumber,
+      quoteNumber: data.quoteNumber,
       address: data.address,
       clientName: data.clientName,
       startDate: new Date(data.startDate + 'T12:00:00').toISOString(),
+      deadline: data.deadline ? new Date(data.deadline + 'T12:00:00').toISOString() : job.deadline,
       budget: data.initialValue, // budget is payout
       initialValue: data.initialValue,
       isFixedPay: data.isFixedPay,
@@ -130,12 +135,12 @@ export function EditJobForm({ job, onSuccess }: EditJobFormProps) {
           />
           <FormField
             control={form.control}
-            name="workOrderNumber"
+            name="quoteNumber"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Work Order #</FormLabel>
+                <FormLabel>Quote #</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g., WO-008" {...field} />
+                  <Input placeholder="e.g., Q-008" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -173,23 +178,41 @@ export function EditJobForm({ job, onSuccess }: EditJobFormProps) {
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="initialValue"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Initial Value</FormLabel>
-                  <FormControl>
-                      <div className="relative">
-                          <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">$</span>
-                          <Input type="number" placeholder="2500" className="pl-7" {...field} />
-                      </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {isCompleted && (
+                 <FormField
+                    control={form.control}
+                    name="deadline"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                        <FormLabel>Completion Date</FormLabel>
+                        <input
+                            type="date"
+                            className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                            value={field.value ?? ''}
+                            onChange={(e) => field.onChange(e.target.value)}
+                        />
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            )}
         </div>
+        <FormField
+            control={form.control}
+            name="initialValue"
+            render={({ field }) => (
+            <FormItem>
+                <FormLabel>Initial Value</FormLabel>
+                <FormControl>
+                    <div className="relative">
+                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">$</span>
+                        <Input type="number" placeholder="2500" className="pl-7" {...field} />
+                    </div>
+                </FormControl>
+                <FormMessage />
+            </FormItem>
+            )}
+        />
         
         <FormField
           control={form.control}

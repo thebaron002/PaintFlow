@@ -622,7 +622,3 @@ export function JobDetails({
     </div>
   );
 }
-
-    
-
-    

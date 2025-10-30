@@ -52,7 +52,7 @@ export function JobSelectionModal({ jobs, isOpen, onOpenChange }: JobSelectionMo
     }
   }
 
-  const title = selectedJob ? (selectedJob.title || `${selectedJob.clientName} #${selectedJob.workOrderNumber}`) : "Select a Job";
+  const title = selectedJob ? (selectedJob.title || `${selectedJob.clientName} #${selectedJob.quoteNumber}`) : "Select a Job";
 
   return (
     <Dialog open={isOpen} onOpenChange={handleDialogClose}>
@@ -80,7 +80,7 @@ export function JobSelectionModal({ jobs, isOpen, onOpenChange }: JobSelectionMo
                     className="cursor-pointer"
                   >
                     <div className="flex flex-col">
-                      <span>{job.title || `${job.clientName} #${job.workOrderNumber}`}</span>
+                      <span>{job.title || `${job.clientName} #${job.quoteNumber}`}</span>
                       <span className="text-xs text-muted-foreground">{job.clientName} - {job.address}</span>
                     </div>
                   </CommandItem>

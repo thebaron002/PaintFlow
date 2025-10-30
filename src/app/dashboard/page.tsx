@@ -239,7 +239,7 @@ function CurrentJobCard({ job, hourlyRate }: { job: Job; hourlyRate: number }) {
     ? (job.initialValue || 0) + adjustments - payoutDiscount
     : (job.budget || 0) - totalInvoiced + adjustments;
 
-  const sub = job.title || `${(job.clientName || "").split(" ").pop() || "Client"} #${job.workOrderNumber}`;
+  const sub = job.title || `${(job.clientName || "").split(" ").pop() || "Client"} #${job.quoteNumber}`;
 
   return (
     <GlassSection className="p-4">
@@ -448,7 +448,7 @@ export default function DashboardPage() {
                 upcomingJobs.map(({ job, nextActivityDate }) => (
                   <Link href={`/dashboard/jobs/${job!.id}`} key={job!.id + nextActivityDate.toISOString()} className="block rounded-lg border border-zinc-200/60 bg-white/60 p-3 text-sm backdrop-blur dark:border-white/10 dark:bg-zinc-900/50 hover:bg-white/80 transition-colors">
                      <div className="flex justify-between items-center">
-                        <span className="font-semibold truncate pr-2">{job!.title || `${job!.clientName} #${job!.workOrderNumber}`}</span>
+                        <span className="font-semibold truncate pr-2">{job!.title || `${job!.clientName} #${job!.quoteNumber}`}</span>
                          <Badge variant="secondary" className={cn(isSameDay(nextActivityDate, new Date()) && "bg-primary/10 text-primary border-primary/20")}>
                            <CalendarCheck className="h-3 w-3 mr-1.5" />
                            {formatDistanceToNow(nextActivityDate, { addSuffix: true })}

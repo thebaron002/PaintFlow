@@ -23,7 +23,7 @@ import { format } from "date-fns";
 const jobSchema = z.object({
   title: z.string().optional(),
   clientName: z.string().min(1, "Client name is required"),
-  workOrderNumber: z.string().min(1, "Work order number is required"),
+  quoteNumber: z.string().min(1, "Quote number is required"),
   address: z.string().min(1, "Address is required"),
   startDate: z.string().min(1, 'Start date is required').refine((val) => {
        return !Number.isNaN(Date.parse(val));
@@ -49,7 +49,7 @@ export function NewJobForm({ onSuccess }: NewJobFormProps) {
     defaultValues: {
       title: "",
       clientName: "",
-      workOrderNumber: "",
+      quoteNumber: "",
       address: "",
       initialValue: 0,
       isFixedPay: false,
@@ -62,7 +62,7 @@ export function NewJobForm({ onSuccess }: NewJobFormProps) {
     let finalTitle = data.title;
     if (!finalTitle) {
       const clientLastName = data.clientName.split(" ").pop() || "";
-      finalTitle = `${clientLastName} #${data.workOrderNumber}`;
+      finalTitle = `${clientLastName} #${data.quoteNumber}`;
     }
     
     // Fetch settings to calculate ideal values
@@ -80,7 +80,7 @@ export function NewJobForm({ onSuccess }: NewJobFormProps) {
     
     const newJob: Omit<Job, 'id'> = {
       title: finalTitle,
-      workOrderNumber: data.workOrderNumber,
+      quoteNumber: data.quoteNumber,
       address: data.address,
       clientName: data.clientName,
       startDate: new Date(data.startDate + 'T12:00:00').toISOString(),
@@ -137,12 +137,12 @@ export function NewJobForm({ onSuccess }: NewJobFormProps) {
           />
           <FormField
             control={form.control}
-            name="workOrderNumber"
+            name="quoteNumber"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Work Order #</FormLabel>
+                <FormLabel>Quote #</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g., WO-008" {...field} />
+                  <Input placeholder="e.g., Q-008" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

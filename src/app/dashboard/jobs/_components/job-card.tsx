@@ -40,7 +40,7 @@ export function JobCard({ job }: { job: Job }) {
   const router = useRouter();
 
   const initials = job.clientName.split(' ').slice(0, 2).map(s => s[0]).join('').toUpperCase();
-  const title = job.title || `${job.clientName.split(' ').pop()} #${job.workOrderNumber}`;
+  const title = job.title || `${job.clientName.split(' ').pop()} #${job.quoteNumber}`;
   const deadline = job.deadline ? format(new Date(job.deadline), 'MMM dd, yyyy') : 'N/A';
   
   const payout = job.isFixedPay 
@@ -106,5 +106,3 @@ export function JobCard({ job }: { job: Job }) {
     </div>
   );
 }
-
-

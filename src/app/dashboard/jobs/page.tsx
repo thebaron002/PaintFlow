@@ -52,9 +52,9 @@ export default function MyJobsPage() {
           const clientNameMatch = job.clientName.toLowerCase().includes(lowerCaseSearch);
           const addressMatch = job.address.toLowerCase().includes(lowerCaseSearch);
           const titleMatch = job.title?.toLowerCase().includes(lowerCaseSearch);
-          const workOrderMatch = job.workOrderNumber?.toLowerCase().includes(lowerCaseSearch);
+          const quoteMatch = job.quoteNumber?.toLowerCase().includes(lowerCaseSearch);
           
-          return clientNameMatch || addressMatch || titleMatch || workOrderMatch;
+          return clientNameMatch || addressMatch || titleMatch || quoteMatch;
         }
 
         return true;
@@ -145,5 +145,3 @@ export default function MyJobsPage() {
     </div>
   );
 }
-
-    

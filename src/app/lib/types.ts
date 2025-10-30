@@ -23,7 +23,7 @@ export type AdjustmentType = 'Time' | 'Material' | 'General';
 export type Job = {
   id: string;
   title: string;
-  workOrderNumber: string;
+  quoteNumber: string;
   address: string;
   clientName: string;
   startDate: string; // ISO date string

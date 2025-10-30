@@ -10,7 +10,7 @@ const JobSchema = z.object({
   id: z.string(),
   title: z.string(),
   clientName: z.string(),
-  workOrderNumber: z.string(),
+  quoteNumber: z.string(),
   startDate: z.string().describe("The job's start date in MM/DD/YYYY format."),
   deadline: z.string().describe("The job's completion date in MM/DD/YYYY format."),
   payout: z.number().describe("The final calculated payout amount for the job."),
@@ -110,7 +110,7 @@ const prompt = ai.definePrompt({
                     <table width="100%" border="0" cellspacing="0" cellpadding="0" style="border: 1px solid #eeeeee; border-radius: 6px; margin-bottom: 20px;">
                       <tr>
                         <td style="padding: 15px;">
-                          <p style="margin: 0 0 10px 0; font-size: 18px; font-weight: bold; color: #333333;">{{this.clientName}} #{{this.workOrderNumber}}</p>
+                          <p style="margin: 0 0 10px 0; font-size: 18px; font-weight: bold; color: #333333;">{{this.clientName}} #{{this.quoteNumber}}</p>
                           <table width="100%" border="0" cellspacing="0" cellpadding="0">
                             <tr><td style="padding: 4px 0; font-size: 14px; color: #555555;"><strong>Start Date:</strong> {{this.startDate}}</td></tr>
                             <tr><td style="padding: 4px 0; font-size: 14px; color: #555555;"><strong>Conclusion Date:</strong> {{this.deadline}}</td></tr>
@@ -163,6 +163,3 @@ const payrollReportFlow = ai.defineFlow(
     return output!;
   }
 );
-    
-
-    

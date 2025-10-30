@@ -57,7 +57,7 @@ export default function JobDetailsPage() {
      const staticJob: Job = {
         id: 'job-not-found',
         title: "Job Not Found",
-        workOrderNumber: "N/A",
+        quoteNumber: "N/A",
         address: "N/A",
         clientName: "N/A",
         startDate: new Date().toISOString(),
@@ -79,7 +79,7 @@ export default function JobDetailsPage() {
   }
   
   const clientLastName = (job.clientName || "").split(" ").pop() || "N/A";
-  const jobTitle = job.title || `${clientLastName} #${job.workOrderNumber}`;
+  const jobTitle = job.title || `${clientLastName} #${job.quoteNumber}`;
 
   return <JobDetails job={job} allCrew={allCrew || []} jobTitle={jobTitle} />;
 }
