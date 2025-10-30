@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -210,7 +209,7 @@ function QuickActions({ inProgressJobs }: { inProgressJobs: Job[] }) {
             <Dialog open={isSingleJobInvoiceOpen} onOpenChange={setSingleJobInvoiceOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Add Invoice to: {singleJob.title}</DialogTitle>
+                        <DialogTitle className="text-2xl font-bold">{singleJob.title}</DialogTitle>
                     </DialogHeader>
                     <AddInvoiceForm 
                         jobId={singleJob.id}
