@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -12,7 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PlusCircle, Receipt, ArrowRight, MapPin, CalendarDays } from "lucide-react";
 import { useUser, useFirestore, useMemoFirebase, useCollection } from "@/firebase";
-import { collection, query, where } from "firebase/firestore";
+import { collection, query, where, orderBy, limit } from "firebase/firestore";
 import type { Job as JobType } from "@/app/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { JobSelectionModal } from "./components/job-selection-modal";
@@ -461,3 +462,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
