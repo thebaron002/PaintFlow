@@ -12,15 +12,16 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PlusCircle, Receipt, ArrowRight, MapPin, CalendarDays, CalendarCheck } from "lucide-react";
-import { useUser, useFirestore, useMemoFirebase, useCollection } from "@/firebase";
-import { collection, query, where, orderBy, limit } from "firebase/firestore";
-import type { Job as JobType } from "@/app/lib/types";
+import { useUser, useFirestore, useMemoFirebase, useCollection, useDoc } from "@/firebase";
+import { collection, query, where, orderBy, limit, doc } from "firebase/firestore";
+import type { Job as JobType, GeneralSettings } from "@/app/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { JobSelectionModal } from "./components/job-selection-modal";
 import { AddInvoiceForm } from "./jobs/[id]/components/add-invoice-form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RevenueChart } from "./components/revenue-chart";
 import { cn } from "@/lib/utils";
+import { calculateJobPayout, calculateMaterialCost } from "@/app/lib/job-financials";
 
 // Types (ajuste se necessário)
 type Invoice = { amount: number; date?: string; isPayoutDiscount?: boolean; source?: string };
@@ -86,20 +87,7 @@ function Metric({
 // ---------------------------------------------------------------------
 // Data helpers
 // ---------------------------------------------------------------------
-function sumInvoices(invoices?: Invoice[]) {
-  if (!invoices?.length) return 0;
-  return invoices.reduce((s, i) => s + (Number(i.amount) || 0), 0);
-}
-function sumAdjustments(adjs?: Adjustment[], hourlyDefault = 0) {
-  if (!adjs?.length) return 0;
-  return adjs.reduce((sum, a) => {
-    if (a.type === "Time") {
-      const rate = a.hourlyRate ?? hourlyDefault;
-      return sum + (a.value * rate);
-    }
-    return sum + a.value;
-  }, 0);
-}
+
 function currency(n: number) {
   return n.toLocaleString(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 }
@@ -230,15 +218,10 @@ function QuickActions({ inProgressJobs }: { inProgressJobs: Job[] }) {
 // ---------------------------------------------------------------------
 // Current Job snapshot (o último em progresso, fallback para Not Started)
 // ---------------------------------------------------------------------
-function CurrentJobCard({ job, hourlyRate }: { job: Job; hourlyRate: number }) {
-  const totalInvoiced = sumInvoices(job.invoices);
-  const adjustments = sumAdjustments(job.adjustments, hourlyRate);
-  const payoutDiscount = job.invoices?.filter(i => i.isPayoutDiscount).reduce((s, i) => s + i.amount, 0) ?? 0;
-
-  const remainingPayout = job.isFixedPay 
-    ? (job.initialValue || 0) + adjustments - payoutDiscount
-    : (job.budget || 0) - totalInvoiced + adjustments;
-
+function CurrentJobCard({ job, settings }: { job: Job; settings: GeneralSettings | null }) {
+  const payout = calculateJobPayout(job, settings);
+  const materialCost = calculateMaterialCost(job.invoices);
+  
   const sub = job.title || `${(job.clientName || "").split(" ").pop() || "Client"} #${job.quoteNumber}`;
 
   return (
@@ -277,8 +260,8 @@ function CurrentJobCard({ job, hourlyRate }: { job: Job; hourlyRate: number }) {
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <Metric label="Remaining Payout" value={currency(Math.max(remainingPayout, 0))} />
-            <Metric label="Total Invoiced" value={currency(totalInvoiced)} />
+            <Metric label="Remaining Payout" value={currency(Math.max(payout, 0))} />
+            <Metric label="Material Cost" value={currency(materialCost)} />
           </div>
         </div>
       </div>
@@ -315,6 +298,12 @@ export default function DashboardPage() {
   const { user } = useUser();
   const firestore = useFirestore();
 
+  const settingsRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, "settings", "global");
+  }, [firestore]);
+  const { data: settings } = useDoc<GeneralSettings>(settingsRef);
+
   // Query for all jobs to be used across the dashboard
   const allJobsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -337,7 +326,8 @@ export default function DashboardPage() {
     return allJobs?.filter(job => {
         const startDate = parseISO(job.startDate);
         return job.status === "Not Started" && (isSameDay(startDate, today) || isFuture(startDate));
-    }) || [];
+    })
+    .sort((a,b) => parseISO(a.startDate).getTime() - parseISO(b.startDate).getTime()) || [];
   }, [allJobs]);
   
   // Upcoming Jobs for the next 7 days
@@ -360,15 +350,6 @@ export default function DashboardPage() {
     return upcoming.sort((a, b) => a!.nextActivityDate.getTime() - b!.nextActivityDate.getTime());
     
   }, [allJobs]);
-
-  // hourly rate básico — se quiser, troque por leitura das GeneralSettings
-  const hourlyRate = 0;
-  
-  const getNextJob = (jobs: Job[] | null): Job | null => {
-      if (!jobs || jobs.length === 0) return null;
-      // Sort by start date ascending to find the soonest
-      return [...jobs].sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())[0];
-  }
   
   const getLatestInProgressJob = (jobs: Job[] | null) => {
     if (!jobs || jobs.length === 0) return null;
@@ -376,7 +357,7 @@ export default function DashboardPage() {
     return [...jobs].sort((a,b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())[0];
   }
 
-  const currentJob = getLatestInProgressJob(inProgressJobs) || getNextJob(notStartedJobs);
+  const currentJob = getLatestInProgressJob(inProgressJobs) || notStartedJobs[0];
   const isLoading = loadingAllJobs;
 
   return (
@@ -414,7 +395,7 @@ export default function DashboardPage() {
               </div>
             </GlassSection>
           ) : currentJob ? (
-            <CurrentJobCard job={currentJob} hourlyRate={hourlyRate} />
+            <CurrentJobCard job={currentJob} settings={settings} />
           ) : (
             <CurrentJobFallback />
           )}

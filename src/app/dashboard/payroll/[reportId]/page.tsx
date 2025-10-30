@@ -16,6 +16,7 @@ import { generatePayrollReport, PayrollReportInput } from "@/ai/flows/generate-p
 import { format } from "date-fns";
 import { sendEmail } from "@/app/actions/send-email";
 import { useToast } from "@/hooks/use-toast";
+import { calculateJobPayout, calculateMaterialCost } from "@/app/lib/job-financials";
 
 export default function ReportDetailsPage() {
     const params = useParams();
@@ -66,17 +67,9 @@ export default function ReportDetailsPage() {
                 try {
                     const reportInput: PayrollReportInput = {
                         jobs: jobs.map(job => {
-                            const materialCost = job.invoices?.reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
+                            const materialCost = calculateMaterialCost(job.invoices);
                             const materialUsage = job.initialValue > 0 ? (materialCost / job.initialValue) * 100 : 0;
-                             const totalAdjustments = job.adjustments?.reduce((sum, adj) => {
-                                if (adj.type === 'Time') {
-                                    const rate = adj.hourlyRate ?? settings?.hourlyRate ?? 0;
-                                    return sum + (adj.value * rate);
-                                }
-                                return sum + adj.value;
-                            }, 0) ?? 0;
-                             const totalInvoiced = (job.invoices || []).reduce((sum, invoice) => sum + invoice.amount, 0);
-                             const payout = job.initialValue - totalInvoiced + totalAdjustments;
+                            const payout = calculateJobPayout(job, settings);
 
                             return {
                                 ...job,

@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Activity, CircleDollarSign, PiggyBank, Wrench } from "lucide-react";
+import { calculateJobPayout, calculateMaterialCost } from "@/app/lib/job-financials";
 
 interface JobAnalysisCardProps {
   job: Job;
@@ -29,20 +30,8 @@ const StatItem = ({ icon: Icon, label, value, valueColor }: { icon: React.Elemen
 );
 
 export function JobAnalysisCard({ job, settings }: JobAnalysisCardProps) {
-  const materialCost = job.invoices
-    ?.reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
-
-  const globalHourlyRate = settings?.hourlyRate ?? 0;
-  const totalAdjustmentsValue = job.adjustments?.reduce((sum, adj) => {
-    if (adj.type === "Time") {
-      const rate = adj.hourlyRate ?? globalHourlyRate;
-      return sum + adj.value * rate;
-    }
-    return sum + adj.value;
-  }, 0) ?? 0;
-  
-  const baseValue = job.isFixedPay ? job.initialValue : job.budget;
-  const payout = baseValue + totalAdjustmentsValue;
+  const materialCost = calculateMaterialCost(job.invoices);
+  const payout = calculateJobPayout(job, settings);
   const profit = payout - materialCost;
 
   const profitColor = profit >= 0 ? "text-green-600" : "text-red-600";

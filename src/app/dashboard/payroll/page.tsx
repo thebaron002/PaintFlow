@@ -33,6 +33,7 @@ import { cn } from "@/lib/utils";
 import React from "react";
 import { generatePayrollReport, PayrollReportInput } from "@/ai/flows/generate-payroll-report-flow";
 import { sendEmail } from "@/app/actions/send-email";
+import { calculateJobPayout, calculateMaterialCost } from "@/app/lib/job-financials";
 
 
 const JobDetailsRow = ({ job }: { job: Job }) => {
@@ -44,8 +45,7 @@ const JobDetailsRow = ({ job }: { job: Job }) => {
     const { data: settings } = useDoc<GeneralSettings>(settingsRef);
     const globalHourlyRate = settings?.hourlyRate ?? 0;
 
-    const materialCost = job.invoices
-        ?.reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
+    const materialCost = calculateMaterialCost(job.invoices);
     const materialUsagePercentage = job.initialValue > 0 ? (materialCost / job.initialValue) * 100 : 0;
     
     const totalAdjustments = job.adjustments?.reduce((sum, adj) => {
@@ -150,17 +150,7 @@ export default function PayrollPage() {
         const now = new Date();
         const start = startOfWeek(now);
         const end = endOfWeek(now);
-        const totalPayout = jobsToPay.reduce((acc, job) => {
-            const totalAdjustments = job.adjustments?.reduce((sum, adj) => {
-                if (adj.type === 'Time') {
-                    const rate = adj.hourlyRate ?? settings?.hourlyRate ?? 0;
-                    return sum + (adj.value * rate);
-                }
-                return sum + adj.value;
-            }, 0) ?? 0;
-            const totalInvoiced = (job.invoices || []).reduce((sum, invoice) => sum + invoice.amount, 0);
-            return acc + (job.initialValue - totalInvoiced + totalAdjustments);
-        }, 0);
+        const totalPayout = jobsToPay.reduce((acc, job) => acc + calculateJobPayout(job, settings), 0);
 
         const newReport: Omit<PayrollReport, 'id'> = {
             weekNumber: getWeek(now),
@@ -183,7 +173,7 @@ export default function PayrollPage() {
         description: `Could not send the payroll report: ${sendEmailState.error}`,
       });
     }
-  }, [sendEmailState, toast, jobsToPay, firestore, recipients, settings?.hourlyRate, user]);
+  }, [sendEmailState, toast, jobsToPay, firestore, recipients, settings, user]);
 
 
   const isLoading = isLoadingJobs || isLoadingSettings || isLoadingProfile || isLoadingReports;
@@ -239,33 +229,13 @@ export default function PayrollPage() {
             const now = new Date();
             const start = startOfWeek(now);
             const end = endOfWeek(now);
-
-            const totalPayout = jobsToPay.reduce((acc, job) => {
-                const totalAdjustments = job.adjustments?.reduce((sum, adj) => {
-                    if (adj.type === 'Time') {
-                        const rate = adj.hourlyRate ?? settings?.hourlyRate ?? 0;
-                        return sum + (adj.value * rate);
-                    }
-                    return sum + adj.value;
-                }, 0) ?? 0;
-                const totalInvoiced = job.invoices?.reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
-                return acc + ((job.initialValue ?? 0) - totalInvoiced + totalAdjustments);
-            }, 0);
-
+            const totalPayout = jobsToPay.reduce((acc, job) => acc + calculateJobPayout(job, settings), 0);
 
         const reportInput: PayrollReportInput = {
             jobs: jobsToPay.map(job => {
-                const materialCost = job.invoices?.reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
+                const materialCost = calculateMaterialCost(job.invoices);
                 const materialUsage = job.initialValue > 0 ? (materialCost / job.initialValue) * 100 : 0;
-                const totalAdjustments = job.adjustments?.reduce((sum, adj) => {
-                    if (adj.type === 'Time') {
-                        const rate = adj.hourlyRate ?? settings?.hourlyRate ?? 0;
-                        return sum + (adj.value * rate);
-                    }
-                    return sum + adj.value;
-                }, 0) ?? 0;
-                const totalInvoiced = job.invoices?.reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
-                const payout = (job.initialValue ?? 0) - totalInvoiced + totalAdjustments;
+                const payout = calculateJobPayout(job, settings);
 
                 return {
                     ...job,
@@ -344,15 +314,8 @@ export default function PayrollPage() {
                   ) : jobsToPay && jobsToPay.length > 0 ? jobsToPay.map(job => {
                      const clientLastName = job.clientName.split(" ").pop() || "N/A";
                      const jobTitle = `${clientLastName} #${job.quoteNumber}`;
-                     const totalAdjustments = job.adjustments?.reduce((sum, adj) => {
-                        if (adj.type === 'Time') {
-                            const rate = adj.hourlyRate ?? settings?.hourlyRate ?? 0;
-                            return sum + (adj.value * rate);
-                        }
-                        return sum + adj.value;
-                    }, 0) ?? 0;
-                     const totalInvoiced = (job.invoices || []).reduce((sum, invoice) => sum + invoice.amount, 0);
-                     const payout = job.initialValue - totalInvoiced + totalAdjustments;
+                     const payout = calculateJobPayout(job, settings);
+
                     return (
                         <React.Fragment key={job.id}>
                            <TableRow>

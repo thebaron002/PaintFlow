@@ -62,6 +62,7 @@ import { cn } from "@/lib/utils";
 import { JobAnalysisCard } from "./job-analysis-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
+import { calculateJobPayout, calculateTotalAdjustments } from "@/app/lib/job-financials";
 
 const adjustmentIcons = {
   Time: Clock,
@@ -111,10 +112,12 @@ const StatusStepper = ({ statuses, current, onStatusChange }: { statuses: Job['s
 export function JobDetails({
   job,
   allCrew,
+  settings,
   jobTitle,
 }: {
   job: Job;
   allCrew: CrewMember[];
+  settings: GeneralSettings | null;
   jobTitle: string;
 }) {
   const firestore = useFirestore();
@@ -135,11 +138,6 @@ export function JobDetails({
   const { data: allJobs } = useCollection<Job>(jobsQuery);
   const invoiceOrigins = [...new Set(allJobs?.flatMap(j => j.invoices?.map(i => i.origin)).filter(Boolean) ?? [])];
   
-  const settingsRef = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return doc(firestore, "settings", "global");
-  }, [firestore]);
-  const { data: settings } = useDoc<GeneralSettings>(settingsRef);
   const globalHourlyRate = settings?.hourlyRate ?? 0;
 
   const jobCrew = job.crew?.map(c => allCrew.find(ac => ac.id === c.crewMemberId)).filter(Boolean) as CrewMember[] | undefined;
@@ -213,24 +211,8 @@ export function JobDetails({
         return 'N/A';
     }
   };
-  
-  const totalInvoiced = job.invoices?.reduce((sum, invoice) => sum + invoice.amount, 0) ?? 0;
-  
-  const totalAdjustments = job.adjustments?.reduce((sum, adj) => {
-    if (adj.type === 'Time') {
-      const rate = adj.hourlyRate ?? globalHourlyRate;
-      return sum + (adj.value * rate);
-    }
-    return sum + adj.value;
-  }, 0) ?? 0;
 
-  const totalDiscountedFromPayout = job.invoices
-    ?.filter(inv => inv.isPayoutDiscount)
-    .reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
-
-  const remainingPayout = job.isFixedPay 
-    ? (job.initialValue || 0) + totalAdjustments - totalDiscountedFromPayout
-    : (job.budget || 0) - totalInvoiced + totalAdjustments;
+  const payout = calculateJobPayout(job, settings);
 
   return (
     <div className="relative pb-24">
@@ -321,8 +303,8 @@ export function JobDetails({
                     <DollarSign className="h-6 w-6 text-muted-foreground" />
                     </div>
                     <div>
-                    <p className="text-sm font-medium text-muted-foreground">Remaining Payout</p>
-                    <p className="text-lg font-semibold">${remainingPayout.toLocaleString()}</p>
+                    <p className="text-sm font-medium text-muted-foreground">Payout</p>
+                    <p className="text-lg font-semibold">${payout.toLocaleString()}</p>
                     </div>
                 </div>
                 <div className="flex items-start gap-3">
@@ -403,11 +385,11 @@ export function JobDetails({
                 </CardContent>
             </Card>
 
-            <JobAnalysisCard job={job} settings={settings} />
-
             </div>
 
             <div className="lg:col-span-1 grid gap-6 content-start">
+            <JobAnalysisCard job={job} settings={settings} />
+
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Crew</CardTitle>
