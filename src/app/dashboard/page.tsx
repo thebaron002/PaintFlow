@@ -113,8 +113,12 @@ function QuickActions({ inProgressJobs }: { inProgressJobs: Job[] }) {
     // This is needed to get all possible invoice origins for the combobox inside AddInvoiceForm
     const { user } = useUser();
     const firestore = useFirestore();
-    const allJobsQuery = useCollection(user ? collection(firestore, 'users', user.uid, 'jobs') : null);
-    const invoiceOrigins = [...new Set(allJobsQuery.data?.flatMap(j => j.invoices?.map(i => i.origin)).filter(Boolean) ?? [])];
+    const allJobsQuery = useMemoFirebase(() => {
+        if (!firestore || !user) return null;
+        return collection(firestore, 'users', user.uid, 'jobs');
+    }, [firestore, user]);
+    const { data: allJobs } = useCollection<Job>(allJobsQuery);
+    const invoiceOrigins = [...new Set(allJobs?.flatMap(j => j.invoices?.map(i => i.origin)).filter(Boolean) ?? [])];
 
 
     const handleAddInvoiceClick = () => {
@@ -263,7 +267,7 @@ function CurrentJobCard({ job, hourlyRate }: { job: Job; hourlyRate: number }) {
   const adjustments = sumAdjustments(job.adjustments, hourlyRate);
   const payoutDiscount = job.invoices?.filter(i => i.isPayoutDiscount).reduce((s, i) => s + i.amount, 0) ?? 0;
 
-  const remainingPayout = job.isFixedPay
+  const remainingPayout = job.isFixedPay 
     ? (job.initialValue || 0) + adjustments - payoutDiscount
     : (job.budget || 0) - totalInvoiced + adjustments;
 
@@ -462,5 +466,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
