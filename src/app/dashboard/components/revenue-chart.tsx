@@ -72,21 +72,26 @@ export function RevenueChart() {
           return d as Date;
         }
 
-        const monthlyIncome = jobs
+        const monthlyProfit = jobs
             .filter(job => {
                 const jobDate = getDate(job.deadline);
                 const status = job.status as string;
                 return (status === 'Complete' || status === 'Finalized') && isWithinInterval(jobDate, { start: monthStart, end: monthEnd });
             })
             .reduce((sum, job) => {
-                 const totalAdjustments = job.adjustments?.reduce((sum, adj) => {
+                const totalAdjustments = job.adjustments?.reduce((sum, adj) => {
                     if (adj.type === 'Time') {
                         const rate = adj.hourlyRate ?? settings?.hourlyRate ?? 0;
                         return sum + (adj.value * rate);
                     }
                     return sum + adj.value;
                 }, 0) ?? 0;
-                return sum + job.initialValue + totalAdjustments;
+                
+                const jobRevenue = job.initialValue + totalAdjustments;
+                const jobCost = job.invoices?.reduce((s, i) => s + i.amount, 0) ?? 0;
+                const jobProfit = jobRevenue - jobCost;
+
+                return sum + jobProfit;
             }, 0);
         
         const monthlyJobExpenses = jobs
@@ -102,7 +107,7 @@ export function RevenueChart() {
 
         data.push({
             month: format(monthStart, 'MMM'),
-            income: monthlyIncome,
+            income: monthlyProfit,
             expenses: totalMonthlyExpenses,
         });
     }
