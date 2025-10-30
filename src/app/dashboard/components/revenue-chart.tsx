@@ -13,7 +13,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
-import type { Job, GeneralSettings } from "@/app/lib/types";
+import type { Job, GeneralExpense } from "@/app/lib/types";
 import { subMonths, startOfMonth, endOfMonth, isWithinInterval, format, parseISO } from "date-fns"
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from "@/firebase";
@@ -45,13 +45,7 @@ export function RevenueChart() {
     if (!firestore || !user) return null;
     return collection(firestore, 'users', user.uid, 'generalExpenses');
   }, [firestore, user]);
-  const { data: generalExpenses, isLoading: isLoadingGeneralExpenses } = useCollection(generalExpensesQuery);
-
-  const settingsRef = useMemoFirebase(() => {
-      if (!firestore) return null;
-      return doc(firestore, "settings", "global");
-  }, [firestore]);
-  const { data: settings } = useDoc<GeneralSettings>(settingsRef);
+  const { data: generalExpenses, isLoading: isLoadingGeneralExpenses } = useCollection<GeneralExpense>(generalExpensesQuery);
   
   const isLoading = isLoadingJobs || isLoadingGeneralExpenses;
   
@@ -78,18 +72,7 @@ export function RevenueChart() {
                 const status = job.status as string;
                 return ['Complete', 'Open Payment', 'Finalized'].includes(status) && isWithinInterval(jobDate, { start: monthStart, end: monthEnd });
             })
-            .reduce((sum, job) => {
-                const totalAdjustments = job.adjustments?.reduce((sum, adj) => {
-                    if (adj.type === 'Time') {
-                        const rate = adj.hourlyRate ?? settings?.hourlyRate ?? 0;
-                        return sum + (adj.value * rate);
-                    }
-                    return sum + adj.value;
-                }, 0) ?? 0;
-                
-                const jobPayout = job.initialValue + totalAdjustments;
-                return sum + jobPayout;
-            }, 0);
+            .reduce((sum, job) => sum + (job.budget || 0), 0);
         
         const monthlyJobExpenses = jobs
             .flatMap(job => job.invoices || [])
@@ -110,7 +93,7 @@ export function RevenueChart() {
     }
     return data;
 
-  }, [jobs, generalExpenses, settings?.hourlyRate]);
+  }, [jobs, generalExpenses]);
 
 
   if (isLoading) {
