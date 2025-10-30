@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -22,19 +21,19 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { Job as JobType } from "@/app/lib/types";
 
-type MonthJobsCalendarProps = {
-  jobs: JobType[];
-  monthDate: Date;                // qualquer dia do mês alvo
-  onMonthChange?: (d: Date) => void;
+// shape mínima que o calendário precisa
+export type CalendarJob = {
+  id: string;
+  title?: string;
+  clientName: string;
+  workOrderNumber: string;
+  address: string;
+  status: string;
+  startDate?: string;        // "yyyy-MM-dd"
+  productionDays?: string[]; // ["yyyy-MM-dd", ...]
 };
 
-type DayInfo = {
-  date: Date;
-  isCurrentMonth: boolean;
-  hasAnyStart: boolean;         // existe algum job que começa neste dia?
-  hasAnyProduction: boolean;    // existe produção (de qualquer job) neste dia?
-};
-
+// util local yyyy-MM-dd
 function toYYYYMMDD(d: Date | string) {
   const date = typeof d === 'string' ? parseISO(d) : d;
   const y = date.getFullYear();
@@ -43,16 +42,36 @@ function toYYYYMMDD(d: Date | string) {
   return `${y}-${m}-${day}`;
 }
 
-export function MonthJobsCalendar({ jobs, monthDate, onMonthChange }: MonthJobsCalendarProps) {
+
+type DayInfo = {
+  date: Date;
+  isCurrentMonth: boolean;
+  hasAnyStart: boolean;
+  hasAnyProduction: boolean;
+};
+
+type MonthJobsCalendarProps = {
+  jobs: JobType[];
+  monthDate: Date;
+  onMonthChange?: (d: Date) => void;
+  onSelectDay?: (isoDay: string) => void; // novo
+};
+
+export function MonthJobsCalendar({
+  jobs,
+  monthDate,
+  onMonthChange,
+  onSelectDay,
+}: MonthJobsCalendarProps) {
   const monthStart = startOfMonth(monthDate);
   const monthEnd = endOfMonth(monthDate);
-
   const gridStart = startOfWeek(monthStart, { weekStartsOn: 0 }); // domingo
   const gridEnd = endOfWeek(monthEnd, { weekStartsOn: 0 });
 
-  const days: DayInfo[] = React.useMemo(() => {
+  // pré-calcula lookup de dias
+  const { dayInfoList } = React.useMemo(() => {
     const daysArr = eachDayOfInterval({ start: gridStart, end: gridEnd });
-    // pré-map para lookup rápido
+
     const startsSet = new Set<string>();
     const prodSet = new Set<string>();
 
@@ -61,11 +80,13 @@ export function MonthJobsCalendar({ jobs, monthDate, onMonthChange }: MonthJobsC
         startsSet.add(toYYYYMMDD(job.startDate));
       }
       if (job.productionDays?.length) {
-        for (const p of job.productionDays) prodSet.add(toYYYYMMDD(p));
+        for (const p of job.productionDays) {
+          prodSet.add(toYYYYMMDD(p));
+        }
       }
     }
 
-    return daysArr.map((d) => {
+    const info: DayInfo[] = daysArr.map((d) => {
       const iso = toYYYYMMDD(d);
       return {
         date: d,
@@ -74,16 +95,19 @@ export function MonthJobsCalendar({ jobs, monthDate, onMonthChange }: MonthJobsC
         hasAnyProduction: prodSet.has(iso),
       };
     });
+
+    return { dayInfoList: info };
   }, [jobs, gridStart, gridEnd, monthStart]);
 
   const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
   return (
     <div className="w-full">
-      {/* Header do mês */}
+      {/* header mês */}
       <div className="mb-4 flex items-center justify-between">
         <Button
           variant="ghost"
+          size="icon"
           className="h-8 w-8 p-0"
           onClick={() => onMonthChange?.(subMonths(monthDate, 1))}
         >
@@ -96,6 +120,7 @@ export function MonthJobsCalendar({ jobs, monthDate, onMonthChange }: MonthJobsC
 
         <Button
           variant="ghost"
+          size="icon"
           className="h-8 w-8 p-0"
           onClick={() => onMonthChange?.(addMonths(monthDate, 1))}
         >
@@ -103,65 +128,79 @@ export function MonthJobsCalendar({ jobs, monthDate, onMonthChange }: MonthJobsC
         </Button>
       </div>
 
-      {/* Cabeçalho dos dias da semana */}
-      <div className="mb-1 grid grid-cols-7 gap-1 text-center text-xs text-muted-foreground sm:gap-2">
+      {/* nomes dos dias da semana */}
+      <div className="mb-1 grid grid-cols-7 gap-1 text-center text-[10px] font-medium text-muted-foreground sm:text-xs sm:gap-2">
         {weekDays.map((wd) => (
-          <div key={wd} className="py-2 font-medium">{wd}</div>
+          <div key={wd} className="py-2">{wd}</div>
         ))}
       </div>
 
-      {/* Grid de dias */}
-      <div className="grid grid-cols-7 gap-1 sm:gap-2">
-        {days.map((d) => {
-          const dayNum = format(d.date, "d");
+      {/* grid dias */}
+      <div className="grid grid-cols-7 gap-1 sm:gap-2 text-[11px] sm:text-sm">
+        {dayInfoList.map((d) => {
+          const isoDay = toYYYYMMDD(d.date);
           const isToday = isSameDay(d.date, new Date());
 
+          // estilos base da célula
           const baseCell =
-            "relative flex h-20 flex-col items-center justify-center rounded-xl border text-sm shadow-sm sm:h-24";
+            "group relative flex h-16 sm:h-20 flex-col items-center justify-center rounded-lg border text-center shadow-sm transition-colors";
 
           const cellClasses = cn(
             baseCell,
             d.isCurrentMonth
               ? "bg-white border-zinc-200 text-zinc-900 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-50"
               : "bg-zinc-50 border-zinc-200/70 text-zinc-400 dark:bg-zinc-900/50 dark:border-zinc-800/70 dark:text-zinc-600",
-
             d.hasAnyStart &&
               "bg-primary text-primary-foreground border-primary shadow-sm",
-
             isToday && !d.hasAnyStart &&
-              "ring-2 ring-primary/50"
+              "ring-2 ring-primary/50",
+            "active:scale-[0.97] touch-manipulation"
           );
 
           return (
-            <div key={d.date.toISOString()} className={cellClasses}>
-              <div className="text-base font-semibold">{dayNum}</div>
+            <button
+              key={isoDay}
+              className={cellClasses}
+              onClick={() => onSelectDay?.(isoDay)}
+            >
+              <div className="text-xs font-semibold sm:text-sm">
+                {format(d.date, "d")}
+              </div>
 
+              {/* pontinho de produção */}
               {d.hasAnyProduction && !d.hasAnyStart && (
                 <div className={cn(
                     "absolute bottom-2 h-1.5 w-1.5 rounded-full",
-                    d.isCurrentMonth ? "bg-primary" : "bg-muted-foreground"
+                    d.isCurrentMonth ? "bg-primary" : "bg-muted-foreground",
+                    d.hasAnyStart ? "bg-primary-foreground" : ""
                 )} />
               )}
-              
+
+              {/* Today badge */}
               {isToday && !d.hasAnyStart && (
-                <div className="absolute right-2 top-2">
-                  <Badge variant="secondary" className="h-5 px-1.5 text-[10px] bg-primary/10 text-primary border-primary/20">Today</Badge>
+                <div className="absolute right-1 top-1">
+                  <Badge
+                    variant="secondary"
+                    className="h-4 px-1.5 text-[9px] sm:h-5 sm:text-[10px] bg-primary/10 text-primary border-primary/20"
+                  >
+                    Today
+                  </Badge>
                 </div>
               )}
-            </div>
+            </button>
           );
         })}
       </div>
 
-      {/* Legenda */}
-      <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-zinc-600 dark:text-zinc-400">
+      {/* legenda */}
+      <div className="mt-4 flex flex-wrap items-center gap-4 text-[11px] text-zinc-600 sm:text-sm dark:text-zinc-400">
         <div className="flex items-center gap-2">
-          <div className="h-4 w-6 rounded bg-primary"></div>
+          <div className="h-4 w-6 rounded bg-primary" />
           <span>Start day</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="relative h-4 w-6 rounded bg-card border">
-            <div className="absolute bottom-[2px] left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-primary"></div>
+          <div className="relative h-4 w-6 rounded border border-zinc-200 bg-white dark:bg-zinc-800 dark:border-zinc-700">
+            <div className="absolute bottom-[2px] left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-primary" />
           </div>
           <span>Worked day</span>
         </div>
