@@ -4,13 +4,13 @@
 import { useState, useMemo } from "react";
 import type { Job, GeneralSettings } from "@/app/lib/types";
 import { Button } from "@/components/ui/button";
-import { ResponsiveDatePicker } from "@/components/ui/responsive-date-picker";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useFirestore, updateDocumentNonBlocking, useUser } from "@/firebase";
 import { doc, writeBatch } from "firebase/firestore";
 import { calculateJobPayout } from "@/app/lib/job-financials";
+import { format } from "date-fns";
 
 interface FinalizePaymentsModalProps {
   jobs: Job[];
@@ -119,11 +119,14 @@ export function FinalizePaymentsModal({ jobs, settings, onSuccess }: FinalizePay
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
         <div className="flex flex-col gap-2">
-          <Label>Finalization Date</Label>
-          <ResponsiveDatePicker
-            value={finalizationDate}
-            onChange={(date) => date && setFinalizationDate(date)}
-          />
+          <Label htmlFor="finalization-date">Finalization Date</Label>
+           <input
+              id="finalization-date"
+              type="date"
+              className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              value={format(finalizationDate, 'yyyy-MM-dd')}
+              onChange={(e) => setFinalizationDate(new Date(e.target.value + 'T12:00:00'))}
+            />
         </div>
         <div className="rounded-lg border bg-secondary/50 p-4 text-right">
           <Label className="text-muted-foreground">Total Payout</Label>
@@ -143,4 +146,3 @@ export function FinalizePaymentsModal({ jobs, settings, onSuccess }: FinalizePay
     </div>
   );
 }
-
