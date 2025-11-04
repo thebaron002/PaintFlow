@@ -51,7 +51,7 @@ export function FinalizePaymentsModal({ jobs, settings, onSuccess }: FinalizePay
       const jobRef = doc(firestore, "users", user.uid, "jobs", jobId);
       batch.update(jobRef, { 
           status: "Finalized",
-          deadline: finalizationDateISO
+          finalizationDate: finalizationDateISO
       });
     });
 
@@ -143,3 +143,4 @@ export function FinalizePaymentsModal({ jobs, settings, onSuccess }: FinalizePay
     </div>
   );
 }
+

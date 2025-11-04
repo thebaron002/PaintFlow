@@ -102,7 +102,7 @@ export default function FinancePage() {
         jobId: job.id,
         jobTitle: job.title || `${job.clientName} #${job.quoteNumber}`,
         description: "Job payment finalized",
-        date: job.deadline,
+        date: job.finalizationDate || job.deadline, // Prioritize finalization date
         amount: calculateJobPayout(job, settings),
     })) ?? [];
 

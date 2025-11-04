@@ -28,6 +28,7 @@ export type Job = {
   clientName: string;
   startDate: string; // ISO date string
   deadline: string; // ISO date string
+  finalizationDate?: string; // ISO date string
   specialRequirements: string;
   status: 'Not Started' | 'In Progress' | 'Complete' | 'Open Payment' | 'Finalized';
   budget: number; // This can be considered 'Payout'
@@ -109,3 +110,4 @@ export type PayrollReport = {
   jobCount: number;
   jobIds: string[];
 };
+
