@@ -84,9 +84,10 @@ export function AddInvoiceForm({ jobId, existingInvoices, origins, onSuccess, in
 
   useEffect(() => {
     if (originValue === 'Sherwin-Williams') {
-        form.setValue('isPayoutDiscount', true);
+        form.setValue('paidByContractor', true);
+        form.setValue('isPayoutDiscount', false);
     }
-  }, [originValue, form.setValue])
+  }, [originValue, form.setValue]);
 
   const onSubmit = (data: InvoiceFormValues) => {
     if (!firestore || !user) return;
