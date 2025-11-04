@@ -10,23 +10,6 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { JobActions } from '../../job-actions';
 
-function StatusBadge({ status }: { status: Job['status'] }) {
-  const statusMap: Record<Job['status'], { label: string; className: string; icon: React.ReactNode }> = {
-    "Not Started": { label: "Not Started", className: "bg-neutral-200 text-neutral-900", icon: <Clock className="h-3.5 w-3.5" /> },
-    "In Progress": { label: "In Progress", className: "bg-blue-600/15 text-blue-700 dark:text-blue-600", icon: <CircleDot className="h-3.5 w-3.5" /> },
-    "Complete": { label: "Complete", className: "bg-emerald-600/15 text-emerald-700 dark:text-emerald-600", icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
-    "Open Payment": { label: "Open Payment", className: "bg-amber-500/15 text-amber-700 dark:text-amber-500", icon: <Wallet2 className="h-3.5 w-3.5" /> },
-    "Finalized": { label: "Finalized", className: "bg-neutral-300 text-neutral-900", icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
-  };
-  const s = statusMap[status];
-  return (
-    <Badge className={cn("gap-1.5 px-2.5 py-1 text-xs rounded-full shrink-0 whitespace-nowrap", s.className)}>
-      {s.icon}
-      {s.label}
-    </Badge>
-  );
-}
-
 function Info({label, value, className}: {label: string; value: string | React.ReactNode, className?: string}) {
   return (
     <div className={cn("min-w-0", className)}>
@@ -78,7 +61,18 @@ export function JobCard({ job }: { job: Job }) {
             </div>
             <div className="shrink-0 flex items-center gap-2 -mt-1 sm:mt-0">
                <div className="hidden sm:block">
-                 <StatusBadge status={job.status} />
+                 <Badge
+                    variant="outline"
+                    className={cn(
+                      "shrink-0 text-[10px] capitalize",
+                      job.status === "In Progress" && "border-blue-400 bg-blue-50 text-blue-700 dark:border-blue-400/40 dark:bg-blue-400/10 dark:text-blue-300",
+                      job.status === "Complete" && "border-green-400 bg-green-50 text-green-700 dark:border-green-400/40 dark:bg-green-400/10 dark:text-green-300",
+                      job.status === "Open Payment" && "border-yellow-400 bg-yellow-50 text-yellow-700 dark:border-yellow-400/40 dark:bg-yellow-400/10 dark:text-yellow-300",
+                      job.status === "Finalized" && "border-zinc-400 bg-zinc-100 text-zinc-700 dark:border-zinc-500/40 dark:bg-zinc-700/30 dark:text-zinc-300"
+                    )}
+                  >
+                    {job.status}
+                  </Badge>
                </div>
                 <div onClick={(e) => e.stopPropagation()}>
                     <JobActions job={job} />
@@ -87,7 +81,18 @@ export function JobCard({ job }: { job: Job }) {
           </div>
 
           <div className="sm:hidden mt-2">
-            <StatusBadge status={job.status} />
+            <Badge
+                variant="outline"
+                className={cn(
+                    "shrink-0 text-[10px] capitalize",
+                    job.status === "In Progress" && "border-blue-400 bg-blue-50 text-blue-700 dark:border-blue-400/40 dark:bg-blue-400/10 dark:text-blue-300",
+                    job.status === "Complete" && "border-green-400 bg-green-50 text-green-700 dark:border-green-400/40 dark:bg-green-400/10 dark:text-green-300",
+                    job.status === "Open Payment" && "border-yellow-400 bg-yellow-50 text-yellow-700 dark:border-yellow-400/40 dark:bg-yellow-400/10 dark:text-yellow-300",
+                    job.status === "Finalized" && "border-zinc-400 bg-zinc-100 text-zinc-700 dark:border-zinc-500/40 dark:bg-zinc-700/30 dark:text-zinc-300"
+                )}
+                >
+                {job.status}
+            </Badge>
           </div>
 
           {/* Address */}
