@@ -108,7 +108,7 @@ export default function FinancePage() {
 
   const allExpenses: ExpenseItem[] = [
     ...(jobs?.flatMap(job => 
-        (job.invoices || []).map(invoice => ({
+        (job.invoices || []).filter(invoice => !invoice.paidByContractor).map(invoice => ({
             id: invoice.id,
             jobId: job.id,
             jobTitle: job.title || `${job.clientName} #${job.quoteNumber}`,
