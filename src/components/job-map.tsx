@@ -10,7 +10,7 @@ interface JobMapProps {
 export function JobMap({ address }: JobMapProps) {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-    if (!apiKey) {
+    if (!apiKey || apiKey === "YOUR_API_KEY_HERE") {
         return (
             <div className="text-destructive text-sm p-4 border border-destructive/50 bg-destructive/10 rounded-md">
                 Google Maps API Key is missing. Cannot display map.
