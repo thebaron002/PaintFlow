@@ -14,12 +14,13 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
-import type { Job, GeneralExpense } from "@/app/lib/types";
+import type { Job, GeneralExpense, GeneralSettings } from "@/app/lib/types";
 import { subMonths, startOfMonth, endOfMonth, isWithinInterval, format, parseISO } from "date-fns"
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc, Timestamp } from "firebase/firestore";
 import * as React from "react";
+import { calculateJobPayout } from "@/app/lib/job-financials";
 
 const chartConfig = {
   income: {
@@ -48,7 +49,13 @@ export function RevenueChart() {
   }, [firestore, user]);
   const { data: generalExpenses, isLoading: isLoadingGeneralExpenses } = useCollection<GeneralExpense>(generalExpensesQuery);
   
-  const isLoading = isLoadingJobs || isLoadingGeneralExpenses;
+  const settingsRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, "settings", "global");
+  }, [firestore]);
+  const { data: settings, isLoading: isLoadingSettings } = useDoc<GeneralSettings>(settingsRef);
+  
+  const isLoading = isLoadingJobs || isLoadingGeneralExpenses || isLoadingSettings;
   
   const chartData = React.useMemo(() => {
     if (!jobs || !generalExpenses) return [];
@@ -66,18 +73,22 @@ export function RevenueChart() {
           if (typeof d === 'string') return parseISO(d);
           return d as Date;
         }
-
-        const monthlyPayout = jobs
-            .filter(job => {
-                const jobDate = getDate(job.deadline);
-                const status = job.status as string;
-                return ['Complete', 'Open Payment', 'Finalized'].includes(status) && isWithinInterval(jobDate, { start: monthStart, end: monthEnd });
-            })
-            .reduce((sum, job) => sum + (job.budget || 0), 0);
         
+        // Income is calculated from finalized jobs' payout within the month
+        const monthlyIncome = jobs
+            .filter(job => {
+                const finalizationDate = job.finalizationDate ? getDate(job.finalizationDate) : null;
+                return job.status === 'Finalized' && finalizationDate && isWithinInterval(finalizationDate, { start: monthStart, end: monthEnd });
+            })
+            .reduce((sum, job) => sum + calculateJobPayout(job, settings), 0);
+        
+        // Expenses are from job invoices not paid by contractor + general expenses
         const monthlyJobExpenses = jobs
             .flatMap(job => job.invoices || [])
-            .filter(invoice => isWithinInterval(getDate(invoice.date), { start: monthStart, end: monthEnd }))
+            .filter(invoice => 
+                !invoice.paidByContractor && 
+                isWithinInterval(getDate(invoice.date), { start: monthStart, end: monthEnd })
+            )
             .reduce((sum, invoice) => sum + invoice.amount, 0);
 
         const monthlyGeneralExpenses = generalExpenses
@@ -88,13 +99,13 @@ export function RevenueChart() {
 
         data.push({
             month: format(monthStart, 'MMM'),
-            income: monthlyPayout,
+            income: monthlyIncome,
             expenses: totalMonthlyExpenses,
         });
     }
     return data;
 
-  }, [jobs, generalExpenses]);
+  }, [jobs, generalExpenses, settings]);
 
 
   if (isLoading) {
