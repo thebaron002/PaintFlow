@@ -7,7 +7,7 @@ import { Calendar as CalendarIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -57,6 +57,9 @@ export function ResponsiveDatePicker({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>{TriggerBtn}</DialogTrigger>
         <DialogContent className="w-auto p-0">
+          <DialogHeader>
+            <DialogTitle className="sr-only">Pick a date</DialogTitle>
+          </DialogHeader>
           <Calendar
             mode="single"
             selected={value}
