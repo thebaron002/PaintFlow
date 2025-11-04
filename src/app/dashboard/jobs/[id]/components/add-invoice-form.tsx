@@ -45,6 +45,7 @@ const invoiceSchema = z.object({
   amount: z.coerce.number().min(0.01, "Amount must be greater than 0."),
   notes: z.string().optional(),
   isPayoutDiscount: z.boolean().default(false),
+  paidByContractor: z.boolean().default(false),
 });
 
 type InvoiceFormValues = z.infer<typeof invoiceSchema>;
@@ -68,12 +69,14 @@ export function AddInvoiceForm({ jobId, existingInvoices, origins, onSuccess, in
         ...invoiceToEdit,
         date: parseISO(invoiceToEdit.date),
         isPayoutDiscount: invoiceToEdit.isPayoutDiscount || false,
+        paidByContractor: invoiceToEdit.paidByContractor || false,
     } : {
       origin: "",
       amount: 0,
       notes: "",
       date: new Date(),
       isPayoutDiscount: false,
+      paidByContractor: false,
     },
   });
 
@@ -192,29 +195,52 @@ export function AddInvoiceForm({ jobId, existingInvoices, origins, onSuccess, in
             </FormItem>
           )}
         />
-
-        <FormField
-          control={form.control}
-          name="isPayoutDiscount"
-          render={({ field }) => (
-            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-              <div className="space-y-0.5">
-                <FormLabel>Needs to be discounted on the payout?</FormLabel>
-                <FormDescription>
-                    Enable if this amount should be subtracted from the final payout.
-                </FormDescription>
-              </div>
-              <FormControl>
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
-            </FormItem>
-          )}
-        />
         
-        <div className="flex items-center justify-between">
+        <div className="space-y-4">
+            <FormField
+            control={form.control}
+            name="paidByContractor"
+            render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                <div className="space-y-0.5">
+                    <FormLabel>Paid by the contractor?</FormLabel>
+                    <FormDescription>
+                        Enable if you paid for this cost out of pocket.
+                    </FormDescription>
+                </div>
+                <FormControl>
+                    <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                    />
+                </FormControl>
+                </FormItem>
+            )}
+            />
+
+            <FormField
+            control={form.control}
+            name="isPayoutDiscount"
+            render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                <div className="space-y-0.5">
+                    <FormLabel>Needs to be discounted on the payout?</FormLabel>
+                    <FormDescription>
+                        Enable if this amount should be subtracted from the final payout.
+                    </FormDescription>
+                </div>
+                <FormControl>
+                    <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                    />
+                </FormControl>
+                </FormItem>
+            )}
+            />
+        </div>
+        
+        <div className="flex items-center justify-between pt-4">
             {isEditing ? (
                  <AlertDialog>
                     <AlertDialogTrigger asChild>

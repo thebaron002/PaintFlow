@@ -36,6 +36,7 @@ import {
   ChevronsUpDown,
   TrendingDown,
   Check,
+  Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -464,8 +465,9 @@ export function JobDetails({
                         <TableRow key={invoice.id} onClick={() => setInvoiceModal({isOpen: true, item: invoice})} className="cursor-pointer">
                             <TableCell>
                                 <div className="font-medium flex items-center gap-2">
-                                    {invoice.origin}
+                                    {invoice.paidByContractor && <Wallet className="h-3 w-3 text-blue-500" title="Paid by contractor" />}
                                     {invoice.isPayoutDiscount && <TrendingDown className="h-3 w-3 text-destructive" title="Discounted from payout" />}
+                                    {invoice.origin}
                                 </div>
                                 {invoice.notes && <div className="text-xs text-muted-foreground">{invoice.notes}</div>}
                             </TableCell>
