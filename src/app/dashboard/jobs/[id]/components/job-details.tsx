@@ -63,6 +63,7 @@ import { JobAnalysisCard } from "./job-analysis-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { calculateJobPayout, calculateTotalAdjustments } from "@/app/lib/job-financials";
+import { JobMap } from "@/components/job-map";
 
 const adjustmentIcons = {
   Time: Clock,
@@ -254,20 +255,6 @@ export function JobDetails({
                     <p className="text-lg font-semibold">{job.clientName || "N/A"}</p>
                     </div>
                 </div>
-                <a 
-                    href={`https://maps.apple.com/?q=${encodeURIComponent(job.address)}`} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-start gap-3 group"
-                >
-                    <div className="bg-muted p-2 rounded-md">
-                        <MapPin className="h-6 w-6 text-muted-foreground" />
-                    </div>
-                    <div>
-                        <p className="text-sm font-medium text-muted-foreground">Address</p>
-                        <p className="text-lg font-semibold group-hover:underline">{job.address}</p>
-                    </div>
-                </a>
                 <div className="flex items-start gap-3">
                     <div className="bg-muted p-2 rounded-md">
                     <Calendar className="h-6 w-6 text-muted-foreground" />
@@ -292,6 +279,25 @@ export function JobDetails({
                 </div>
                 </CardContent>
             </Card>
+
+             <Card>
+                <CardHeader>
+                    <CardTitle>Location</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex items-start gap-3 mb-4">
+                        <div className="bg-muted p-2 rounded-md mt-1">
+                            <MapPin className="h-6 w-6 text-muted-foreground" />
+                        </div>
+                        <div>
+                            <p className="text-sm font-medium text-muted-foreground">Address</p>
+                            <p className="font-semibold">{job.address}</p>
+                        </div>
+                    </div>
+                    <JobMap address={job.address} />
+                </CardContent>
+            </Card>
+
 
             <Card>
                 <CardHeader>
@@ -604,3 +610,5 @@ export function JobDetails({
     </div>
   );
 }
+
+    
