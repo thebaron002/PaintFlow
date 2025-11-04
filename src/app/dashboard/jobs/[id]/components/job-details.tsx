@@ -35,6 +35,7 @@ import {
   Clock,
   ChevronsUpDown,
   TrendingDown,
+  TrendingUp,
   Check,
   Wallet,
 } from "lucide-react";
@@ -467,6 +468,7 @@ export function JobDetails({
                                 <div className="font-medium flex items-center gap-2">
                                     {invoice.paidByContractor && <Wallet className="h-3 w-3 text-blue-500" title="Paid by contractor" />}
                                     {invoice.isPayoutDiscount && <TrendingDown className="h-3 w-3 text-destructive" title="Discounted from payout" />}
+                                    {invoice.isPayoutAddition && <TrendingUp className="h-3 w-3 text-green-500" title="Added to payout" />}
                                     {invoice.origin}
                                 </div>
                                 {invoice.notes && <div className="text-xs text-muted-foreground">{invoice.notes}</div>}

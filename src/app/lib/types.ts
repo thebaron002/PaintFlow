@@ -36,7 +36,7 @@ export type Job = {
   idealNumberOfDays: number;
   productionDays: string[]; // Array of ISO date strings
   isFixedPay: boolean;
-  invoices: { id: string; origin: string; amount: number; date: string; notes?: string; isPayoutDiscount?: boolean; paidByContractor?: boolean; }[];
+  invoices: { id: string; origin: string; amount: number; date: string; notes?: string; isPayoutDiscount?: boolean; paidByContractor?: boolean; isPayoutAddition?: boolean; }[];
   adjustments: { 
     id: string; 
     type: AdjustmentType;

@@ -36,8 +36,22 @@ export function calculatePayoutDiscounts(invoices: Job['invoices']): number {
 }
 
 /**
+ * Calculates the total amount of invoices that are marked as an addition to the payout.
+ * @param invoices - The list of invoices from the job.
+ * @returns The total amount to be added.
+ */
+export function calculatePayoutAdditions(invoices: Job['invoices']): number {
+  return (
+    invoices
+      ?.filter((inv) => inv.isPayoutAddition)
+      .reduce((sum, inv) => sum + inv.amount, 0) ?? 0
+  );
+}
+
+
+/**
  * Calculates the final payout for a job based on the standard formula.
- * Payout = Initial Value + Adjustments - Payout Discounts
+ * Payout = Initial Value + Adjustments - Payout Discounts + Payout Additions
  * @param job - The job object.
  * @param settings - The global application settings (for default hourly rate).
  * @returns The calculated final payout amount.
@@ -45,7 +59,8 @@ export function calculatePayoutDiscounts(invoices: Job['invoices']): number {
 export function calculateJobPayout(job: Job, settings: GeneralSettings | null): number {
   const totalAdjustments = calculateTotalAdjustments(job.adjustments, settings?.hourlyRate);
   const totalDiscounts = calculatePayoutDiscounts(job.invoices);
-  const payout = (job.initialValue || 0) + totalAdjustments - totalDiscounts;
+  const totalAdditions = calculatePayoutAdditions(job.invoices);
+  const payout = (job.initialValue || 0) + totalAdjustments - totalDiscounts + totalAdditions;
   return payout;
 }
 
