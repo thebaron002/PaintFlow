@@ -87,7 +87,11 @@ export function JobActions({ job }: { job: Job }) {
               Mark as {nextStatus}
             </DropdownMenuItem>
           )}
-          <DropdownMenuItem>Send Invoice</DropdownMenuItem>
+          {job.status === 'Complete' && (
+            <DropdownMenuItem onSelect={() => handleStatusChange('Open Payment')}>
+              Send Invoice
+            </DropdownMenuItem>
+          )}
           <DropdownMenuSeparator />
           <AlertDialogTrigger asChild>
             <DropdownMenuItem className="text-destructive focus:text-destructive-foreground focus:bg-destructive">
