@@ -18,6 +18,7 @@ import { Switch } from "@/components/ui/switch";
 import { useFirestore, updateDocumentNonBlocking, useUser } from "@/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { format, parseISO } from "date-fns";
+import { AddressAutocomplete } from "@/components/address-autocomplete";
 
 const jobSchema = z.object({
   title: z.string().optional(),
@@ -153,7 +154,10 @@ export function EditJobForm({ job, onSuccess }: EditJobFormProps) {
             <FormItem>
               <FormLabel>Job Address</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., 123 Main St, Anytown, USA" {...field} />
+                <AddressAutocomplete
+                    value={field.value}
+                    onChange={field.onChange}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
