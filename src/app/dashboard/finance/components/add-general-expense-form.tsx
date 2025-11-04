@@ -73,6 +73,7 @@ export function AddGeneralExpenseForm({ categories, onSuccess }: AddGeneralExpen
     addDocumentNonBlocking(expensesCollection, newExpense);
     
     onSuccess();
+    form.reset();
   };
 
   const categoryOptions = [...new Set([...defaultCategories.map(c => c.value), ...categories])].map(c => ({ value: c, label: c }));

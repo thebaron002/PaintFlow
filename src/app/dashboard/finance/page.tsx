@@ -32,7 +32,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { DollarSign, FileDown, PlusCircle } from "lucide-react";
+import { DollarSign, FileDown, PlusCircle, CheckCircle } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import type { Job, GeneralSettings, GeneralExpense } from "@/app/lib/types";
 import { CashFlowChart } from "./components/cash-flow-chart";
@@ -42,6 +42,7 @@ import { collection, doc } from "firebase/firestore";
 import { AddGeneralExpenseForm } from "./components/add-general-expense-form";
 import { useToast } from "@/hooks/use-toast";
 import { calculateJobPayout } from "@/app/lib/job-financials";
+import { FinalizePaymentsModal } from "./components/finalize-payments-modal";
 
 type IncomeItem = {
     id: string;
@@ -65,7 +66,8 @@ type ExpenseItem = {
 
 
 export default function FinancePage() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+  const [isFinalizeModalOpen, setIsFinalizeModalOpen] = useState(false);
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
@@ -89,6 +91,8 @@ export default function FinancePage() {
   const { data: settings, isLoading: isLoadingSettings } = useDoc<GeneralSettings>(settingsRef);
 
   const isLoading = isLoadingJobs || isLoadingGeneralExpenses || isLoadingSettings;
+  
+  const openPaymentJobs = jobs?.filter(job => job.status === 'Open Payment') ?? [];
 
   const income: IncomeItem[] = jobs
     ?.filter(job => job.status === 'Finalized')
@@ -131,12 +135,20 @@ export default function FinancePage() {
   const expenseCategories = [...new Set(allExpenses.map(e => e.category))];
 
   const handleExpenseFormSuccess = () => {
-    setIsModalOpen(false);
+    setIsExpenseModalOpen(false);
     toast({
       title: "Expense Added",
       description: "The new expense has been recorded successfully.",
     });
   };
+  
+  const handleFinalizeSuccess = (count: number) => {
+    setIsFinalizeModalOpen(false);
+    toast({
+        title: "Payments Finalized",
+        description: `${count} job(s) have been marked as Finalized.`,
+    });
+  }
 
   const renderStatCard = (title: string, value: number, colorClass: string = '', isLoading: boolean) => (
      <Card>
@@ -154,11 +166,33 @@ export default function FinancePage() {
     <div>
       <PageHeader title="Financials">
         <div className="flex items-center gap-2">
+           <Dialog open={isFinalizeModalOpen} onOpenChange={setIsFinalizeModalOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline" disabled={openPaymentJobs.length === 0}>
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Finalize Payments
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Finalize Job Payments</DialogTitle>
+                    <DialogDescription>
+                        Select the jobs you have received payment for to mark them as 'Finalized'.
+                    </DialogDescription>
+                </DialogHeader>
+                <FinalizePaymentsModal 
+                    jobs={openPaymentJobs} 
+                    settings={settings}
+                    onSuccess={handleFinalizeSuccess} 
+                />
+            </DialogContent>
+          </Dialog>
+
           <Button variant="outline">
             <FileDown className="mr-2 h-4 w-4" />
             Export Report
           </Button>
-          <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+          <Dialog open={isExpenseModalOpen} onOpenChange={setIsExpenseModalOpen}>
             <DialogTrigger asChild>
                 <Button>
                     <PlusCircle className="mr-2 h-4 w-4" />
