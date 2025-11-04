@@ -90,13 +90,17 @@ export function calculateContractorCost(invoices: Job['invoices']): number {
 
 /**
  * Calculates the final profit for a job.
- * Profit = Payout - Contractor Costs
+ * Profit = Initial Value + Adjustments - Discounts (where 'Paid by the contractor?' is false)
  * @param job - The job object.
  * @param settings - The global application settings.
  * @returns The calculated final profit.
  */
 export function calculateJobProfit(job: Job, settings: GeneralSettings | null): number {
-    const payout = calculateJobPayout(job, settings);
-    const contractorCost = calculateContractorCost(job.invoices);
-    return payout - contractorCost;
+    const totalAdjustments = calculateTotalAdjustments(job.adjustments, settings?.hourlyRate);
+    
+    const nonContractorCosts = job.invoices
+        ?.filter(inv => !inv.paidByContractor)
+        .reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
+
+    return (job.initialValue || 0) + totalAdjustments - nonContractorCosts;
 }
