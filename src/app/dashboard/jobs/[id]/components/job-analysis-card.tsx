@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Activity, CircleDollarSign, PiggyBank, Wrench } from "lucide-react";
-import { calculateJobPayout, calculateMaterialCost } from "@/app/lib/job-financials";
+import { calculateJobPayout, calculateContractorCost, calculateJobProfit } from "@/app/lib/job-financials";
 
 interface JobAnalysisCardProps {
   job: Job;
@@ -30,9 +30,9 @@ const StatItem = ({ icon: Icon, label, value, valueColor }: { icon: React.Elemen
 );
 
 export function JobAnalysisCard({ job, settings }: JobAnalysisCardProps) {
-  const materialCost = calculateMaterialCost(job.invoices);
+  const contractorCost = calculateContractorCost(job.invoices);
   const payout = calculateJobPayout(job, settings);
-  const profit = payout - materialCost;
+  const profit = calculateJobProfit(job, settings);
 
   const profitColor = profit >= 0 ? "text-green-600" : "text-red-600";
   
@@ -49,8 +49,8 @@ export function JobAnalysisCard({ job, settings }: JobAnalysisCardProps) {
         />
         <StatItem
             icon={Wrench}
-            label="Material Cost"
-            value={`$${materialCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+            label="Contractor Cost"
+            value={`$${contractorCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
         />
         <StatItem
             icon={PiggyBank}

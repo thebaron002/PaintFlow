@@ -66,9 +66,37 @@ export function calculateJobPayout(job: Job, settings: GeneralSettings | null): 
 
 /**
  * Calculates the total cost of all materials invoiced for a job.
+ * This is a general material cost calculation, not specific to profit.
  * @param invoices - The list of invoices from the job.
  * @returns The total material cost.
  */
 export function calculateMaterialCost(invoices: Job['invoices']): number {
     return invoices?.reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
+}
+
+
+/**
+ * Calculates the contractor's cost for the job.
+ * This is the sum of all invoices marked as "Paid by the contractor".
+ * @param invoices - The list of invoices from the job.
+ * @returns The total cost borne by the contractor.
+ */
+export function calculateContractorCost(invoices: Job['invoices']): number {
+    return invoices
+        ?.filter(inv => inv.paidByContractor)
+        .reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
+}
+
+
+/**
+ * Calculates the final profit for a job.
+ * Profit = Payout - Contractor Costs
+ * @param job - The job object.
+ * @param settings - The global application settings.
+ * @returns The calculated final profit.
+ */
+export function calculateJobProfit(job: Job, settings: GeneralSettings | null): number {
+    const payout = calculateJobPayout(job, settings);
+    const contractorCost = calculateContractorCost(job.invoices);
+    return payout - contractorCost;
 }
