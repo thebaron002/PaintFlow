@@ -41,6 +41,7 @@ import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from "@
 import { collection, doc } from "firebase/firestore";
 import { AddGeneralExpenseForm } from "./components/add-general-expense-form";
 import { useToast } from "@/hooks/use-toast";
+import { calculateJobPayout } from "@/app/lib/job-financials";
 
 type IncomeItem = {
     id: string;
@@ -85,33 +86,23 @@ export default function FinancePage() {
       if (!firestore) return null;
       return doc(firestore, "settings", "global");
   }, [firestore]);
-  const { data: settings } = useDoc<GeneralSettings>(settingsRef);
+  const { data: settings, isLoading: isLoadingSettings } = useDoc<GeneralSettings>(settingsRef);
 
-  const isLoading = isLoadingJobs || isLoadingGeneralExpenses;
+  const isLoading = isLoadingJobs || isLoadingGeneralExpenses || isLoadingSettings;
 
   const income: IncomeItem[] = jobs
     ?.filter(job => job.status === 'Finalized')
-    .map(job => {
-        const totalAdjustments = job.adjustments?.reduce((sum, adj) => {
-            if (adj.type === 'Time') {
-                const rate = adj.hourlyRate ?? settings?.hourlyRate ?? 0;
-                return sum + (adj.value * rate);
-            }
-            return sum + adj.value;
-        }, 0) ?? 0;
+    .map(job => ({
+        id: job.id,
+        jobId: job.id,
+        jobTitle: job.title || `${job.clientName} #${job.quoteNumber}`,
+        description: "Job payment finalized",
+        date: job.deadline,
+        amount: calculateJobPayout(job, settings),
+    })) ?? [];
 
-        return {
-            id: job.id,
-            jobId: job.id,
-            jobTitle: job.title || `${job.clientName} #${job.quoteNumber}`,
-            description: "Job payment finalized",
-            date: job.deadline,
-            amount: job.initialValue + totalAdjustments,
-        }
-    }) ?? [];
-
-  const jobExpenses: ExpenseItem[] = jobs
-    ?.flatMap(job => 
+  const allExpenses: ExpenseItem[] = [
+    ...(jobs?.flatMap(job => 
         (job.invoices || []).map(invoice => ({
             id: invoice.id,
             jobId: job.id,
@@ -122,17 +113,15 @@ export default function FinancePage() {
             date: invoice.date,
             amount: invoice.amount,
         }))
-    ) ?? [];
-  
-  const otherExpenses: ExpenseItem[] = generalExpenses?.map(exp => ({
-    id: exp.id,
-    category: exp.category,
-    description: exp.description,
-    date: exp.date,
-    amount: exp.amount
-  })) ?? [];
-
-  const allExpenses = [...jobExpenses, ...otherExpenses].sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime());
+    ) ?? []),
+    ...(generalExpenses?.map(exp => ({
+        id: exp.id,
+        category: exp.category,
+        description: exp.description,
+        date: exp.date,
+        amount: exp.amount
+    })) ?? [])
+  ].sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime());
 
 
   const totalIncome = income?.reduce((acc, item) => acc + item.amount, 0) ?? 0;
