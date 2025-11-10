@@ -239,6 +239,7 @@ export default function PayrollPage() {
 
                 return {
                     ...job,
+                    quoteNumber: job.quoteNumber || (job as any).workOrderNumber || 'N/A',
                     startDate: format(new Date(job.startDate), "MM/dd/yyyy"),
                     deadline: format(new Date(job.deadline), "MM/dd/yyyy"),
                     payout: parseFloat(payout.toFixed(2)),
@@ -313,7 +314,7 @@ export default function PayrollPage() {
                     ))
                   ) : jobsToPay && jobsToPay.length > 0 ? jobsToPay.map(job => {
                      const clientLastName = job.clientName.split(" ").pop() || "N/A";
-                     const jobTitle = `${clientLastName} #${job.quoteNumber}`;
+                     const jobTitle = job.title || `${clientLastName} #${job.quoteNumber}`;
                      const payout = calculateJobPayout(job, settings);
 
                     return (

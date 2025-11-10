@@ -24,6 +24,7 @@ export type Job = {
   id: string;
   title: string;
   quoteNumber: string;
+  workOrderNumber?: string; // For backwards compatibility
   address: string;
   clientName: string;
   startDate: string; // ISO date string
@@ -110,4 +111,3 @@ export type PayrollReport = {
   jobCount: number;
   jobIds: string[];
 };
-
