@@ -35,7 +35,13 @@ export function JobAnalysisCard({ job, settings }: JobAnalysisCardProps) {
   const payout = calculateJobPayout(job, settings);
   const profit = calculateJobProfit(job, settings);
   
-  const materialUsagePercentage = job.initialValue > 0 ? (materialCost / job.initialValue) * 100 : 0;
+  const sharePercentage = settings?.sharePercentage ?? 70; // fallback to 70%
+  const totalJobValue = job.initialValue > 0 && sharePercentage > 0
+    ? job.initialValue / (sharePercentage / 100)
+    : 0;
+
+  const materialUsagePercentage = totalJobValue > 0 ? (materialCost / totalJobValue) * 100 : 0;
+
 
   const profitColor = profit >= 0 ? "text-green-600" : "text-red-600";
   
