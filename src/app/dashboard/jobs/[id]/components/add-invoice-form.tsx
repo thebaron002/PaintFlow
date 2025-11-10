@@ -101,6 +101,12 @@ export function AddInvoiceForm({ jobId, existingInvoices, origins, onSuccess, in
     const rawValue = e.target.value.replace(/[^0-9]/g, '');
     setAmountValue(Number(rawValue));
   };
+
+  const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    // Move cursor to the end of the input on focus
+    const len = e.target.value.length;
+    e.target.setSelectionRange(len, len);
+  };
   
   const originValue = form.watch("origin");
 
@@ -201,6 +207,7 @@ export function AddInvoiceForm({ jobId, existingInvoices, origins, onSuccess, in
                             inputMode="decimal"
                             value={formatCurrency(amountValue)}
                             onChange={handleAmountChange}
+                            onFocus={handleFocus}
                             placeholder="0.00" 
                             className="pl-7 text-right" 
                         />
