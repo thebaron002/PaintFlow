@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useTransition, useActionState } from "react";
+import { useState, useEffect, useActionState } from "react";
 import { useParams, useRouter } from 'next/navigation';
 import { useDoc, useFirestore, useMemoFirebase, useCollection, useUser } from "@/firebase";
 import { doc, collection, query, where } from "firebase/firestore";
@@ -26,9 +26,8 @@ export default function ReportDetailsPage() {
     const { toast } = useToast();
     const [isGenerating, setIsGenerating] = useState(true);
     const [generatedEmail, setGeneratedEmail] = useState<{ subject: string; body: string } | null>(null);
-    const [isResending, startResendTransition] = useTransition();
 
-    const [sendEmailState, sendEmailAction] = useActionState(sendEmail, {
+    const [sendEmailState, sendEmailAction, isResending] = useActionState(sendEmail, {
         error: null,
         success: false,
     });
@@ -103,20 +102,20 @@ export default function ReportDetailsPage() {
     }, [report, jobs, userProfile, settings]);
 
     useEffect(() => {
-        if (sendEmailState.success) {
+        if (sendEmailState.success && !isResending) {
             toast({
                 title: "Report Resent!",
                 description: "The payroll report has been successfully resent.",
             });
         }
-        if (sendEmailState.error) {
+        if (sendEmailState.error && !isResending) {
             toast({
                 variant: "destructive",
                 title: "Resend Failed",
                 description: `Could not resend the report: ${sendEmailState.error}`,
             });
         }
-    }, [sendEmailState, toast]);
+    }, [sendEmailState, isResending, toast]);
 
 
     const handleResend = () => {
@@ -129,13 +128,11 @@ export default function ReportDetailsPage() {
             return;
         }
 
-        startResendTransition(() => {
-            const formData = new FormData();
-            settings.reportRecipients!.filter(r => r).forEach(r => formData.append('to', r));
-            formData.append('subject', generatedEmail.subject);
-            formData.append('html', generatedEmail.body);
-            sendEmailAction(formData);
-        });
+        const formData = new FormData();
+        settings.reportRecipients!.filter(r => r).forEach(r => formData.append('to', r));
+        formData.append('subject', generatedEmail.subject);
+        formData.append('html', generatedEmail.body);
+        sendEmailAction(formData);
     };
 
     const isLoading = isLoadingReport || isLoadingJobs || isLoadingProfile || isGenerating;
@@ -151,10 +148,12 @@ export default function ReportDetailsPage() {
                             Back to Payroll
                         </Link>
                     </Button>
-                     <Button onClick={handleResend} disabled={isResending || isLoading}>
-                        {isResending ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-                        {isResending ? 'Resending...' : 'Resend Report'}
-                    </Button>
+                    <form action={handleResend}>
+                        <Button type="submit" disabled={isResending || isLoading}>
+                            {isResending ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                            {isResending ? 'Resending...' : 'Resend Report'}
+                        </Button>
+                    </form>
                 </div>
             </PageHeader>
 

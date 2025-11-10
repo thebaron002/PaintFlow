@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useTransition, useActionState } from "react";
+import { useState, useEffect, useActionState } from "react";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { 
@@ -96,9 +96,8 @@ export default function PayrollPage() {
   const { user } = useUser();
   const firestore = useFirestore();
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
 
-  const [sendEmailState, sendEmailAction] = useActionState(sendEmail, {
+  const [sendEmailState, sendEmailAction, isSending] = useActionState(sendEmail, {
     error: null,
     success: false,
   });
@@ -206,7 +205,7 @@ export default function PayrollPage() {
     });
   };
 
-  const handleGenerateAndSend = () => {
+  const handleGenerateAndSend = async () => {
     if (!jobsToPay || jobsToPay.length === 0) {
       toast({
         variant: "destructive",
@@ -224,12 +223,11 @@ export default function PayrollPage() {
       return;
     }
 
-    startTransition(async () => {
-        try {
-            const now = new Date();
-            const start = startOfWeek(now);
-            const end = endOfWeek(now);
-            const totalPayout = jobsToPay.reduce((acc, job) => acc + calculateJobPayout(job, settings), 0);
+    try {
+        const now = new Date();
+        const start = startOfWeek(now);
+        const end = endOfWeek(now);
+        const totalPayout = jobsToPay.reduce((acc, job) => acc + calculateJobPayout(job, settings), 0);
 
         const reportInput: PayrollReportInput = {
             jobs: jobsToPay.map(job => {
@@ -265,15 +263,14 @@ export default function PayrollPage() {
 
         sendEmailAction(formData);
 
-        } catch (error) {
-        console.error("Failed to generate or send report:", error);
-        toast({
-            variant: "destructive",
-            title: "Process Failed",
-            description: "Could not generate or send the payroll report.",
-        });
-        }
-    });
+    } catch (error) {
+      console.error("Failed to generate or send report:", error);
+      toast({
+          variant: "destructive",
+          title: "Process Failed",
+          description: "Could not generate or send the payroll report.",
+      });
+    }
   };
 
 
@@ -433,10 +430,12 @@ export default function PayrollPage() {
                 </>
                )}
                <Button variant="outline" onClick={handleSaveRecipients} disabled={isLoadingSettings}>Save Recipients</Button>
-               <Button onClick={handleGenerateAndSend} disabled={isPending || isLoading}>
-                    {isPending ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-                    {isPending ? 'Sending...' : 'Send Report Now'}
-                </Button>
+               <form action={handleGenerateAndSend}>
+                 <Button type="submit" className="w-full" disabled={isSending || isLoading}>
+                      {isSending ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                      {isSending ? 'Sending...' : 'Send Report Now'}
+                  </Button>
+               </form>
             </CardContent>
           </Card>
         </div>
