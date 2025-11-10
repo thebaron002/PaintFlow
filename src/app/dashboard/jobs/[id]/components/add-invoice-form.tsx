@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { v4 as uuidv4 } from 'uuid';
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -59,6 +59,14 @@ interface AddInvoiceFormProps {
   invoiceToEdit?: Job['invoices'][0];
 }
 
+const formatCurrency = (value: number) => {
+  const floatValue = value / 100;
+  return floatValue.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
+
 export function AddInvoiceForm({ jobId, existingInvoices, origins, onSuccess, invoiceToEdit }: AddInvoiceFormProps) {
   const firestore = useFirestore();
   const { user } = useUser();
@@ -83,6 +91,17 @@ export function AddInvoiceForm({ jobId, existingInvoices, origins, onSuccess, in
     },
   });
 
+  const [amountValue, setAmountValue] = useState(() => isEditing ? invoiceToEdit.amount * 100 : 0);
+
+  useEffect(() => {
+    form.setValue('amount', amountValue / 100);
+  }, [amountValue, form]);
+
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value.replace(/[^0-9]/g, '');
+    setAmountValue(Number(rawValue));
+  };
+  
   const originValue = form.watch("origin");
 
   useEffect(() => {
@@ -177,7 +196,14 @@ export function AddInvoiceForm({ jobId, existingInvoices, origins, onSuccess, in
                 <FormControl>
                     <div className="relative">
                         <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">$</span>
-                        <Input type="number" placeholder="0.00" className="pl-7" {...field} />
+                        <Input 
+                            type="text" 
+                            inputMode="decimal"
+                            value={formatCurrency(amountValue)}
+                            onChange={handleAmountChange}
+                            placeholder="0.00" 
+                            className="pl-7 text-right" 
+                        />
                     </div>
                 </FormControl>
                 <FormMessage />
