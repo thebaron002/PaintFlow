@@ -232,7 +232,9 @@ export default function PayrollPage() {
         const reportInput: PayrollReportInput = {
             jobs: jobsToPay.map(job => {
                 const materialCost = calculateMaterialCost(job.invoices);
-                const materialUsage = job.initialValue > 0 ? (materialCost / job.initialValue) * 100 : 0;
+                const sharePercentage = settings?.sharePercentage ?? 100;
+                const totalJobValue = job.initialValue > 0 && sharePercentage > 0 ? job.initialValue / (sharePercentage / 100) : 0;
+                const materialUsage = totalJobValue > 0 ? (materialCost / totalJobValue) * 100 : 0;
                 const payout = calculateJobPayout(job, settings);
 
                 return {
