@@ -72,6 +72,7 @@ export default function ReportDetailsPage() {
 
                             return {
                                 ...job,
+                                quoteNumber: job.quoteNumber || (job as any).workOrderNumber || 'N/A',
                                 startDate: format(new Date(job.startDate), "MM/dd/yyyy"),
                                 deadline: format(new Date(job.deadline), "MM/dd/yyyy"),
                                 payout: parseFloat(payout.toFixed(2)),

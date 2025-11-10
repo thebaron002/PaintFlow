@@ -138,7 +138,7 @@ export default function PayrollPage() {
   }, [settings]);
   
   useEffect(() => {
-    if (sendEmailState.success) {
+    if (sendEmailState.success && !isSending) {
       toast({
         title: "Report Sent!",
         description: "The payroll report has been successfully sent.",
@@ -165,14 +165,14 @@ export default function PayrollPage() {
         addDocumentNonBlocking(collection(firestore!, 'users', user.uid, 'payrollReports'), newReport);
       }
     }
-    if (sendEmailState.error) {
+    if (sendEmailState.error && !isSending) {
        toast({
         variant: "destructive",
         title: "Sending Failed",
         description: `Could not send the payroll report: ${sendEmailState.error}`,
       });
     }
-  }, [sendEmailState, toast, jobsToPay, firestore, recipients, settings, user]);
+  }, [sendEmailState, isSending, toast, jobsToPay, firestore, recipients, settings, user]);
 
 
   const isLoading = isLoadingJobs || isLoadingSettings || isLoadingProfile || isLoadingReports;
@@ -205,7 +205,7 @@ export default function PayrollPage() {
     });
   };
 
-  const handleGenerateAndSend = async () => {
+  const handleGenerateAndSend = async (formData: FormData) => {
     if (!jobsToPay || jobsToPay.length === 0) {
       toast({
         variant: "destructive",
@@ -256,12 +256,12 @@ export default function PayrollPage() {
         
         const report = await generatePayrollReport(reportInput);
         
-        const formData = new FormData();
-        recipients.filter(r => r).forEach(r => formData.append('to', r));
-        formData.append('subject', report.subject);
-        formData.append('html', report.body);
+        const emailFormData = new FormData();
+        recipients.filter(r => r).forEach(r => emailFormData.append('to', r));
+        emailFormData.append('subject', report.subject);
+        emailFormData.append('html', report.body);
 
-        sendEmailAction(formData);
+        sendEmailAction(emailFormData);
 
     } catch (error) {
       console.error("Failed to generate or send report:", error);
