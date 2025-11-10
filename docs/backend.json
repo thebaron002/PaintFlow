@@ -173,6 +173,10 @@
           "type": "number",
           "description": "Default hourly rate for 'Time' based adjustments."
         },
+        "sharePercentage": {
+            "type": "number",
+            "description": "The percentage the user receives from the total job value."
+        },
         "reportRecipients": {
             "type": "array",
             "items": {

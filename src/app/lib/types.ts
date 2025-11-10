@@ -86,6 +86,7 @@ export type GeneralSettings = {
   dailyPayTarget: number;
   idealMaterialCostPercentage: number;
   hourlyRate: number;
+  sharePercentage: number;
   reportRecipients?: string[];
 };
 
@@ -111,3 +112,4 @@ export type PayrollReport = {
   jobCount: number;
   jobIds: string[];
 };
+

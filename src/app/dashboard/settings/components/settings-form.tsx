@@ -23,6 +23,7 @@ const settingsSchema = z.object({
   dailyPayTarget: z.coerce.number().min(0, "Daily pay target must be a positive number."),
   idealMaterialCostPercentage: z.coerce.number().min(0, "Percentage must be between 0 and 100.").max(100, "Percentage must be between 0 and 100."),
   hourlyRate: z.coerce.number().min(0, "Hourly rate must be a positive number."),
+  sharePercentage: z.coerce.number().min(0, "Percentage must be between 0 and 100.").max(100, "Percentage must be between 0 and 100."),
 });
 
 type SettingsFormValues = z.infer<typeof settingsSchema>;
@@ -41,6 +42,7 @@ export function SettingsForm({ settings, onSuccess }: SettingsFormProps) {
       dailyPayTarget: settings.dailyPayTarget || 0,
       idealMaterialCostPercentage: settings.idealMaterialCostPercentage || 0,
       hourlyRate: settings.hourlyRate || 0,
+      sharePercentage: settings.sharePercentage || 0,
     },
   });
 
@@ -108,6 +110,25 @@ export function SettingsForm({ settings, onSuccess }: SettingsFormProps) {
               </FormControl>
               <FormDescription>
                 The default hourly rate for 'Time' based adjustments.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="sharePercentage"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Share Percentage</FormLabel>
+              <FormControl>
+                 <div className="relative">
+                      <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground">%</span>
+                      <Input type="number" placeholder="70" className="pr-7" {...field} />
+                  </div>
+              </FormControl>
+              <FormDescription>
+                The percentage you receive from the total job value.
               </FormDescription>
               <FormMessage />
             </FormItem>
