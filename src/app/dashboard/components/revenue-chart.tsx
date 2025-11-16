@@ -15,7 +15,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart"
 import type { Job, GeneralExpense, GeneralSettings } from "@/app/lib/types";
-import { subWeeks, startOfWeek, endOfWeek, isWithinInterval, format, parseISO } from "date-fns"
+import { subWeeks, startOfWeek, endOfWeek, isWithinInterval, format, parseISO, subMonths, startOfMonth, endOfMonth } from "date-fns"
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc, Timestamp } from "firebase/firestore";
@@ -31,6 +31,10 @@ const chartConfig = {
     label: "Expenses",
     color: "hsl(var(--destructive))",
   },
+  monthlyAverage: {
+    label: "Monthly Average",
+    color: "hsl(var(--chart-2))",
+  }
 }
 
 export function RevenueChart() {
@@ -60,19 +64,39 @@ export function RevenueChart() {
   const chartData = React.useMemo(() => {
     if (!jobs || !generalExpenses) return [];
 
-    const data = [];
     const now = new Date();
+    
+    const getDate = (d: string | Date | Timestamp) => {
+      if (d instanceof Timestamp) return d.toDate();
+      if (typeof d === 'string') return parseISO(d);
+      return d as Date;
+    }
 
+    // Calculate 6-month average
+    let totalIncomeLast6Months = 0;
+    for (let i = 0; i < 6; i++) {
+        const monthDate = subMonths(now, i);
+        const monthStart = startOfMonth(monthDate);
+        const monthEnd = endOfMonth(monthDate);
+        
+        const monthlyIncome = jobs
+            .filter(job => {
+                const finalizationDate = job.finalizationDate ? getDate(job.finalizationDate) : null;
+                return job.status === 'Finalized' && finalizationDate && isWithinInterval(finalizationDate, { start: monthStart, end: monthEnd });
+            })
+            .reduce((sum, job) => sum + calculateJobPayout(job, settings), 0);
+        
+        totalIncomeLast6Months += monthlyIncome;
+    }
+    const monthlyAverage = totalIncomeLast6Months / 6;
+    const weeklyAverage = monthlyAverage / 4.33; // Approximate number of weeks in a month
+
+    const data = [];
     for (let i = 5; i >= 0; i--) {
         const date = subWeeks(now, i);
         const weekStart = startOfWeek(date);
         const weekEnd = endOfWeek(date);
 
-        const getDate = (d: string | Date | Timestamp) => {
-          if (d instanceof Timestamp) return d.toDate();
-          if (typeof d === 'string') return parseISO(d);
-          return d as Date;
-        }
         
         const weeklyIncome = jobs
             .filter(job => {
@@ -99,6 +123,7 @@ export function RevenueChart() {
             week: format(weekStart, 'MMM dd'),
             income: weeklyIncome,
             expenses: totalWeeklyExpenses,
+            monthlyAverage: weeklyAverage,
         });
     }
     return data;
@@ -155,7 +180,7 @@ export function RevenueChart() {
                             "--color-bg": `var(--color-${name})`,
                             "--color-border": `var(--color-${name})`,
                          } as React.CSSProperties} />
-                         <p className="capitalize text-muted-foreground">{name}</p>
+                         <p className="capitalize text-muted-foreground">{name === 'monthlyAverage' ? 'Monthly Avg' : name}</p>
                       </div>
                       <p className="font-medium">{currencyValue}</p>
                     </div>
@@ -188,6 +213,18 @@ export function RevenueChart() {
                   stopOpacity={0.1}
                 />
               </linearGradient>
+               <linearGradient id="fillMonthlyAverage" x1="0" y1="0" x2="0" y2="1">
+                <stop
+                  offset="5%"
+                  stopColor="var(--color-monthlyAverage)"
+                  stopOpacity={0.8}
+                />
+                <stop
+                  offset="95%"
+                  stopColor="var(--color-monthlyAverage)"
+                  stopOpacity={0.1}
+                />
+              </linearGradient>
             </defs>
             <Area
               dataKey="expenses"
@@ -202,6 +239,15 @@ export function RevenueChart() {
               fill="url(#fillIncome)"
               fillOpacity={0.4}
               stroke="var(--color-income)"
+            />
+             <Area
+              dataKey="monthlyAverage"
+              type="natural"
+              fill="url(#fillMonthlyAverage)"
+              fillOpacity={0.2}
+              stroke="var(--color-monthlyAverage)"
+              strokeWidth={2}
+              strokeDasharray="3 3"
             />
           </AreaChart>
         </ChartContainer>
