@@ -88,6 +88,7 @@ export type GeneralSettings = {
   hourlyRate: number;
   sharePercentage: number;
   reportRecipients?: string[];
+  taxRate?: number;
 };
 
 export type UserProfile = {

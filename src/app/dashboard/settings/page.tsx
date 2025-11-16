@@ -33,6 +33,7 @@ export default function SettingsPage() {
     idealMaterialCostPercentage: 20,
     hourlyRate: 50,
     sharePercentage: 70,
+    taxRate: 30,
   };
 
   return (

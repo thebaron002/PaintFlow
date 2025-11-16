@@ -24,6 +24,7 @@ const settingsSchema = z.object({
   idealMaterialCostPercentage: z.coerce.number().min(0, "Percentage must be between 0 and 100.").max(100, "Percentage must be between 0 and 100."),
   hourlyRate: z.coerce.number().min(0, "Hourly rate must be a positive number."),
   sharePercentage: z.coerce.number().min(0, "Percentage must be between 0 and 100.").max(100, "Percentage must be between 0 and 100."),
+  taxRate: z.coerce.number().min(0, "Tax rate must be between 0 and 100.").max(100, "Tax rate must be between 0 and 100."),
 });
 
 type SettingsFormValues = z.infer<typeof settingsSchema>;
@@ -43,6 +44,7 @@ export function SettingsForm({ settings, onSuccess }: SettingsFormProps) {
       idealMaterialCostPercentage: settings.idealMaterialCostPercentage || 0,
       hourlyRate: settings.hourlyRate || 0,
       sharePercentage: settings.sharePercentage || 0,
+      taxRate: settings.taxRate || 0,
     },
   });
 
@@ -129,6 +131,25 @@ export function SettingsForm({ settings, onSuccess }: SettingsFormProps) {
               </FormControl>
               <FormDescription>
                 The percentage you receive from the total job value.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+         <FormField
+          control={form.control}
+          name="taxRate"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Estimated Tax Rate</FormLabel>
+              <FormControl>
+                 <div className="relative">
+                      <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground">%</span>
+                      <Input type="number" placeholder="30" className="pr-7" {...field} />
+                  </div>
+              </FormControl>
+              <FormDescription>
+                Your estimated tax rate for income tax forecasting (e.g., 30 for 30%).
               </FormDescription>
               <FormMessage />
             </FormItem>

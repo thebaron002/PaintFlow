@@ -33,7 +33,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { DollarSign, FileDown, PlusCircle, CheckCircle } from "lucide-react";
+import { DollarSign, FileDown, PlusCircle, CheckCircle, Banknote } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import type { Job, GeneralSettings, GeneralExpense } from "@/app/lib/types";
 import { CashFlowChart } from "./components/cash-flow-chart";
@@ -133,6 +133,9 @@ export default function FinancePage() {
   const totalExpenses = allExpenses?.reduce((acc, item) => acc + item.amount, 0) ?? 0;
   const netProfit = totalIncome - totalExpenses;
 
+  const taxRate = settings?.taxRate ? settings.taxRate / 100 : 0.30; // Default to 30% if not set
+  const estimatedTax = netProfit > 0 ? netProfit * taxRate : 0;
+
   const expenseCategories = [...new Set(allExpenses.map(e => e.category))];
 
   const handleExpenseFormSuccess = () => {
@@ -151,17 +154,19 @@ export default function FinancePage() {
     });
   }
 
-  const renderStatCard = (title: string, value: number, colorClass: string = '', isLoading: boolean) => (
+  const renderStatCard = (title: string, value: number, colorClass: string = '', isLoading: boolean, icon: React.ElementType = DollarSign) => {
+    const Icon = icon;
+    return (
      <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">{title}</CardTitle>
-          <DollarSign className="h-4 w-4 text-muted-foreground" />
+          <Icon className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           {isLoading ? <Skeleton className="h-8 w-24" /> : <div className={`text-2xl font-bold ${colorClass}`}>${value.toLocaleString()}</div>}
         </CardContent>
       </Card>
-  );
+  )};
 
   return (
     <div>
@@ -216,10 +221,11 @@ export default function FinancePage() {
           <TabsTrigger value="expenses">Expenses</TabsTrigger>
         </TabsList>
         <TabsContent value="overview" className="mt-4">
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {renderStatCard("Total Income", totalIncome, "text-green-600", isLoading)}
             {renderStatCard("Total Expenses", totalExpenses, "text-red-600", isLoading)}
             {renderStatCard("Net Profit", netProfit, "", isLoading)}
+            {renderStatCard("IRS (Est.)", estimatedTax, "text-orange-600", isLoading, Banknote)}
           </div>
           <Card className="mt-4">
             <CardHeader>
