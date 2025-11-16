@@ -15,7 +15,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart"
 import type { Job, GeneralExpense, GeneralSettings } from "@/app/lib/types";
-import { subMonths, startOfMonth, endOfMonth, isWithinInterval, format, parseISO } from "date-fns"
+import { subWeeks, startOfWeek, endOfWeek, isWithinInterval, format, parseISO } from "date-fns"
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc, Timestamp } from "firebase/firestore";
@@ -64,9 +64,9 @@ export function RevenueChart() {
     const now = new Date();
 
     for (let i = 5; i >= 0; i--) {
-        const date = subMonths(now, i);
-        const monthStart = startOfMonth(date);
-        const monthEnd = endOfMonth(date);
+        const date = subWeeks(now, i);
+        const weekStart = startOfWeek(date);
+        const weekEnd = endOfWeek(date);
 
         const getDate = (d: string | Date | Timestamp) => {
           if (d instanceof Timestamp) return d.toDate();
@@ -74,33 +74,31 @@ export function RevenueChart() {
           return d as Date;
         }
         
-        // Income is calculated from finalized jobs' payout within the month
-        const monthlyIncome = jobs
+        const weeklyIncome = jobs
             .filter(job => {
                 const finalizationDate = job.finalizationDate ? getDate(job.finalizationDate) : null;
-                return job.status === 'Finalized' && finalizationDate && isWithinInterval(finalizationDate, { start: monthStart, end: monthEnd });
+                return job.status === 'Finalized' && finalizationDate && isWithinInterval(finalizationDate, { start: weekStart, end: weekEnd });
             })
             .reduce((sum, job) => sum + calculateJobPayout(job, settings), 0);
         
-        // Expenses are from job invoices not paid by contractor + general expenses
-        const monthlyJobExpenses = jobs
+        const weeklyJobExpenses = jobs
             .flatMap(job => job.invoices || [])
             .filter(invoice => 
                 !invoice.paidByContractor && 
-                isWithinInterval(getDate(invoice.date), { start: monthStart, end: monthEnd })
+                isWithinInterval(getDate(invoice.date), { start: weekStart, end: weekEnd })
             )
             .reduce((sum, invoice) => sum + invoice.amount, 0);
 
-        const monthlyGeneralExpenses = generalExpenses
-            .filter(exp => isWithinInterval(getDate(exp.date), { start: monthStart, end: monthEnd }))
+        const weeklyGeneralExpenses = generalExpenses
+            .filter(exp => isWithinInterval(getDate(exp.date), { start: weekStart, end: weekEnd }))
             .reduce((sum, exp) => sum + exp.amount, 0);
         
-        const totalMonthlyExpenses = monthlyJobExpenses + monthlyGeneralExpenses;
+        const totalWeeklyExpenses = weeklyJobExpenses + weeklyGeneralExpenses;
 
         data.push({
-            month: format(monthStart, 'MMM'),
-            income: monthlyIncome,
-            expenses: totalMonthlyExpenses,
+            week: format(weekStart, 'MMM dd'),
+            income: weeklyIncome,
+            expenses: totalWeeklyExpenses,
         });
     }
     return data;
@@ -116,7 +114,7 @@ export function RevenueChart() {
     <Card className="bg-white/70 backdrop-blur-md border-white/50 shadow-xl dark:bg-zinc-900/60 dark:border-white/10">
       <CardHeader>
         <CardTitle>Revenue Overview</CardTitle>
-        <CardDescription>Income vs. Expenses over the last 6 months</CardDescription>
+        <CardDescription>Income vs. Expenses over the last 6 weeks</CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig} className="h-full w-full min-h-[200px]">
@@ -131,7 +129,7 @@ export function RevenueChart() {
           >
             <CartesianGrid vertical={false} />
             <XAxis
-              dataKey="month"
+              dataKey="week"
               tickLine={false}
               axisLine={false}
               tickMargin={8}
