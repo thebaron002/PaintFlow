@@ -133,7 +133,7 @@ export default function FinancePage() {
   const totalExpenses = allExpenses?.reduce((acc, item) => acc + item.amount, 0) ?? 0;
   const netProfit = totalIncome - totalExpenses;
 
-  const taxRate = settings?.taxRate ? settings.taxRate / 100 : 0.30; // Default to 30% if not set
+  const taxRate = settings?.taxRate ? settings.taxRate / 100 : 0.22; // Default to 22% if not set
   const estimatedTax = netProfit > 0 ? netProfit * taxRate : 0;
 
   const expenseCategories = [...new Set(allExpenses.map(e => e.category))];
