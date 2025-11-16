@@ -15,7 +15,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart"
 import type { Job, GeneralExpense, GeneralSettings } from "@/app/lib/types";
-import { subWeeks, startOfWeek, endOfWeek, isWithinInterval, format, parseISO, subMonths, startOfMonth, endOfMonth } from "date-fns"
+import { subWeeks, startOfWeek, endOfWeek, isWithinInterval, format, parseISO } from "date-fns"
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc, Timestamp } from "firebase/firestore";
@@ -31,8 +31,8 @@ const chartConfig = {
     label: "Expenses",
     color: "hsl(var(--destructive))",
   },
-  monthlyAverage: {
-    label: "Monthly Average",
+  average: {
+    label: "Average",
     color: "hsl(var(--chart-2))",
   }
 }
@@ -71,39 +71,24 @@ export function RevenueChart() {
       if (typeof d === 'string') return parseISO(d);
       return d as Date;
     }
+    
+    let totalIncomeForPeriod = 0;
+    const weeklyData = [];
 
-    // Calculate 6-month average
-    let totalIncomeLast6Months = 0;
-    for (let i = 0; i < 6; i++) {
-        const monthDate = subMonths(now, i);
-        const monthStart = startOfMonth(monthDate);
-        const monthEnd = endOfMonth(monthDate);
-        
-        const monthlyIncome = jobs
-            .filter(job => {
-                const finalizationDate = job.finalizationDate ? getDate(job.finalizationDate) : null;
-                return job.status === 'Finalized' && finalizationDate && isWithinInterval(finalizationDate, { start: monthStart, end: monthEnd });
-            })
-            .reduce((sum, job) => sum + calculateJobPayout(job, settings), 0);
-        
-        totalIncomeLast6Months += monthlyIncome;
-    }
-    const monthlyAverage = totalIncomeLast6Months / 6;
-    const weeklyAverage = monthlyAverage / 4.33; // Approximate number of weeks in a month
-
-    const data = [];
+    // First pass: calculate weekly income and expenses
     for (let i = 5; i >= 0; i--) {
         const date = subWeeks(now, i);
         const weekStart = startOfWeek(date);
         const weekEnd = endOfWeek(date);
 
-        
         const weeklyIncome = jobs
             .filter(job => {
                 const finalizationDate = job.finalizationDate ? getDate(job.finalizationDate) : null;
                 return job.status === 'Finalized' && finalizationDate && isWithinInterval(finalizationDate, { start: weekStart, end: weekEnd });
             })
             .reduce((sum, job) => sum + calculateJobPayout(job, settings), 0);
+        
+        totalIncomeForPeriod += weeklyIncome;
         
         const weeklyJobExpenses = jobs
             .flatMap(job => job.invoices || [])
@@ -119,14 +104,20 @@ export function RevenueChart() {
         
         const totalWeeklyExpenses = weeklyJobExpenses + weeklyGeneralExpenses;
 
-        data.push({
+        weeklyData.push({
             week: format(weekStart, 'MMM dd'),
             income: weeklyIncome,
             expenses: totalWeeklyExpenses,
-            monthlyAverage: weeklyAverage,
         });
     }
-    return data;
+
+    // Second pass: add the average to each week's data
+    const averageIncomeForPeriod = weeklyData.length > 0 ? totalIncomeForPeriod / weeklyData.length : 0;
+    
+    return weeklyData.map(data => ({
+        ...data,
+        average: averageIncomeForPeriod,
+    }));
 
   }, [jobs, generalExpenses, settings]);
 
@@ -180,7 +171,7 @@ export function RevenueChart() {
                             "--color-bg": `var(--color-${name})`,
                             "--color-border": `var(--color-${name})`,
                          } as React.CSSProperties} />
-                         <p className="capitalize text-muted-foreground">{name === 'monthlyAverage' ? 'Monthly Avg' : name}</p>
+                         <p className="capitalize text-muted-foreground">{name === 'average' ? 'Period Avg' : name}</p>
                       </div>
                       <p className="font-medium">{currencyValue}</p>
                     </div>
@@ -213,15 +204,15 @@ export function RevenueChart() {
                   stopOpacity={0.1}
                 />
               </linearGradient>
-               <linearGradient id="fillMonthlyAverage" x1="0" y1="0" x2="0" y2="1">
+               <linearGradient id="fillAverage" x1="0" y1="0" x2="0" y2="1">
                 <stop
                   offset="5%"
-                  stopColor="var(--color-monthlyAverage)"
+                  stopColor="var(--color-average)"
                   stopOpacity={0.8}
                 />
                 <stop
                   offset="95%"
-                  stopColor="var(--color-monthlyAverage)"
+                  stopColor="var(--color-average)"
                   stopOpacity={0.1}
                 />
               </linearGradient>
@@ -241,11 +232,11 @@ export function RevenueChart() {
               stroke="var(--color-income)"
             />
              <Area
-              dataKey="monthlyAverage"
+              dataKey="average"
               type="natural"
-              fill="url(#fillMonthlyAverage)"
+              fill="url(#fillAverage)"
               fillOpacity={0.2}
-              stroke="var(--color-monthlyAverage)"
+              stroke="var(--color-average)"
               strokeWidth={2}
               strokeDasharray="3 3"
             />
