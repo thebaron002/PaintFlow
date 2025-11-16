@@ -15,7 +15,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart"
 import type { Job, GeneralExpense, GeneralSettings } from "@/app/lib/types";
-import { subWeeks, startOfWeek, endOfWeek, isWithinInterval, format, parseISO } from "date-fns"
+import { subWeeks, startOfWeek, endOfWeek, isWithinInterval, format, parseISO, differenceInWeeks } from "date-fns"
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from "@/firebase";
 import { collection, doc, Timestamp } from "firebase/firestore";
@@ -71,12 +71,19 @@ export function RevenueChart() {
       if (typeof d === 'string') return parseISO(d);
       return d as Date;
     }
+
+    const firstJobStartDate = jobs.length > 0
+      ? jobs.map(j => getDate(j.startDate)).sort((a, b) => a.getTime() - b.getTime())[0]
+      : now;
     
+    const weeksSinceFirstJob = differenceInWeeks(now, firstJobStartDate);
+    const weeksToShow = Math.min(weeksSinceFirstJob, 5); // Show up to 6 weeks (0 to 5)
+
     let totalIncomeForPeriod = 0;
     const weeklyData = [];
 
     // First pass: calculate weekly income and expenses
-    for (let i = 5; i >= 0; i--) {
+    for (let i = weeksToShow; i >= 0; i--) {
         const date = subWeeks(now, i);
         const weekStart = startOfWeek(date);
         const weekEnd = endOfWeek(date);
@@ -130,7 +137,7 @@ export function RevenueChart() {
     <Card className="bg-white/70 backdrop-blur-md border-white/50 shadow-xl dark:bg-zinc-900/60 dark:border-white/10">
       <CardHeader>
         <CardTitle>Revenue Overview</CardTitle>
-        <CardDescription>Income vs. Expenses over the last 6 weeks</CardDescription>
+        <CardDescription>Income vs. Expenses over the last weeks</CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig} className="h-full w-full min-h-[200px]">
