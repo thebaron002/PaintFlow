@@ -48,7 +48,7 @@ export function JobAnalysisCard({ job, settings }: JobAnalysisCardProps) {
     return acc;
   }, 0);
 
-  const dailyProfit = totalProductionDays > 0 ? profit / totalProductionDays : 0;
+  const dailyProfit = totalProductionDays > 1 ? profit / totalProductionDays : (totalProductionDays > 0 ? profit : 0);
 
   const profitColor = profit >= 0 ? "text-green-600" : "text-red-600";
   const dailyProfitColor = dailyProfit >= 0 ? "text-green-600" : "text-red-600";
