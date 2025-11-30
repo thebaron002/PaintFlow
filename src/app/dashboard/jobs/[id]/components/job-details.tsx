@@ -220,12 +220,12 @@ export function JobDetails({
 
   const payout = calculateJobPayout(job, settings);
 
-  const [selectedDates, setSelectedDates] = useState<Date[]>((productionDays || []).map(pd => parseISO(pd.date)));
+  const [selectedDates, setSelectedDates] = useState<Date[]>((productionDays || []).filter(pd => pd && pd.date).map(pd => parseISO(pd.date)));
   const [openCalendar, setOpenCalendar] = React.useState(false);
 
 
   useEffect(() => {
-    setSelectedDates((job.productionDays || []).map(pd => parseISO(pd.date)));
+    setSelectedDates((job.productionDays || []).filter(pd => pd && pd.date).map(pd => parseISO(pd.date)));
   }, [job.productionDays]);
 
   const handleDateSelect = (dates: Date[] | undefined) => {
@@ -685,5 +685,6 @@ export function JobDetails({
 }
 
     
+
 
 
