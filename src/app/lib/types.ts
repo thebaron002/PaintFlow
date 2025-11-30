@@ -1,4 +1,5 @@
 
+
 export type Client = {
   id: string;
   name: string;
@@ -20,6 +21,11 @@ export type CrewMember = {
 
 export type AdjustmentType = 'Time' | 'Material' | 'General';
 
+export type ProductionDay = {
+  date: string; // ISO date string
+  dayType: 'full' | 'half';
+};
+
 export type Job = {
   id: string;
   title: string;
@@ -36,7 +42,7 @@ export type Job = {
   initialValue: number;
   idealMaterialCost: number;
   idealNumberOfDays: number;
-  productionDays: string[]; // Array of ISO date strings
+  productionDays: ProductionDay[];
   isFixedPay: boolean;
   invoices: { id: string; origin: string; amount: number; date: string; notes?: string; isPayoutDiscount?: boolean; paidByContractor?: boolean; isPayoutAddition?: boolean; }[];
   adjustments: { 
@@ -113,4 +119,5 @@ export type PayrollReport = {
   jobCount: number;
   jobIds: string[];
 };
+
 

@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -18,7 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
+import { format, isSameDay, parseISO } from "date-fns";
 import {
   DollarSign,
   Calendar,
@@ -38,6 +39,8 @@ import {
   TrendingUp,
   Check,
   Wallet,
+  Circle,
+  Sun,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -54,7 +57,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar as DayPicker } from "@/components/ui/calendar";
-import type { Job, GeneralSettings, CrewMember } from "@/app/lib/types";
+import type { Job, GeneralSettings, CrewMember, ProductionDay } from "@/app/lib/types";
 import { useCollection, useDoc, useFirestore, useMemoFirebase, updateDocumentNonBlocking, useUser } from "@/firebase";
 import { collection, doc, } from "firebase/firestore";
 import { AddInvoiceForm } from "./add-invoice-form";
@@ -66,6 +69,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { calculateJobPayout, calculateTotalAdjustments } from "@/app/lib/job-financials";
 import { JobMap } from "@/components/job-map";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const adjustmentIcons = {
   Time: Clock,
@@ -129,7 +133,7 @@ export function JobDetails({
   const [currentStatus, setCurrentStatus] = useState<Job["status"]>(job.status);
   const [invoiceModal, setInvoiceModal] = useState<ModalState<Job['invoices'][0]>>({ isOpen: false, item: null });
   const [adjustmentModal, setAdjustmentModal] = useState<ModalState<Job['adjustments'][0]>>({ isOpen: false, item: null });
-  const [productionDays, setProductionDays] = useState<Date[]>(job.productionDays.map(d => new Date(d)));
+  const [productionDays, setProductionDays] = useState<ProductionDay[]>(job.productionDays || []);
   const [notes, setNotes] = useState(job.specialRequirements || "");
   
   const jobStatuses: Job["status"][] = ["Not Started", "In Progress", "Complete", "Open Payment", "Finalized"];
@@ -147,7 +151,7 @@ export function JobDetails({
 
   useEffect(() => {
     setCurrentStatus(job.status);
-    setProductionDays((job.productionDays || []).map(d => new Date(d)))
+    setProductionDays(job.productionDays || [])
     setNotes(job.specialRequirements || "");
   }, [job.status, job.productionDays, job.specialRequirements]);
   
@@ -182,13 +186,12 @@ export function JobDetails({
     });
   };
 
-  const handleProductionDaysChange = (days: Date[] | undefined) => {
+  const handleProductionDaysChange = (newDays: ProductionDay[]) => {
     if (!firestore || !user) return;
-    const newDays = days || [];
     setProductionDays(newDays);
 
     const jobRef = doc(firestore, 'users', user.uid, 'jobs', job.id);
-    updateDocumentNonBlocking(jobRef, { productionDays: newDays.map(d => d.toISOString()) });
+    updateDocumentNonBlocking(jobRef, { productionDays: newDays });
   }
 
    const handleNotesBlur = () => {
@@ -216,6 +219,34 @@ export function JobDetails({
   };
 
   const payout = calculateJobPayout(job, settings);
+
+  const [selectedDates, setSelectedDates] = useState<Date[]>(productionDays.map(pd => parseISO(pd.date)));
+  const [openCalendar, setOpenCalendar] = React.useState(false);
+
+
+  useEffect(() => {
+    setSelectedDates(productionDays.map(pd => parseISO(pd.date)));
+  }, [productionDays]);
+
+  const handleDateSelect = (dates: Date[] | undefined) => {
+    const newDates = dates || [];
+    setSelectedDates(newDates);
+    const newProductionDays = newDates.map(date => {
+        const existing = productionDays.find(pd => isSameDay(parseISO(pd.date), date));
+        return existing || { date: date.toISOString(), dayType: 'full' };
+    });
+    handleProductionDaysChange(newProductionDays);
+  }
+
+  const handleDayTypeChange = (date: Date, dayType: 'full' | 'half') => {
+      const newProductionDays = productionDays.map(pd => {
+          if (isSameDay(parseISO(pd.date), date)) {
+              return { ...pd, dayType };
+          }
+          return pd;
+      });
+      handleProductionDaysChange(newProductionDays);
+  }
 
   return (
     <div className="relative pb-24">
@@ -366,7 +397,7 @@ export function JobDetails({
                     <div className="w-full">
                     <div className="flex items-center justify-between">
                         <p className="text-sm font-medium text-muted-foreground">Production Days</p>
-                        <Popover>
+                        <Popover open={openCalendar} onOpenChange={setOpenCalendar}>
                             <PopoverTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-6 w-6">
                                     <CalendarDays className="h-4 w-4" />
@@ -375,16 +406,54 @@ export function JobDetails({
                             <PopoverContent className="w-auto p-0">
                                 <DayPicker
                                     mode="multiple"
-                                    selected={productionDays}
-                                    onSelect={handleProductionDaysChange}
-                                    defaultMonth={productionDays[0] || new Date()}
+                                    min={0}
+                                    selected={selectedDates}
+                                    onSelect={handleDateSelect}
+                                    defaultMonth={selectedDates[0] || new Date()}
                                 />
+                                <div className="p-4 border-t">
+                                    <h4 className="text-sm font-medium mb-2">Selected Days</h4>
+                                    <ScrollArea className="h-40">
+                                    <div className="space-y-2 pr-4">
+                                        {selectedDates.sort((a,b) => a.getTime() - b.getTime()).map(date => {
+                                            const dayInfo = productionDays.find(pd => isSameDay(parseISO(pd.date), date));
+                                            return (
+                                                <div key={date.toISOString()} className="flex items-center justify-between text-sm">
+                                                    <span>{format(date, "MMM dd, yyyy")}</span>
+                                                    <div className="flex items-center gap-1 rounded-full border bg-background p-0.5">
+                                                        <Button 
+                                                            size="sm" 
+                                                            variant={dayInfo?.dayType === 'full' ? 'default' : 'ghost'} 
+                                                            className="h-6 px-2 rounded-full text-xs"
+                                                            onClick={() => handleDayTypeChange(date, 'full')}
+                                                        >
+                                                            Full
+                                                        </Button>
+                                                        <Button 
+                                                            size="sm" 
+                                                            variant={dayInfo?.dayType === 'half' ? 'default' : 'ghost'} 
+                                                            className="h-6 px-2 rounded-full text-xs"
+                                                            onClick={() => handleDayTypeChange(date, 'half')}
+                                                        >
+                                                            Half
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            )
+                                        })}
+                                        {selectedDates.length === 0 && <p className="text-xs text-muted-foreground">No days selected.</p>}
+                                    </div>
+                                    </ScrollArea>
+                                </div>
                             </PopoverContent>
                         </Popover>
                     </div>
                     <div className="flex flex-wrap gap-1 mt-1">
-                        {productionDays.sort((a,b) => a.getTime() - b.getTime()).map(day => (
-                        <Badge key={day.toISOString()} variant="secondary">{format(day, "MMM dd")}</Badge>
+                        {productionDays.sort((a,b) => parseISO(a.date).getTime() - parseISO(b.date).getTime()).map(day => (
+                            <Badge key={day.date} variant="secondary" className="flex items-center gap-1.5">
+                                {day.dayType === 'half' ? <Circle className="h-2.5 w-2.5 fill-current" /> : <Sun className="h-3 w-3" />}
+                                {format(parseISO(day.date), "MMM dd")}
+                            </Badge>
                         ))}
                         {productionDays.length === 0 && <p className="text-sm text-muted-foreground">No days logged</p>}
                     </div>
@@ -616,3 +685,4 @@ export function JobDetails({
 }
 
     
+

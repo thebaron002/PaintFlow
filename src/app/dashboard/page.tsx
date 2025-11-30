@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import * as React from "react";
@@ -338,7 +339,7 @@ export default function DashboardPage() {
     const nextWeek = addDays(today, 7);
     
     const upcoming = allJobs.map(job => {
-      const allDates = [job.startDate, ...(job.productionDays || [])];
+      const allDates = [job.startDate, ...(job.productionDays?.map(pd => pd.date) || [])];
       const nextActivityDate = allDates
         .map(d => parseISO(d))
         .filter(d => isWithinInterval(d, { start: today, end: nextWeek }))

@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -74,7 +75,7 @@ export function MonthJobsCalendar({
       }
       if (job.productionDays?.length) {
         for (const p of job.productionDays) {
-          prodSet.add(toYYYYMMDD(p));
+          prodSet.add(toYYYYMMDD(p.date));
         }
       }
     }

@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import * as React from "react";
@@ -49,7 +50,7 @@ export default function CalendarPage() {
     return allJobs.filter(job => {
       const hasActivityInMonth = 
         (job.startDate && isWithinInterval(getDate(job.startDate), { start, end })) ||
-        (job.productionDays || []).some(day => isWithinInterval(getDate(day), { start, end }));
+        (job.productionDays || []).some(day => isWithinInterval(getDate(day.date), { start, end }));
       return hasActivityInMonth;
     });
   }, [allJobs, monthDate]);
@@ -64,7 +65,7 @@ export default function CalendarPage() {
     jobsInMonth.forEach(job => {
       const hasActivityOnSelectedDay = 
         job.startDate === selectedDayISO || 
-        (job.productionDays || []).includes(selectedDayISO);
+        (job.productionDays || []).some(pd => pd.date === selectedDayISO);
       
       if (hasActivityOnSelectedDay) {
         jobsForDay.push(job);
@@ -86,8 +87,8 @@ export default function CalendarPage() {
         days.push(job.startDate);
     }
     (job.productionDays || []).forEach(day => {
-        if (isWithinInterval(parseISO(day), { start, end })) {
-            days.push(day);
+        if (isWithinInterval(parseISO(day.date), { start, end })) {
+            days.push(day.date);
         }
     });
     return [...new Set(days)].sort();
@@ -180,7 +181,7 @@ export default function CalendarPage() {
                   <Link href={`/dashboard/jobs/${job.id}`} key={job.id}
                     className={cn(
                       "block rounded-xl border border-zinc-200 bg-white p-4 shadow-sm transition-all hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900/60",
-                      selectedDayISO && (job.startDate === selectedDayISO || job.productionDays.includes(selectedDayISO))
+                      selectedDayISO && (job.startDate === selectedDayISO || job.productionDays.some(pd => pd.date === selectedDayISO))
                         ? "ring-2 ring-primary dark:ring-primary/70"
                         : "hover:border-zinc-300 dark:hover:border-zinc-700"
                     )}
