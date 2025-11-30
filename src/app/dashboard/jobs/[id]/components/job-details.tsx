@@ -449,7 +449,7 @@ export function JobDetails({
                         </Popover>
                     </div>
                     <div className="flex flex-wrap gap-1 mt-1">
-                        {(productionDays || []).sort((a,b) => parseISO(a.date).getTime() - parseISO(b.date).getTime()).map(day => (
+                        {(productionDays || []).filter(day => day && day.date).sort((a,b) => parseISO(a.date).getTime() - parseISO(b.date).getTime()).map(day => (
                             <Badge key={day.date} variant="secondary" className="flex items-center gap-1.5">
                                 {day.dayType === 'half' ? <Circle className="h-2.5 w-2.5 fill-current" /> : <Sun className="h-3 w-3" />}
                                 {format(parseISO(day.date), "MMM dd")}
@@ -685,6 +685,7 @@ export function JobDetails({
 }
 
     
+
 
 
 
