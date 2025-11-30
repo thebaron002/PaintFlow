@@ -9,7 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { Activity, CircleDollarSign, PiggyBank, Wrench } from "lucide-react";
+import { Activity, CircleDollarSign, PiggyBank, Wrench, Target } from "lucide-react";
 import { calculateJobPayout, calculateContractorCost, calculateJobProfit, calculateMaterialCost } from "@/app/lib/job-financials";
 
 interface JobAnalysisCardProps {
@@ -42,8 +42,16 @@ export function JobAnalysisCard({ job, settings }: JobAnalysisCardProps) {
 
   const materialUsagePercentage = totalJobValue > 0 ? (materialCost / totalJobValue) * 100 : 0;
 
+  const totalProductionDays = (job.productionDays || []).reduce((acc, day) => {
+    if (day.dayType === 'full') return acc + 1;
+    if (day.dayType === 'half') return acc + 0.5;
+    return acc;
+  }, 0);
+
+  const dailyProfit = totalProductionDays > 0 ? profit / totalProductionDays : 0;
 
   const profitColor = profit >= 0 ? "text-green-600" : "text-red-600";
+  const dailyProfitColor = dailyProfit >= 0 ? "text-green-600" : "text-red-600";
   
   return (
     <Card>
@@ -71,6 +79,12 @@ export function JobAnalysisCard({ job, settings }: JobAnalysisCardProps) {
             label="Profit"
             value={`$${profit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
             valueColor={profitColor}
+        />
+        <StatItem
+            icon={Target}
+            label="Daily Profit"
+            value={`$${dailyProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+            valueColor={dailyProfitColor}
         />
       </CardContent>
     </Card>
