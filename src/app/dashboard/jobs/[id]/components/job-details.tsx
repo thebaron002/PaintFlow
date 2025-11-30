@@ -220,7 +220,9 @@ export function JobDetails({
 
   const payout = calculateJobPayout(job, settings);
 
-  const [selectedDates, setSelectedDates] = useState<Date[]>((job.productionDays || []).filter(pd => pd && pd.date).map(pd => parseISO(pd.date)));
+  const [selectedDates, setSelectedDates] = useState<Date[]>(
+    (job.productionDays || []).filter(pd => pd && pd.date).map(pd => parseISO(pd.date))
+  );
   const [openCalendar, setOpenCalendar] = React.useState(false);
 
 
@@ -232,7 +234,7 @@ export function JobDetails({
     const newDates = dates || [];
     setSelectedDates(newDates);
     const newProductionDays = newDates.map(date => {
-        const existing = productionDays.find(pd => isSameDay(parseISO(pd.date), date));
+        const existing = (productionDays || []).find(pd => pd && pd.date && isSameDay(parseISO(pd.date), date));
         return existing || { date: date.toISOString(), dayType: 'full' };
     });
     handleProductionDaysChange(newProductionDays);
@@ -416,7 +418,7 @@ export function JobDetails({
                                     <ScrollArea className="h-40">
                                     <div className="space-y-2 pr-4">
                                         {selectedDates.sort((a,b) => a.getTime() - b.getTime()).map(date => {
-                                            const dayInfo = productionDays.find(pd => isSameDay(parseISO(pd.date), date));
+                                            const dayInfo = (productionDays || []).find(pd => pd && pd.date && isSameDay(parseISO(pd.date), date));
                                             return (
                                                 <div key={date.toISOString()} className="flex items-center justify-between text-sm">
                                                     <span>{format(date, "MMM dd, yyyy")}</span>
@@ -685,6 +687,7 @@ export function JobDetails({
 }
 
     
+
 
 
 
