@@ -242,12 +242,12 @@ export function JobDetails({
 
   const handleDayTypeChange = (date: Date, dayType: 'full' | 'half') => {
       const newProductionDays = productionDays.map(pd => {
-          if (isSameDay(parseISO(pd.date), date)) {
+          if (pd && pd.date && isSameDay(parseISO(pd.date), date)) {
               return { ...pd, dayType };
           }
           return pd;
       });
-      handleProductionDaysChange(newProductionDays);
+      handleProductionDaysChange(newProductionDays.filter((pd): pd is ProductionDay => !!pd));
   }
 
   return (
@@ -326,7 +326,14 @@ export function JobDetails({
                         </div>
                         <div>
                             <p className="text-sm font-medium text-muted-foreground">Address</p>
-                            <p className="font-semibold">{job.address}</p>
+                             <a 
+                              href={`https://maps.apple.com/?q=${encodeURIComponent(job.address)}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="font-semibold hover:underline"
+                            >
+                              {job.address}
+                            </a>
                         </div>
                     </div>
                     <JobMap address={job.address} />
@@ -687,6 +694,7 @@ export function JobDetails({
 }
 
     
+
 
 
 
