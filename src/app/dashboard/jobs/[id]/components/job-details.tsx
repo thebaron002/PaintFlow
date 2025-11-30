@@ -220,7 +220,7 @@ export function JobDetails({
 
   const payout = calculateJobPayout(job, settings);
 
-  const [selectedDates, setSelectedDates] = useState<Date[]>((productionDays || []).filter(pd => pd && pd.date).map(pd => parseISO(pd.date)));
+  const [selectedDates, setSelectedDates] = useState<Date[]>((job.productionDays || []).filter(pd => pd && pd.date).map(pd => parseISO(pd.date)));
   const [openCalendar, setOpenCalendar] = React.useState(false);
 
 
@@ -449,13 +449,13 @@ export function JobDetails({
                         </Popover>
                     </div>
                     <div className="flex flex-wrap gap-1 mt-1">
-                        {productionDays.sort((a,b) => parseISO(a.date).getTime() - parseISO(b.date).getTime()).map(day => (
+                        {(productionDays || []).sort((a,b) => parseISO(a.date).getTime() - parseISO(b.date).getTime()).map(day => (
                             <Badge key={day.date} variant="secondary" className="flex items-center gap-1.5">
                                 {day.dayType === 'half' ? <Circle className="h-2.5 w-2.5 fill-current" /> : <Sun className="h-3 w-3" />}
                                 {format(parseISO(day.date), "MMM dd")}
                             </Badge>
                         ))}
-                        {productionDays.length === 0 && <p className="text-sm text-muted-foreground">No days logged</p>}
+                        {(productionDays || []).length === 0 && <p className="text-sm text-muted-foreground">No days logged</p>}
                     </div>
                     </div>
                 </div>
@@ -685,6 +685,7 @@ export function JobDetails({
 }
 
     
+
 
 
 
