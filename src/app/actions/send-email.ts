@@ -2,6 +2,9 @@
 'use server';
 
 import { Resend } from 'resend';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
 
 interface State {
   error: string | null;
