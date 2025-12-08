@@ -21,16 +21,32 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import type { Job, GeneralSettings, UserProfile, PayrollReport } from "@/app/lib/types";
-import { ChevronDown, LoaderCircle, History } from "lucide-react";
+import { ChevronDown, LoaderCircle, History, MoreHorizontal } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { useDoc, useFirestore, useMemoFirebase, setDocumentNonBlocking, useCollection, useUser, addDocumentNonBlocking } from "@/firebase";
+import { useDoc, useFirestore, useMemoFirebase, setDocumentNonBlocking, useCollection, useUser, addDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { collection, query, where, orderBy, limit, doc, getDocs } from "firebase/firestore";
 import { format, getWeek, startOfWeek, endOfWeek, getYear } from "date-fns";
 import { cn } from "@/lib/utils";
 import React from "react";
 import { generatePayrollReport, PayrollReportInput } from "@/ai/flows/generate-payroll-report-flow";
 import { calculateJobPayout, calculateMaterialCost } from "@/app/lib/job-financials";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 
 const JobDetailsRow = ({ job }: { job: Job }) => {
@@ -94,6 +110,7 @@ export default function PayrollPage() {
   const firestore = useFirestore();
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [reportToDelete, setReportToDelete] = useState<string | null>(null);
 
   const settingsRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -235,6 +252,17 @@ export default function PayrollPage() {
     }
   };
 
+  const handleDeleteReport = () => {
+    if (!reportToDelete || !firestore || !user) return;
+    const reportRef = doc(firestore, "users", user.uid, "payrollReports", reportToDelete);
+    deleteDocumentNonBlocking(reportRef);
+    toast({
+        title: "Report Deleted",
+        description: "The selected payroll report has been deleted.",
+    });
+    setReportToDelete(null);
+  };
+
 
   return (
     <div>
@@ -331,6 +359,7 @@ export default function PayrollPage() {
                     <TableHead>Date Saved</TableHead>
                     <TableHead>Jobs</TableHead>
                     <TableHead className="text-right">Total Payout</TableHead>
+                    <TableHead className="w-[50px] text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -341,22 +370,44 @@ export default function PayrollPage() {
                         <TableCell><Skeleton className="h-5 w-28" /></TableCell>
                         <TableCell><Skeleton className="h-5 w-12" /></TableCell>
                         <TableCell className="text-right"><Skeleton className="h-5 w-24 ml-auto" /></TableCell>
+                        <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
                       </TableRow>
                     ))
                   ) : pastReports && pastReports.length > 0 ? (
                     pastReports.map(report => (
-                      <TableRow key={report.id} onClick={() => handleReportClick(report.id)} className="cursor-pointer">
-                        <TableCell>
+                      <TableRow key={report.id} className="group">
+                        <TableCell onClick={() => handleReportClick(report.id)} className="cursor-pointer">
                           <div className="font-medium">Week {report.weekNumber}, {report.year}</div>
                         </TableCell>
-                        <TableCell>{format(new Date(report.sentDate), "MMM dd, yyyy")}</TableCell>
-                        <TableCell>{report.jobCount}</TableCell>
-                        <TableCell className="text-right">${report.totalPayout.toLocaleString()}</TableCell>
+                        <TableCell onClick={() => handleReportClick(report.id)} className="cursor-pointer">{format(new Date(report.sentDate), "MMM dd, yyyy")}</TableCell>
+                        <TableCell onClick={() => handleReportClick(report.id)} className="cursor-pointer">{report.jobCount}</TableCell>
+                        <TableCell onClick={() => handleReportClick(report.id)} className="text-right cursor-pointer">${report.totalPayout.toLocaleString()}</TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <MoreHorizontal className="h-4 w-4" />
+                                <span className="sr-only">Open menu</span>
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem disabled>Edit</DropdownMenuItem>
+                                <DropdownMenuItem 
+                                    className="text-destructive"
+                                    onSelect={() => setReportToDelete(report.id)}
+                                >
+                                    Delete
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={4} className="h-24 text-center">
+                      <TableCell colSpan={5} className="h-24 text-center">
                         No reports have been saved yet.
                       </TableCell>
                     </TableRow>
@@ -366,6 +417,23 @@ export default function PayrollPage() {
             </CardContent>
           </Card>
       </div>
+
+       <AlertDialog open={!!reportToDelete} onOpenChange={(open) => !open && setReportToDelete(null)}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete this payroll report.
+            </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteReport}>Delete</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
+
+    
