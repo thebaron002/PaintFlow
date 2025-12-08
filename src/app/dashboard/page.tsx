@@ -298,6 +298,12 @@ function CurrentJobFallback() {
 export default function DashboardPage() {
   const { user } = useUser();
   const firestore = useFirestore();
+  const [timeOfDay, setTimeOfDay] = React.useState('');
+
+  React.useEffect(() => {
+    const hour = new Date().getHours();
+    setTimeOfDay(hour < 12 ? "morning" : "afternoon");
+  }, []);
 
   const settingsRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -373,7 +379,7 @@ export default function DashboardPage() {
       <div className="mb-5">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Good {new Date().getHours() < 12 ? "morning" : "afternoon"}, {user?.displayName?.split(' ')[0] || 'User'} 👋</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Good {timeOfDay}, {user?.displayName?.split(' ')[0] || 'User'} 👋</h1>
             <p className="text-sm text-zinc-600 dark:text-zinc-400">Let’s make today productive.</p>
           </div>
         </div>
@@ -450,3 +456,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
