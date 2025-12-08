@@ -44,7 +44,6 @@ export async function generatePayrollReport(input: PayrollReportInput): Promise<
 
 const prompt = ai.definePrompt({
     name: 'payrollReportPrompt',
-    model: googleAI.model('gemini-2.5-flash'),
     input: { schema: PayrollReportInputSchema },
     output: { schema: PayrollReportOutputSchema },
     prompt: `
@@ -160,7 +159,7 @@ const payrollReportFlow = ai.defineFlow(
     outputSchema: PayrollReportOutputSchema,
   },
   async (input) => {
-    const { output } = await prompt(input);
+    const { output } = await prompt(input, { model: googleAI.model('gemini-2.5-flash') });
     return output!;
   }
 );
