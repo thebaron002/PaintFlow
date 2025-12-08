@@ -1,19 +1,19 @@
 {
-  "name": "PaintFlow",
+  "name": "PaintFlow App",
   "short_name": "PaintFlow",
-  "description": "Gerenciador de trabalhos para pintores.",
+  "description": "A progressive web app for managing your painting business.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#233947",
+  "theme_color": "#212b36",
   "icons": [
     {
-      "src": "icon-192x192.png",
+      "src": "/icons/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "icon-512x512.png",
+      "src": "/icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png"
     }
