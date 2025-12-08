@@ -12,6 +12,9 @@
     "typecheck": "tsc --noEmit",
     "postinstall": "patch-package"
   },
+  "engines": {
+    "node": "22.x"
+  },
   "dependencies": {
     "@genkit-ai/google-genai": "^1.20.0",
     "@genkit-ai/next": "^1.20.0",
