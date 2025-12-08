@@ -126,7 +126,7 @@ export default function PayrollPage() {
 
   const jobsToPayQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return query(collection(firestore, 'users', user.uid, 'jobs'), where('status', '==', 'Open Payment'), orderBy('deadline', 'asc'));
+    return query(collection(firestore, 'users', user.uid, 'jobs'), where('status', '==', 'Open Payment'));
   }, [firestore, user]);
 
   const { data: jobsToPay, isLoading: isLoadingJobs } = useCollection<Job>(jobsToPayQuery);
@@ -428,5 +428,7 @@ export default function PayrollPage() {
     </div>
   );
 }
+
+    
 
     
