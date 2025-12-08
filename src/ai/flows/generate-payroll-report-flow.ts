@@ -2,6 +2,7 @@
 'use server';
 
 import { ai } from '@/ai/genkit';
+import { googleAI } from '@genkit-ai/google-genai';
 import { z } from 'zod';
 import { Job as JobType } from '@/app/lib/types'; 
 
@@ -43,6 +44,7 @@ export async function generatePayrollReport(input: PayrollReportInput): Promise<
 
 const prompt = ai.definePrompt({
     name: 'payrollReportPrompt',
+    model: googleAI.model('gemini-2.5-flash'),
     input: { schema: PayrollReportInputSchema },
     output: { schema: PayrollReportOutputSchema },
     prompt: `
