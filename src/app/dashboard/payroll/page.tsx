@@ -15,6 +15,7 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
@@ -135,6 +136,12 @@ export default function PayrollPage() {
     if (!jobsToPay) return [];
     return [...jobsToPay].sort((a, b) => parseISO(a.deadline).getTime() - parseISO(b.deadline).getTime());
   }, [jobsToPay]);
+  
+  const totalReadyForPayout = useMemo(() => {
+    if (!sortedJobsToPay || !settings) return 0;
+    return sortedJobsToPay.reduce((acc, job) => acc + calculateJobPayout(job, settings), 0);
+  }, [sortedJobsToPay, settings]);
+
 
   const reportsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -204,11 +211,9 @@ export default function PayrollPage() {
                 return {
                     ...job,
                     title: jobTitle,
-                    quoteNumber: job.quoteNumber || (job as any).workOrderNumber || 'N/A',
                     startDate: format(new Date(job.startDate), "MM/dd/yyyy"),
                     deadline: format(new Date(job.deadline), "MM/dd/yyyy"),
                     payout: parseFloat(payout.toFixed(2)),
-                    notes: job.specialRequirements || "N/A",
                 }
             }),
             currentDate: format(now, "MM/dd/yyyy"),
@@ -315,7 +320,7 @@ export default function PayrollPage() {
                               <div className="text-sm text-muted-foreground">{job.address}</div>
                             </TableCell>
                             <TableCell>{format(new Date(job.deadline), "MMM dd, yyyy")}</TableCell>
-                            <TableCell className="text-right">${payout.toLocaleString()}</TableCell>
+                            <TableCell className="text-right">${payout.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</TableCell>
                             <TableCell className="text-center">
                                 <Button variant="ghost" size="sm" onClick={() => toggleRow(job.id)}>
                                     <span className="sr-only">Toggle Details</span>
@@ -334,6 +339,15 @@ export default function PayrollPage() {
                     </TableRow>
                   )}
                 </TableBody>
+                <TableFooter>
+                    <TableRow>
+                        <TableCell colSpan={2} className="font-bold">Total</TableCell>
+                        <TableCell className="text-right font-bold">
+                            ${totalReadyForPayout.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                        </TableCell>
+                        <TableCell></TableCell>
+                    </TableRow>
+                </TableFooter>
               </Table>
             </CardContent>
           </Card>
