@@ -126,7 +126,6 @@ export default function PayrollPage() {
 
   const jobsToPayQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    // The order by deadline requires a composite index, so we do it client-side.
     return query(collection(firestore, 'users', user.uid, 'jobs'), where('status', '==', 'Open Payment'));
   }, [firestore, user]);
 
