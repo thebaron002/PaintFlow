@@ -20,10 +20,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import type { Job, GeneralSettings, UserProfile, PayrollReport } from "@/app/lib/types";
-import { Send, ChevronDown, LoaderCircle, History } from "lucide-react";
+import { ChevronDown, LoaderCircle, History } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useDoc, useFirestore, useMemoFirebase, setDocumentNonBlocking, useCollection, useUser, addDocumentNonBlocking } from "@/firebase";
@@ -32,7 +30,6 @@ import { format, getWeek, startOfWeek, endOfWeek, getYear } from "date-fns";
 import { cn } from "@/lib/utils";
 import React from "react";
 import { generatePayrollReport, PayrollReportInput } from "@/ai/flows/generate-payroll-report-flow";
-import { sendEmail } from "@/app/actions/send-email";
 import { calculateJobPayout, calculateMaterialCost } from "@/app/lib/job-financials";
 
 
@@ -96,11 +93,7 @@ export default function PayrollPage() {
   const { user } = useUser();
   const firestore = useFirestore();
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
-
-  const [sendEmailState, sendEmailAction, isSending] = useActionState(sendEmail, {
-    error: null,
-    success: false,
-  });
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const settingsRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -129,51 +122,6 @@ export default function PayrollPage() {
 
   const { data: pastReports, isLoading: isLoadingReports } = useCollection<PayrollReport>(reportsQuery);
 
-  const [recipients, setRecipients] = useState<string[]>([]);
-
-  useEffect(() => {
-    if (settings?.reportRecipients) {
-      setRecipients(settings.reportRecipients);
-    }
-  }, [settings]);
-  
-  useEffect(() => {
-    if (sendEmailState.success && !isSending) {
-      toast({
-        title: "Report Sent!",
-        description: "The payroll report has been successfully sent.",
-      });
-
-      // Save report to history
-      if (jobsToPay && jobsToPay.length > 0 && user) {
-        const now = new Date();
-        const start = startOfWeek(now);
-        const end = endOfWeek(now);
-        const totalPayout = jobsToPay.reduce((acc, job) => acc + calculateJobPayout(job, settings), 0);
-
-        const newReport: Omit<PayrollReport, 'id'> = {
-            weekNumber: getWeek(now),
-            year: getYear(now),
-            startDate: start.toISOString(),
-            endDate: end.toISOString(),
-            sentDate: now.toISOString(),
-            recipientCount: recipients.filter(r => r).length,
-            totalPayout,
-            jobCount: jobsToPay.length,
-            jobIds: jobsToPay.map(j => j.id),
-        };
-        addDocumentNonBlocking(collection(firestore!, 'users', user.uid, 'payrollReports'), newReport);
-      }
-    }
-    if (sendEmailState.error && !isSending) {
-       toast({
-        variant: "destructive",
-        title: "Sending Failed",
-        description: `Could not send the payroll report: ${sendEmailState.error}`,
-      });
-    }
-  }, [sendEmailState, isSending, toast, jobsToPay, firestore, recipients, settings, user]);
-
 
   const isLoading = isLoadingJobs || isLoadingSettings || isLoadingProfile || isLoadingReports;
 
@@ -188,24 +136,8 @@ export default function PayrollPage() {
   const toggleRow = (jobId: string) => {
     setExpandedJobId(prevId => (prevId === jobId ? null : jobId));
   }
-
-  const handleRecipientChange = (index: number, value: string) => {
-    const newRecipients = [...recipients];
-    newRecipients[index] = value;
-    setRecipients(newRecipients);
-  };
-
-  const handleSaveRecipients = () => {
-    if (!firestore) return;
-    const settingsRef = doc(firestore, 'settings', 'global');
-    setDocumentNonBlocking(settingsRef, { reportRecipients: recipients }, { merge: true });
-    toast({
-      title: "Recipients Saved",
-      description: "The weekly report recipients have been updated.",
-    });
-  };
-
-  const handleGenerateAndSend = async (formData: FormData) => {
+  
+  const handleGenerateAndSave = async () => {
     if (!jobsToPay || jobsToPay.length === 0) {
       toast({
         variant: "destructive",
@@ -214,14 +146,8 @@ export default function PayrollPage() {
       });
       return;
     }
-     if (recipients.filter(r => r).length === 0) {
-      toast({
-        variant: "destructive",
-        title: "No Recipients",
-        description: "Please add at least one recipient to send the report.",
-      });
-      return;
-    }
+    
+    setIsGenerating(true);
 
     try {
         const now = new Date();
@@ -256,22 +182,37 @@ export default function PayrollPage() {
             totalPayout: parseFloat(totalPayout.toFixed(2)),
         };
         
-        const report = await generatePayrollReport(reportInput);
+        await generatePayrollReport(reportInput);
         
-        const emailFormData = new FormData();
-        recipients.filter(r => r).forEach(r => emailFormData.append('to', r));
-        emailFormData.append('subject', report.subject);
-        emailFormData.append('html', report.body);
-
-        sendEmailAction(emailFormData);
+        if (jobsToPay && jobsToPay.length > 0 && user) {
+            const newReport: Omit<PayrollReport, 'id'> = {
+                weekNumber: getWeek(now),
+                year: getYear(now),
+                startDate: start.toISOString(),
+                endDate: end.toISOString(),
+                sentDate: now.toISOString(),
+                recipientCount: 0, // No emails sent
+                totalPayout,
+                jobCount: jobsToPay.length,
+                jobIds: jobsToPay.map(j => j.id),
+            };
+            await addDocumentNonBlocking(collection(firestore!, 'users', user.uid, 'payrollReports'), newReport);
+        }
+        
+        toast({
+            title: "Report Generated & Saved",
+            description: "The payroll report has been saved to your history.",
+        });
 
     } catch (error) {
-      console.error("Failed to generate or send report:", error);
+      console.error("Failed to generate or save report:", error);
       toast({
           variant: "destructive",
           title: "Process Failed",
-          description: "Could not generate or send the payroll report.",
+          description: "Could not generate or save the payroll report.",
       });
+    } finally {
+        setIsGenerating(false);
     }
   };
 
@@ -279,13 +220,12 @@ export default function PayrollPage() {
   return (
     <div>
       <PageHeader title="Payroll" />
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 grid gap-6">
-           <Card>
+      <div className="grid gap-6">
+          <Card>
             <CardHeader>
               <CardTitle>Jobs Ready for Payout</CardTitle>
               <CardDescription>
-                These jobs have the status "Open Payment" and are ready to be processed.
+                These jobs have the status "Open Payment" and are ready to be processed for payroll.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -351,17 +291,25 @@ export default function PayrollPage() {
               </Table>
             </CardContent>
           </Card>
+          
+          <div className="flex justify-end">
+             <Button onClick={handleGenerateAndSave} disabled={isGenerating || isLoading || !jobsToPay || jobsToPay.length === 0}>
+                {isGenerating ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <History className="mr-2 h-4 w-4" />}
+                {isGenerating ? 'Saving...' : 'Save Report to History'}
+              </Button>
+          </div>
+
           <Card>
             <CardHeader>
               <CardTitle>Report History</CardTitle>
-              <CardDescription>A log of your past sent payroll reports.</CardDescription>
+              <CardDescription>A log of your past generated payroll reports.</CardDescription>
             </CardHeader>
             <CardContent>
                <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Week</TableHead>
-                    <TableHead>Date Sent</TableHead>
+                    <TableHead>Date Saved</TableHead>
                     <TableHead>Jobs</TableHead>
                     <TableHead className="text-right">Total Payout</TableHead>
                   </TableRow>
@@ -390,7 +338,7 @@ export default function PayrollPage() {
                   ) : (
                     <TableRow>
                       <TableCell colSpan={4} className="h-24 text-center">
-                        No reports have been sent yet.
+                        No reports have been saved yet.
                       </TableCell>
                     </TableRow>
                   )}
@@ -398,49 +346,6 @@ export default function PayrollPage() {
               </Table>
             </CardContent>
           </Card>
-        </div>
-
-        <div className="lg:col-span-1">
-          <Card>
-            <CardHeader>
-              <CardTitle>Weekly Report</CardTitle>
-              <CardDescription>
-                Manage the recipients for the weekly payroll summary.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-4">
-               {isLoadingSettings ? <Skeleton className="h-24 w-full" /> : (
-                <>
-                  <div className="grid gap-2">
-                    <Label htmlFor="email1">Primary Recipient</Label>
-                    <Input 
-                      id="email1" 
-                      type="email" 
-                      value={recipients[0] || ""}
-                      onChange={(e) => handleRecipientChange(0, e.target.value)}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="email2">Secondary Recipient</Label>
-                    <Input 
-                      id="email2" 
-                      type="email" 
-                      value={recipients[1] || ""}
-                      onChange={(e) => handleRecipientChange(1, e.target.value)}
-                    />
-                  </div>
-                </>
-               )}
-               <Button variant="outline" onClick={handleSaveRecipients} disabled={isLoadingSettings}>Save Recipients</Button>
-               <form action={handleGenerateAndSend}>
-                 <Button type="submit" className="w-full" disabled={isSending || isLoading}>
-                      {isSending ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-                      {isSending ? 'Sending...' : 'Send Report Now'}
-                  </Button>
-               </form>
-            </CardContent>
-          </Card>
-        </div>
       </div>
     </div>
   );

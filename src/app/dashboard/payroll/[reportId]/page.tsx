@@ -1,8 +1,8 @@
 
 "use client";
 
-import { useState, useEffect, useActionState } from "react";
-import { useParams, useRouter } from 'next/navigation';
+import { useState, useEffect } from "react";
+import { useParams } from 'next/navigation';
 import { useDoc, useFirestore, useMemoFirebase, useCollection, useUser } from "@/firebase";
 import { doc, collection, query, where } from "firebase/firestore";
 import type { Job, PayrollReport, UserProfile, GeneralSettings } from "@/app/lib/types";
@@ -10,12 +10,10 @@ import { PageHeader } from "@/components/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Send, LoaderCircle } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { generatePayrollReport, PayrollReportInput } from "@/ai/flows/generate-payroll-report-flow";
 import { format } from "date-fns";
-import { sendEmail } from "@/app/actions/send-email";
-import { useToast } from "@/hooks/use-toast";
 import { calculateJobPayout, calculateMaterialCost } from "@/app/lib/job-financials";
 
 export default function ReportDetailsPage() {
@@ -23,14 +21,8 @@ export default function ReportDetailsPage() {
     const reportId = params.reportId as string;
     const firestore = useFirestore();
     const { user } = useUser();
-    const { toast } = useToast();
     const [isGenerating, setIsGenerating] = useState(true);
     const [generatedEmail, setGeneratedEmail] = useState<{ subject: string; body: string } | null>(null);
-
-    const [sendEmailState, sendEmailAction, isResending] = useActionState(sendEmail, {
-        error: null,
-        success: false,
-    });
 
     const reportRef = useMemoFirebase(() => {
         if (!firestore || !user || !reportId) return null;
@@ -104,40 +96,6 @@ export default function ReportDetailsPage() {
         regenerateEmail();
     }, [report, jobs, userProfile, settings]);
 
-    useEffect(() => {
-        if (sendEmailState.success && !isResending) {
-            toast({
-                title: "Report Resent!",
-                description: "The payroll report has been successfully resent.",
-            });
-        }
-        if (sendEmailState.error && !isResending) {
-            toast({
-                variant: "destructive",
-                title: "Resend Failed",
-                description: `Could not resend the report: ${sendEmailState.error}`,
-            });
-        }
-    }, [sendEmailState, isResending, toast]);
-
-
-    const handleResend = () => {
-        if (!generatedEmail || !settings?.reportRecipients || settings.reportRecipients.length === 0) {
-            toast({
-                variant: "destructive",
-                title: "Cannot Resend",
-                description: "Email content is not available or no recipients are configured in settings.",
-            });
-            return;
-        }
-
-        const formData = new FormData();
-        settings.reportRecipients!.filter(r => r).forEach(r => formData.append('to', r));
-        formData.append('subject', generatedEmail.subject);
-        formData.append('html', generatedEmail.body);
-        sendEmailAction(formData);
-    };
-
     const isLoading = isLoadingReport || isLoadingJobs || isLoadingProfile || isGenerating;
     const pageTitle = report ? `Report: Week ${report.weekNumber}, ${report.year}` : "Report Details";
 
@@ -151,20 +109,14 @@ export default function ReportDetailsPage() {
                             Back to Payroll
                         </Link>
                     </Button>
-                    <form action={handleResend}>
-                        <Button type="submit" disabled={isResending || isLoading}>
-                            {isResending ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-                            {isResending ? 'Resending...' : 'Resend Report'}
-                        </Button>
-                    </form>
                 </div>
             </PageHeader>
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Sent Email Preview</CardTitle>
+                    <CardTitle>Generated Report Preview</CardTitle>
                     <CardDescription>
-                        This is a copy of the email that was sent on {report ? format(new Date(report.sentDate), 'PPP p') : '...'}
+                        This is a copy of the report generated on {report ? format(new Date(report.sentDate), 'PPP p') : '...'}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
