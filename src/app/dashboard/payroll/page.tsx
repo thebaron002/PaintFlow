@@ -25,7 +25,7 @@ import { ChevronDown, LoaderCircle, History } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useDoc, useFirestore, useMemoFirebase, setDocumentNonBlocking, useCollection, useUser, addDocumentNonBlocking } from "@/firebase";
-import { collection, query, where, orderBy, limit, doc } from "firebase/firestore";
+import { collection, query, where, orderBy, limit, doc, getDocs } from "firebase/firestore";
 import { format, getWeek, startOfWeek, endOfWeek, getYear } from "date-fns";
 import { cn } from "@/lib/utils";
 import React from "react";
@@ -138,7 +138,7 @@ export default function PayrollPage() {
   }
   
   const handleGenerateAndSave = async () => {
-    if (!jobsToPay || jobsToPay.length === 0) {
+    if (!jobsToPay || jobsToPay.length === 0 || !firestore || !user) {
       toast({
         variant: "destructive",
         title: "No Jobs for Payroll",
@@ -151,6 +151,27 @@ export default function PayrollPage() {
 
     try {
         const now = new Date();
+        const currentWeek = getWeek(now);
+        const currentYear = getYear(now);
+        
+        // Check for existing report for the current week and year
+        const reportsCollectionRef = collection(firestore, 'users', user.uid, 'payrollReports');
+        const existingReportQuery = query(reportsCollectionRef, 
+            where('weekNumber', '==', currentWeek),
+            where('year', '==', currentYear)
+        );
+        const existingReportSnap = await getDocs(existingReportQuery);
+
+        if (!existingReportSnap.empty) {
+            toast({
+                variant: "destructive",
+                title: "Report Already Exists",
+                description: `A payroll report for week ${currentWeek} of ${currentYear} has already been saved.`,
+            });
+            setIsGenerating(false);
+            return;
+        }
+
         const start = startOfWeek(now);
         const end = endOfWeek(now);
         const totalPayout = jobsToPay.reduce((acc, job) => acc + calculateJobPayout(job, settings), 0);
@@ -174,7 +195,7 @@ export default function PayrollPage() {
                 }
             }),
             currentDate: format(now, "MM/dd/yyyy"),
-            weekNumber: getWeek(now),
+            weekNumber: currentWeek,
             startDate: format(start, "MM/dd/yyyy"),
             endDate: format(end, "MM/dd/yyyy"),
             businessName: userProfile?.businessName || "",
@@ -184,20 +205,18 @@ export default function PayrollPage() {
         
         await generatePayrollReport(reportInput);
         
-        if (jobsToPay && jobsToPay.length > 0 && user) {
-            const newReport: Omit<PayrollReport, 'id'> = {
-                weekNumber: getWeek(now),
-                year: getYear(now),
-                startDate: start.toISOString(),
-                endDate: end.toISOString(),
-                sentDate: now.toISOString(),
-                recipientCount: 0, // No emails sent
-                totalPayout,
-                jobCount: jobsToPay.length,
-                jobIds: jobsToPay.map(j => j.id),
-            };
-            await addDocumentNonBlocking(collection(firestore!, 'users', user.uid, 'payrollReports'), newReport);
-        }
+        const newReport: Omit<PayrollReport, 'id'> = {
+            weekNumber: currentWeek,
+            year: currentYear,
+            startDate: start.toISOString(),
+            endDate: end.toISOString(),
+            sentDate: now.toISOString(),
+            recipientCount: 0,
+            totalPayout,
+            jobCount: jobsToPay.length,
+            jobIds: jobsToPay.map(j => j.id),
+        };
+        await addDocumentNonBlocking(reportsCollectionRef, newReport);
         
         toast({
             title: "Report Generated & Saved",
