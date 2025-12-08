@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useActionState } from "react";
+import { useState, useEffect, useActionState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { 
@@ -26,7 +26,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useDoc, useFirestore, useMemoFirebase, setDocumentNonBlocking, useCollection, useUser, addDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { collection, query, where, orderBy, limit, doc, getDocs } from "firebase/firestore";
-import { format, getWeek, startOfWeek, endOfWeek, getYear } from "date-fns";
+import { format, parseISO, getWeek, startOfWeek, endOfWeek, getYear } from "date-fns";
 import { cn } from "@/lib/utils";
 import React from "react";
 import { generatePayrollReport, PayrollReportInput } from "@/ai/flows/generate-payroll-report-flow";
@@ -126,11 +126,17 @@ export default function PayrollPage() {
 
   const jobsToPayQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
+    // The order by deadline requires a composite index, so we do it client-side.
     return query(collection(firestore, 'users', user.uid, 'jobs'), where('status', '==', 'Open Payment'));
   }, [firestore, user]);
 
   const { data: jobsToPay, isLoading: isLoadingJobs } = useCollection<Job>(jobsToPayQuery);
   
+  const sortedJobsToPay = useMemo(() => {
+    if (!jobsToPay) return [];
+    return [...jobsToPay].sort((a, b) => parseISO(a.deadline).getTime() - parseISO(b.deadline).getTime());
+  }, [jobsToPay]);
+
   const reportsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(collection(firestore, 'users', user.uid, 'payrollReports'), orderBy('sentDate', 'desc'), limit(10));
@@ -154,7 +160,7 @@ export default function PayrollPage() {
   }
   
   const handleGenerateAndSave = async () => {
-    if (!jobsToPay || jobsToPay.length === 0 || !firestore || !user) {
+    if (!sortedJobsToPay || sortedJobsToPay.length === 0 || !firestore || !user) {
       toast({
         variant: "destructive",
         title: "No Jobs for Payroll",
@@ -190,10 +196,10 @@ export default function PayrollPage() {
 
         const start = startOfWeek(now);
         const end = endOfWeek(now);
-        const totalPayout = jobsToPay.reduce((acc, job) => acc + calculateJobPayout(job, settings), 0);
+        const totalPayout = sortedJobsToPay.reduce((acc, job) => acc + calculateJobPayout(job, settings), 0);
 
         const reportInput: PayrollReportInput = {
-            jobs: jobsToPay.map(job => {
+            jobs: sortedJobsToPay.map(job => {
                 const payout = calculateJobPayout(job, settings);
                 return {
                     ...job,
@@ -223,8 +229,8 @@ export default function PayrollPage() {
             sentDate: now.toISOString(),
             recipientCount: 0,
             totalPayout,
-            jobCount: jobsToPay.length,
-            jobIds: jobsToPay.map(j => j.id),
+            jobCount: sortedJobsToPay.length,
+            jobIds: sortedJobsToPay.map(j => j.id),
         };
         await addDocumentNonBlocking(reportsCollectionRef, newReport);
         
@@ -291,9 +297,8 @@ export default function PayrollPage() {
                          <TableCell><Skeleton className="h-8 w-full" /></TableCell>
                       </TableRow>
                     ))
-                  ) : jobsToPay && jobsToPay.length > 0 ? jobsToPay.map(job => {
-                     const clientLastName = job.clientName.split(" ").pop() || "N/A";
-                     const jobTitle = job.title || `${clientLastName} #${job.quoteNumber}`;
+                  ) : sortedJobsToPay && sortedJobsToPay.length > 0 ? sortedJobsToPay.map(job => {
+                     const jobTitle = job.title || `${job.clientName.split(" ").pop() || "N/A"} #${job.quoteNumber}`;
                      const payout = calculateJobPayout(job, settings);
 
                     return (
@@ -333,7 +338,7 @@ export default function PayrollPage() {
           </Card>
           
           <div className="flex justify-end">
-             <Button onClick={handleGenerateAndSave} disabled={isGenerating || isLoading || !jobsToPay || jobsToPay.length === 0}>
+             <Button onClick={handleGenerateAndSave} disabled={isGenerating || isLoading || !sortedJobsToPay || sortedJobsToPay.length === 0}>
                 {isGenerating ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <History className="mr-2 h-4 w-4" />}
                 {isGenerating ? 'Saving...' : 'Save Report to History'}
               </Button>
@@ -428,7 +433,3 @@ export default function PayrollPage() {
     </div>
   );
 }
-
-    
-
-    
