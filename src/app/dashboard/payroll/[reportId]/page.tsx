@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { generatePayrollReport, PayrollReportInput } from "@/ai/flows/generate-payroll-report-flow";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { calculateJobPayout } from "@/app/lib/job-financials";
 
 export default function ReportDetailsPage() {
@@ -56,8 +56,10 @@ export default function ReportDetailsPage() {
             if (report && jobs && userProfile && settings) {
                 setIsGenerating(true);
                 try {
+                    const sortedJobs = [...jobs].sort((a, b) => parseISO(a.deadline).getTime() - parseISO(b.deadline).getTime());
+                    
                     const reportInput: PayrollReportInput = {
-                        jobs: jobs.map(job => {
+                        jobs: sortedJobs.map(job => {
                             const payout = calculateJobPayout(job, settings);
                             const jobTitle = job.title || `${job.clientName.split(" ").pop() || "N/A"} #${job.quoteNumber}`;
 
