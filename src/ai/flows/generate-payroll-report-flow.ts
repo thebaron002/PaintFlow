@@ -14,7 +14,6 @@ const JobSchema = z.object({
   startDate: z.string().describe("The job's start date in MM/DD/YYYY format."),
   deadline: z.string().describe("The job's completion date in MM/DD/YYYY format."),
   payout: z.number().describe("The final calculated payout amount for the job."),
-  materialUsage: z.number().describe("The material usage as a percentage."),
   notes: z.string().optional().describe("Any special requirements or notes for the job."),
 });
 
@@ -115,7 +114,6 @@ const prompt = ai.definePrompt({
                             <tr><td style="padding: 4px 0; font-size: 14px; color: #555555;"><strong>Start Date:</strong> {{this.startDate}}</td></tr>
                             <tr><td style="padding: 4px 0; font-size: 14px; color: #555555;"><strong>Conclusion Date:</strong> {{this.deadline}}</td></tr>
                             <tr><td style="padding: 4px 0; font-size: 14px; color: #555555;"><strong>Payout:</strong> <span style="font-weight: bold; color: #1a73e8;">\${{this.payout}}</span></td></tr>
-                            <tr><td style="padding: 4px 0; font-size: 14px; color: #555555;"><strong>Material Usage:</strong> {{this.materialUsage}}%</td></tr>
                             <tr><td style="padding: 8px 0 0 0; font-size: 14px; color: #555555;"><strong>Notes:</strong><br>{{this.notes}}</td></tr>
                           </table>
                         </td>

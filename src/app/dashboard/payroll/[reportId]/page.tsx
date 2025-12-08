@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from 'next/navigation';
 import { useDoc, useFirestore, useMemoFirebase, useCollection, useUser } from "@/firebase";
-import { doc, collection, query, where } from "firebase/firestore";
+import { doc, collection, query, where } from "firestore";
 import type { Job, PayrollReport, UserProfile, GeneralSettings } from "@/app/lib/types";
 import { PageHeader } from "@/components/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -58,10 +58,6 @@ export default function ReportDetailsPage() {
                 try {
                     const reportInput: PayrollReportInput = {
                         jobs: jobs.map(job => {
-                            const materialCost = calculateMaterialCost(job.invoices);
-                            const sharePercentage = settings?.sharePercentage ?? 100;
-                            const totalJobValue = job.initialValue > 0 && sharePercentage > 0 ? job.initialValue / (sharePercentage / 100) : 0;
-                            const materialUsage = totalJobValue > 0 ? (materialCost / totalJobValue) * 100 : 0;
                             const payout = calculateJobPayout(job, settings);
 
                             return {
@@ -70,7 +66,6 @@ export default function ReportDetailsPage() {
                                 startDate: format(new Date(job.startDate), "MM/dd/yyyy"),
                                 deadline: format(new Date(job.deadline), "MM/dd/yyyy"),
                                 payout: parseFloat(payout.toFixed(2)),
-                                materialUsage: parseFloat(materialUsage.toFixed(2)),
                                 notes: job.specialRequirements || "N/A",
                             }
                         }),

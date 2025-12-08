@@ -59,7 +59,6 @@ const JobDetailsRow = ({ job }: { job: Job }) => {
     const globalHourlyRate = settings?.hourlyRate ?? 0;
 
     const materialCost = calculateMaterialCost(job.invoices);
-    const materialUsagePercentage = job.initialValue > 0 ? (materialCost / job.initialValue) * 100 : 0;
     
     const totalAdjustments = job.adjustments?.reduce((sum, adj) => {
         if (adj.type === 'Time') {
@@ -81,8 +80,8 @@ const JobDetailsRow = ({ job }: { job: Job }) => {
                         <p>{format(new Date(job.startDate), "MMM dd, yyyy")}</p>
                     </div>
                      <div className="space-y-1">
-                        <p className="text-sm font-medium text-muted-foreground">Material Usage</p>
-                        <p>{materialUsagePercentage.toFixed(2)}%</p>
+                        <p className="text-sm font-medium text-muted-foreground">Material Cost</p>
+                        <p>${materialCost.toLocaleString()}</p>
                     </div>
                     <div className="space-y-1">
                         <p className="text-sm font-medium text-muted-foreground">Total Invoiced</p>
@@ -195,19 +194,13 @@ export default function PayrollPage() {
 
         const reportInput: PayrollReportInput = {
             jobs: jobsToPay.map(job => {
-                const materialCost = calculateMaterialCost(job.invoices);
-                const sharePercentage = settings?.sharePercentage ?? 100;
-                const totalJobValue = job.initialValue > 0 && sharePercentage > 0 ? job.initialValue / (sharePercentage / 100) : 0;
-                const materialUsage = totalJobValue > 0 ? (materialCost / totalJobValue) * 100 : 0;
                 const payout = calculateJobPayout(job, settings);
-
                 return {
                     ...job,
                     quoteNumber: job.quoteNumber || (job as any).workOrderNumber || 'N/A',
                     startDate: format(new Date(job.startDate), "MM/dd/yyyy"),
                     deadline: format(new Date(job.deadline), "MM/dd/yyyy"),
                     payout: parseFloat(payout.toFixed(2)),
-                    materialUsage: parseFloat(materialUsage.toFixed(2)),
                     notes: job.specialRequirements || "N/A",
                 }
             }),
