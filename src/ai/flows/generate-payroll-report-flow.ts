@@ -4,7 +4,6 @@
 import { ai } from '@/ai/genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 import { z } from 'zod';
-import { Job as JobType } from '@/app/lib/types'; 
 
 // Zod schema based on the desired email output
 const JobSchema = z.object({
@@ -38,32 +37,36 @@ export type PayrollReportInput = z.infer<typeof PayrollReportInputSchema>;
 export type PayrollReportOutput = z.infer<typeof PayrollReportOutputSchema>;
 
 export async function generatePayrollReport(input: PayrollReportInput): Promise<PayrollReportOutput> {
-    return payrollReportFlow(input);
-}
+    const {
+        jobs,
+        weekNumber,
+        startDate,
+        endDate,
+        businessName,
+        businessLogoUrl,
+        totalPayout,
+    } = input;
 
+    const subject = `${businessName ? `${businessName}: ` : ''}Weekly Payroll Report - Week ${weekNumber}`;
 
-const prompt = ai.definePrompt({
-    name: 'payrollReportPrompt',
-    input: { schema: PayrollReportInputSchema },
-    output: { schema: PayrollReportOutputSchema },
-    prompt: `
-      You are an assistant for a painting contractor.
-      Your task is to generate a professional weekly payroll summary email listing jobs with an "Open Payment" status.
-      The output must be a single HTML document. Use inline CSS for styling. Do not use any <style> tags.
+    const jobsHtml = jobs.map(job => `
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="border: 1px solid #eeeeee; border-radius: 6px; margin-bottom: 20px;">
+            <tr>
+                <td style="padding: 15px;">
+                    <p style="margin: 0 0 10px 0; font-size: 18px; font-weight: bold; color: #333333;">${job.title}</p>
+                    <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                        <tr><td style="padding: 4px 0; font-size: 14px; color: #555555;"><strong>Client:</strong> ${job.clientName}</td></tr>
+                        <tr><td style="padding: 4px 0; font-size: 14px; color: #555555;"><strong>Start Date:</strong> ${job.startDate}</td></tr>
+                        <tr><td style="padding: 4px 0; font-size: 14px; color: #555555;"><strong>Conclusion Date:</strong> ${job.deadline}</td></tr>
+                        <tr><td style="padding: 4px 0; font-size: 14px; color: #555555;"><strong>Payout:</strong> <span style="font-weight: bold; color: #1a73e8;">$${job.payout.toFixed(2)}</span></td></tr>
+                        <tr><td style="padding: 8px 0 0 0; font-size: 14px; color: #555555;"><strong>Notes:</strong><br>${job.notes || 'N/A'}</td></tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    `).join('');
 
-      The subject line should be: "{{#if businessName}}{{businessName}}: {{/if}}Weekly Payroll Report - Week {{weekNumber}}".
-
-      The email body should have the following structure:
-      1. A container with a light gray background (#f7f7f7).
-      2. A header section with the business logo (if provided), business name, and report title.
-      3. A main content section with an introduction and a list of jobs.
-      4. Each job should be presented in its own table for clarity.
-      5. A summary section with the total payout.
-      6. A simple footer.
-
-      Here is the detailed HTML structure to follow. Fill in the placeholders like {{businessName}}, {{weekNumber}}, etc. with the provided data.
-
-      \`\`\`html
+    const body = `
       <!DOCTYPE html>
       <html>
       <head>
@@ -80,16 +83,16 @@ const prompt = ai.definePrompt({
                   <td align="center" style="border-bottom: 1px solid #dddddd; padding-bottom: 20px;">
                     <table width="100%" border="0" cellspacing="0" cellpadding="0">
                       <tr>
-                        {{#if businessLogoUrl}}
+                        ${businessLogoUrl ? `
                         <td align="left" style="width: 80px;">
-                          <img src="{{businessLogoUrl}}" alt="{{businessName}} Logo" width="60" height="60" style="border-radius: 50%;">
+                          <img src="${businessLogoUrl}" alt="${businessName || ''} Logo" width="60" height="60" style="border-radius: 50%;">
                         </td>
-                        {{/if}}
+                        ` : ''}
                         <td align="left" style="font-size: 24px; font-weight: bold; color: #333333;">
-                          {{#if businessName}}{{businessName}}{{else}}Weekly Report{{/if}}
+                          ${businessName || 'Weekly Report'}
                         </td>
                         <td align="right" style="font-size: 14px; color: #777777;">
-                          Week {{weekNumber}}
+                          Week ${weekNumber}
                         </td>
                       </tr>
                     </table>
@@ -99,29 +102,14 @@ const prompt = ai.definePrompt({
                 <tr>
                   <td style="padding: 20px;">
                     <p style="font-size: 16px; color: #555555; line-height: 1.6; margin: 0;">
-                      Here are the jobs with Open Payment status for the period from <strong>{{startDate}}</strong> to <strong>{{endDate}}</strong>:
+                      Here are the jobs with Open Payment status for the period from <strong>${startDate}</strong> to <strong>${endDate}</strong>:
                     </p>
                   </td>
                 </tr>
                 <!-- Jobs List -->
                 <tr>
                   <td>
-                    {{#each jobs}}
-                    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="border: 1px solid #eeeeee; border-radius: 6px; margin-bottom: 20px;">
-                      <tr>
-                        <td style="padding: 15px;">
-                          <p style="margin: 0 0 10px 0; font-size: 18px; font-weight: bold; color: #333333;">{{this.title}}</p>
-                          <table width="100%" border="0" cellspacing="0" cellpadding="0">
-                            <tr><td style="padding: 4px 0; font-size: 14px; color: #555555;"><strong>Client:</strong> {{this.clientName}}</td></tr>
-                            <tr><td style="padding: 4px 0; font-size: 14px; color: #555555;"><strong>Start Date:</strong> {{this.startDate}}</td></tr>
-                            <tr><td style="padding: 4px 0; font-size: 14px; color: #555555;"><strong>Conclusion Date:</strong> {{this.deadline}}</td></tr>
-                            <tr><td style="padding: 4px 0; font-size: 14px; color: #555555;"><strong>Payout:</strong> <span style="font-weight: bold; color: #1a73e8;">\${{this.payout}}</span></td></tr>
-                            <tr><td style="padding: 8px 0 0 0; font-size: 14px; color: #555555;"><strong>Notes:</strong><br>{{this.notes}}</td></tr>
-                          </table>
-                        </td>
-                      </tr>
-                    </table>
-                    {{/each}}
+                    ${jobsHtml}
                   </td>
                 </tr>
                 <!-- Total -->
@@ -130,7 +118,7 @@ const prompt = ai.definePrompt({
                     <table border="0" cellspacing="0" cellpadding="0">
                       <tr>
                         <td style="font-size: 16px; color: #555555;">Total Payout:</td>
-                        <td style="font-size: 20px; font-weight: bold; color: #333333; padding-left: 15px;">\${{totalPayout}}</td>
+                        <td style="font-size: 20px; font-weight: bold; color: #333333; padding-left: 15px;">$${totalPayout.toFixed(2)}</td>
                       </tr>
                     </table>
                   </td>
@@ -147,19 +135,7 @@ const prompt = ai.definePrompt({
         </table>
       </body>
       </html>
-      \`\`\`
-    `,
-});
-
-
-const payrollReportFlow = ai.defineFlow(
-  {
-    name: 'payrollReportFlow',
-    inputSchema: PayrollReportInputSchema,
-    outputSchema: PayrollReportOutputSchema,
-  },
-  async (input) => {
-    const { output } = await prompt(input, { model: googleAI.model('gemini-2.5-flash') });
-    return output!;
-  }
-);
+    `;
+    
+    return Promise.resolve({ subject, body });
+}
