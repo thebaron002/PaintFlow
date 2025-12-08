@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from 'next/navigation';
 import { useDoc, useFirestore, useMemoFirebase, useCollection, useUser } from "@/firebase";
-import { doc, collection, query, where } from "firestore";
+import { doc, collection, query, where } from "firebase/firestore";
 import type { Job, PayrollReport, UserProfile, GeneralSettings } from "@/app/lib/types";
 import { PageHeader } from "@/components/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,7 +14,7 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { generatePayrollReport, PayrollReportInput } from "@/ai/flows/generate-payroll-report-flow";
 import { format } from "date-fns";
-import { calculateJobPayout, calculateMaterialCost } from "@/app/lib/job-financials";
+import { calculateJobPayout } from "@/app/lib/job-financials";
 
 export default function ReportDetailsPage() {
     const params = useParams();
