@@ -110,12 +110,12 @@ const JobCard = ({ job, settings }: { job: Job, settings: GeneralSettings | null
     return (
         <Card onClick={() => router.push(`/dashboard/jobs/${job.id}`)} className="cursor-pointer">
             <CardContent className="p-4">
-                <div className="flex justify-between items-start">
+                <div className="flex justify-between items-start gap-3">
                     <div className="flex-1 min-w-0">
                         <p className="font-semibold truncate">{jobTitle}</p>
                         <p className="text-sm text-muted-foreground truncate">{job.address}</p>
                     </div>
-                    <p className="text-lg font-bold ml-4">${payout.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+                    <p className="text-lg font-bold ml-4 shrink-0">${payout.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
                 </div>
                 <div className="flex justify-between items-center mt-3 text-xs text-muted-foreground">
                     <span>Completion Date</span>
