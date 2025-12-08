@@ -126,7 +126,7 @@ export default function PayrollPage() {
 
   const jobsToPayQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return query(collection(firestore, 'users', user.uid, 'jobs'), where('status', '==', 'Open Payment'));
+    return query(collection(firestore, 'users', user.uid, 'jobs'), where('status', '==', 'Open Payment'), orderBy('deadline', 'asc'));
   }, [firestore, user]);
 
   const { data: jobsToPay, isLoading: isLoadingJobs } = useCollection<Job>(jobsToPayQuery);
@@ -378,7 +378,7 @@ export default function PayrollPage() {
                         <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8"
+                              <Button variant="ghost" size="icon" className="h-8 w-8 opacity-100"
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 <MoreHorizontal className="h-4 w-4" />
