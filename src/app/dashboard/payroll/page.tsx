@@ -200,8 +200,10 @@ export default function PayrollPage() {
         const reportInput: PayrollReportInput = {
             jobs: sortedJobsToPay.map(job => {
                 const payout = calculateJobPayout(job, settings);
+                const jobTitle = job.title || `${job.clientName.split(" ").pop() || "N/A"} #${job.quoteNumber}`;
                 return {
                     ...job,
+                    title: jobTitle,
                     quoteNumber: job.quoteNumber || (job as any).workOrderNumber || 'N/A',
                     startDate: format(new Date(job.startDate), "MM/dd/yyyy"),
                     deadline: format(new Date(job.deadline), "MM/dd/yyyy"),
@@ -382,7 +384,7 @@ export default function PayrollPage() {
                         <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 opacity-100"
+                              <Button variant="ghost" size="icon" className="h-8 w-8"
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 <MoreHorizontal className="h-4 w-4" />
@@ -432,5 +434,3 @@ export default function PayrollPage() {
     </div>
   );
 }
-
-    

@@ -8,7 +8,7 @@ import { Job as JobType } from '@/app/lib/types';
 // Zod schema based on the desired email output
 const JobSchema = z.object({
   id: z.string(),
-  title: z.string(),
+  title: z.string().describe("The pre-formatted title of the job."),
   clientName: z.string(),
   quoteNumber: z.string(),
   startDate: z.string().describe("The job's start date in MM/DD/YYYY format."),
@@ -109,8 +109,9 @@ const prompt = ai.definePrompt({
                     <table width="100%" border="0" cellspacing="0" cellpadding="0" style="border: 1px solid #eeeeee; border-radius: 6px; margin-bottom: 20px;">
                       <tr>
                         <td style="padding: 15px;">
-                          <p style="margin: 0 0 10px 0; font-size: 18px; font-weight: bold; color: #333333;">{{this.clientName}} #{{this.quoteNumber}}</p>
+                          <p style="margin: 0 0 10px 0; font-size: 18px; font-weight: bold; color: #333333;">{{this.title}}</p>
                           <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                            <tr><td style="padding: 4px 0; font-size: 14px; color: #555555;"><strong>Client:</strong> {{this.clientName}}</td></tr>
                             <tr><td style="padding: 4px 0; font-size: 14px; color: #555555;"><strong>Start Date:</strong> {{this.startDate}}</td></tr>
                             <tr><td style="padding: 4px 0; font-size: 14px; color: #555555;"><strong>Conclusion Date:</strong> {{this.deadline}}</td></tr>
                             <tr><td style="padding: 4px 0; font-size: 14px; color: #555555;"><strong>Payout:</strong> <span style="font-weight: bold; color: #1a73e8;">\${{this.payout}}</span></td></tr>

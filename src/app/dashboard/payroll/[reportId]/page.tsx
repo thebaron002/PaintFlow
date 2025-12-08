@@ -59,9 +59,11 @@ export default function ReportDetailsPage() {
                     const reportInput: PayrollReportInput = {
                         jobs: jobs.map(job => {
                             const payout = calculateJobPayout(job, settings);
+                            const jobTitle = job.title || `${job.clientName.split(" ").pop() || "N/A"} #${job.quoteNumber}`;
 
                             return {
                                 ...job,
+                                title: jobTitle,
                                 quoteNumber: job.quoteNumber || (job as any).workOrderNumber || 'N/A',
                                 startDate: format(new Date(job.startDate), "MM/dd/yyyy"),
                                 deadline: format(new Date(job.deadline), "MM/dd/yyyy"),
