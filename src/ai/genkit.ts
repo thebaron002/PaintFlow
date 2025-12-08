@@ -9,5 +9,5 @@ export const ai = genkit({
       apiVersion: 'v1beta', // Recommended for gemini-2.5-flash
     }),
   ],
-  model: 'vertexai/gemini-2.5-flash',
+  model: 'gemini-2.5-flash',
 });
