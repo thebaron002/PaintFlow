@@ -108,12 +108,10 @@ export function AddGeneralExpenseForm({ categories, onSuccess }: AddGeneralExpen
             render={({ field }) => (
                 <FormItem className="flex flex-col">
                 <FormLabel>Date</FormLabel>
-                <FormControl>
-                   <ResponsiveDatePicker
-                      value={field.value}
-                      onChange={field.onChange}
-                   />
-                </FormControl>
+                <ResponsiveDatePicker
+                    value={field.value}
+                    onChange={field.onChange}
+                />
                 <FormMessage />
                 </FormItem>
             )}
