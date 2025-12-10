@@ -186,6 +186,42 @@
             "description": "A list of email addresses to receive the weekly payroll report."
         }
       }
+    },
+    "Ticket": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Ticket",
+      "type": "object",
+      "description": "Represents a ticket for tracking bugs or feature requests.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Ticket."
+        },
+        "title": {
+          "type": "string",
+          "description": "A brief title for the ticket."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the bug or feature."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Open", "In Progress", "Done"],
+          "description": "The current status of the ticket."
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["Low", "Medium", "High"],
+          "description": "The priority level of the ticket."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the ticket was created."
+        }
+      },
+      "required": ["id", "title", "status", "priority", "createdAt"]
     }
   },
   "auth": {
@@ -272,6 +308,26 @@
         }
       },
       {
+        "path": "/users/{userId}/tickets/{ticketId}",
+        "definition": {
+          "entityName": "Ticket",
+          "schema": {
+            "$ref": "#/entities/Ticket"
+          },
+          "description": "Stores tickets for bug and feature tracking for a specific user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The user who owns this ticket."
+            },
+            {
+              "name": "ticketId",
+              "description": "The unique identifier for the ticket."
+            }
+          ]
+        }
+      },
+      {
         "path": "/settings/global",
         "definition": {
           "entityName": "GeneralSettings",
@@ -283,6 +339,8 @@
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed with a user-centric data model. All primary data collections (jobs, crew, etc.) are subcollections of a specific user's document in the top-level 'users' collection. This approach ensures strong data ownership and simplifies security rules, as access control is primarily based on verifying that the request's authenticated user ID matches the {userId} in the document path. This prevents users from accessing each other's data and provides a scalable, secure foundation for the application. A new 'generalExpenses' subcollection is added to store business expenses not tied to a specific job. There is also a top-level 'settings' collection containing a single 'global' document for app-wide configurations."
+    "reasoning": "The Firestore structure is designed with a user-centric data model. All primary data collections (jobs, crew, etc.) are subcollections of a specific user's document in the top-level 'users' collection. This approach ensures strong data ownership and simplifies security rules, as access control is primarily based on verifying that the request's authenticated user ID matches the {userId} in the document path. This prevents users from accessing each other's data and provides a scalable, secure foundation for the application. A new 'generalExpenses' subcollection is added to store business expenses not tied to a specific job. A new 'tickets' subcollection under each user stores personal bug/feature tickets. There is also a top-level 'settings' collection containing a single 'global' document for app-wide configurations."
   }
 }
+
+    

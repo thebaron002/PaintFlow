@@ -120,4 +120,13 @@ export type PayrollReport = {
   jobIds: string[];
 };
 
+export type Ticket = {
+    id: string;
+    title: string;
+    description: string;
+    status: 'Open' | 'In Progress' | 'Done';
+    priority: 'Low' | 'Medium' | 'High';
+    createdAt: string; // ISO date string
+}
 
+    

@@ -2,7 +2,7 @@
 'use client';
 import { ReactNode, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { LoaderCircle, Palette } from 'lucide-react';
+import { LoaderCircle, Palette, ClipboardList } from 'lucide-react';
 import Link from 'next/link';
 import {
   Briefcase,
@@ -41,6 +41,7 @@ const navItems = [
   { href: "/dashboard/finance", icon: DollarSign, label: "Finance" },
   { href: "/dashboard/payroll", icon: Landmark, label: "Payroll" },
   { href: "/dashboard/crew", icon: Users, label: "Crew" },
+  { href: "/dashboard/tickets", icon: ClipboardList, label: "Tickets" },
   { href: "/dashboard/profile", icon: UserIcon, label: "Profile" },
   { href: "/dashboard/settings", icon: Settings, label: "Settings" },
   { href: "/dashboard/styleguide", icon: Palette, label: "Styleguide" },
@@ -157,3 +158,5 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     </SidebarProvider>
   );
 }
+
+    
