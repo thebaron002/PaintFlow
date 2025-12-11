@@ -1,3 +1,4 @@
+
 "use client";
 import { useState, useEffect } from "react";
 import { startOfMonth, endOfMonth } from "date-fns";
@@ -72,6 +73,7 @@ export default function FinancePage() {
   const openPaymentJobs = jobs?.filter(job => job.status === 'Open Payment') ?? [];
   // --- Date Range State ---
   // Initialize with undefined or a fixed date to prevent hydration mismatch 
+  // if server time differs from client time.
   const [date, setDate] = useState<DateRange | undefined>();
   // Set default to current month only on client side
   useEffect(() => {
@@ -129,8 +131,8 @@ export default function FinancePage() {
   return (
     <div className="container max-w-7xl mx-auto py-6 space-y-6">
       <PageHeader title="Financials">
-        <div className="flex items-center gap-2">
-          <DatePickerWithRange date={date} setDate={setDate} />
+        <div className="flex flex-wrap items-center gap-2">
+          <DatePickerWithRange date={date} setDate={setDate} className="w-full sm:w-auto" />
           <Dialog open={isFinalizeModalOpen} onOpenChange={setIsFinalizeModalOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" disabled={openPaymentJobs.length === 0}>

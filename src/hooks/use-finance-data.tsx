@@ -32,13 +32,13 @@ export function useFinanceData(
     // 1. Process Raw Data into Lists
     const allIncome: IncomeItem[] = useMemo(() => {
         return jobs
-            .filter(job => job.status === 'Finalized')
+            .filter(job => job.status === 'Finalized' && job.finalizationDate)
             .map(job => ({
                 id: job.id,
                 jobId: job.id,
                 jobTitle: job.title || `${job.clientName} #${job.quoteNumber}`,
                 description: "Job payment finalized",
-                date: job.finalizationDate || job.deadline,
+                date: job.finalizationDate!,
                 amount: calculateJobPayout(job, settings),
             }));
     }, [jobs, settings]);
@@ -68,11 +68,11 @@ export function useFinanceData(
     }, [jobs, generalExpenses]);
     // 2. Filter by Date Range
     const filteredIncome = useMemo(() => {
-        if (!dateRange?.from || !dateRange?.to) return allIncome;
+        if (!dateRange?.from || !dateRange?.to) return [];
         return allIncome.filter(item => isWithinInterval(parseISO(item.date), { start: dateRange.from!, end: dateRange.to! }));
     }, [allIncome, dateRange]);
     const filteredExpenses = useMemo(() => {
-        if (!dateRange?.from || !dateRange?.to) return allExpenses;
+        if (!dateRange?.from || !dateRange?.to) return [];
         return allExpenses.filter(item => isWithinInterval(parseISO(item.date), { start: dateRange.from!, end: dateRange.to! }));
     }, [allExpenses, dateRange]);
     // 3. Calculate Totals
@@ -82,9 +82,10 @@ export function useFinanceData(
     const rawTaxRate = settings?.taxRate ?? 22; // Store as whole number (e.g. 22)
     const taxRate = rawTaxRate ? rawTaxRate / 100 : 0.22;
     const estimatedTax = netProfit > 0 ? netProfit * taxRate : 0;
-    // 4. Trend Calculation (Previous Period Comparison)
+    // 4. Trend Calculation
     const trends = useMemo(() => {
         if (!dateRange?.from || !dateRange?.to) return { income: 0, expenses: 0 };
+        
         const duration = dateRange.to.getTime() - dateRange.from.getTime();
         const prevStart = new Date(dateRange.from.getTime() - duration);
         const prevEnd = new Date(dateRange.to.getTime() - duration);
@@ -104,8 +105,8 @@ export function useFinanceData(
     return {
         income: filteredIncome,
         expenses: filteredExpenses,
-        allIncome, // Unfiltered for historical charts
-        allExpenses, // Unfiltered for historical charts
+        allIncome,
+        allExpenses,
         totalIncome,
         totalExpenses,
         netProfit,

@@ -1,3 +1,4 @@
+
 "use client"
 import * as React from "react"
 import { CalendarIcon } from "lucide-react"
@@ -11,13 +12,6 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover"
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select"
 export interface DatePickerWithRangeProps extends React.HTMLAttributes<HTMLDivElement> {
     date: DateRange | undefined
     setDate: (date: DateRange | undefined) => void
@@ -49,7 +43,7 @@ export function DatePickerWithRange({
                         id="date"
                         variant={"outline"}
                         className={cn(
-                            "w-[260px] justify-start text-left font-normal",
+                            "w-full sm:w-[260px] justify-start text-left font-normal",
                             !date && "text-muted-foreground"
                         )}
                     >
