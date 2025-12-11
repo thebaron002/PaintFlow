@@ -2,7 +2,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { startOfMonth, endOfMonth } from "date-fns";
-import { DateRange } from "react-day-picker";
+import { type DateRange } from "react-day-picker";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -47,7 +47,7 @@ import { FinalizePaymentsModal } from "./components/finalize-payments-modal";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { useFinanceData } from "@/hooks/use-finance-data";
 import { StatCard } from "./components/stat-card";
-import { RecentTransactionsList, Transaction } from "./components/recent-transactions-list";
+import { RecentTransactionsList, type Transaction } from "./components/recent-transactions-list";
 export default function FinancePage() {
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [isFinalizeModalOpen, setIsFinalizeModalOpen] = useState(false);
