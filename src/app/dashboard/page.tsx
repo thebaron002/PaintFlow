@@ -301,6 +301,7 @@ export default function DashboardPage() {
   const [timeOfDay, setTimeOfDay] = React.useState('');
 
   React.useEffect(() => {
+    // This now runs only on the client, avoiding hydration mismatches.
     const hour = new Date().getHours();
     setTimeOfDay(hour < 12 ? "morning" : "afternoon");
   }, []);
@@ -329,6 +330,7 @@ export default function DashboardPage() {
 
   // Fallback: se não houver In Progress, pega 1 Not Started mais próximo do futuro
   const notStartedJobs = React.useMemo(() => {
+    if (!allJobs) return [];
     const today = startOfToday();
     return allJobs?.filter(job => {
         const startDate = parseISO(job.startDate);
@@ -347,6 +349,7 @@ export default function DashboardPage() {
     const upcoming = allJobs.map(job => {
       const allDates = [job.startDate, ...(job.productionDays?.map(pd => pd.date) || [])];
       const nextActivityDate = allDates
+        .filter(d => !!d) // ensure date is not null/undefined
         .map(d => parseISO(d))
         .filter(d => isWithinInterval(d, { start: today, end: nextWeek }))
         .sort((a,b) => a.getTime() - b.getTime())[0];
@@ -457,4 +460,3 @@ export default function DashboardPage() {
   );
 }
 
-    

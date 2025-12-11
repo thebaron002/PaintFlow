@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import * as React from "react";
@@ -25,10 +24,15 @@ export default function CalendarPage() {
   const { user } = useUser();
   const firestore = useFirestore();
 
-  const [monthDate, setMonthDate] = React.useState<Date>(new Date());
+  const [monthDate, setMonthDate] = React.useState<Date | undefined>(undefined);
   const [selectedDayISO, setSelectedDayISO] = React.useState<string | null>(
     null
   );
+  
+  React.useEffect(() => {
+    // Set the initial date only on the client to avoid hydration mismatch
+    setMonthDate(new Date());
+  }, []);
 
   const jobsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -38,7 +42,7 @@ export default function CalendarPage() {
   const { data: allJobs, isLoading } = useCollection<Job>(jobsQuery);
 
   const jobsInMonth = React.useMemo(() => {
-    if (!allJobs) return [];
+    if (!allJobs || !monthDate) return [];
     const start = startOfMonth(monthDate);
     const end = endOfMonth(monthDate);
     
@@ -79,6 +83,7 @@ export default function CalendarPage() {
 
 
   const getDaysForJobInMonth = (job: Job) => {
+    if (!monthDate) return [];
     const start = startOfMonth(monthDate);
     const end = endOfMonth(monthDate);
     const days: string[] = [];
@@ -92,6 +97,33 @@ export default function CalendarPage() {
         }
     });
     return [...new Set(days)].sort();
+  }
+  
+  // Render a loading state until monthDate is set on the client
+  if (!monthDate) {
+    return (
+       <div
+        className={cn(
+          "min-h-[100dvh] w-full px-4 py-4 text-zinc-900",
+          "bg-[radial-gradient(1200px_600px_at_-200px_-100px,rgba(0,0,0,0.05),transparent),radial-gradient(1200px_600px_at_120%_20%,rgba(0,0,0,0.06),transparent)]",
+          "dark:text-zinc-50",
+          "dark:bg-[radial-gradient(1000px_500px_at_-200px_-100px,rgba(255,255,255,0.08),transparent),radial-gradient(1000px_500px_at_120%_20%,rgba(255,255,255,0.06),transparent)]"
+        )}
+      >
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 lg:flex-row">
+            <section className="lg:w-[480px] lg:shrink-0">
+               <div className="rounded-2xl border border-white/50 bg-white/70 p-4 shadow-xl backdrop-blur-md dark:border-white/10 dark:bg-zinc-900/60">
+                 <Skeleton className="h-[500px] w-full" />
+               </div>
+            </section>
+             <section className="flex-1 min-w-0">
+                <div className="rounded-2xl border border-white/50 bg-white/70 p-4 shadow-xl backdrop-blur-md dark:border-white/10 dark:bg-zinc-900/60">
+                    <Skeleton className="h-96 w-full" />
+                </div>
+            </section>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -181,7 +213,7 @@ export default function CalendarPage() {
                   <Link href={`/dashboard/jobs/${job.id}`} key={job.id}
                     className={cn(
                       "block rounded-xl border border-zinc-200 bg-white p-4 shadow-sm transition-all hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900/60",
-                      selectedDayISO && (job.startDate === selectedDayISO || job.productionDays.some(pd => pd.date === selectedDayISO))
+                      selectedDayISO && (job.startDate === selectedDayISO || (job.productionDays || []).some(pd => pd.date === selectedDayISO))
                         ? "ring-2 ring-primary dark:ring-primary/70"
                         : "hover:border-zinc-300 dark:hover:border-zinc-700"
                     )}
