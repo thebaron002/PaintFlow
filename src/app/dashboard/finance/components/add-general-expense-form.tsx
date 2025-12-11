@@ -80,7 +80,7 @@ export function AddGeneralExpenseForm({ categories, onSuccess }: AddGeneralExpen
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4 min-h-[500px]">
         <FormField
           control={form.control}
           name="category"
@@ -106,12 +106,15 @@ export function AddGeneralExpenseForm({ categories, onSuccess }: AddGeneralExpen
             control={form.control}
             name="date"
             render={({ field }) => (
-                <FormItem className="flex flex-col">
+                <FormItem>
                 <FormLabel>Date</FormLabel>
-                <ResponsiveDatePicker
-                    value={field.value}
-                    onChange={field.onChange}
-                />
+                <FormControl>
+                    <ResponsiveDatePicker
+                        value={field.value}
+                        onChange={field.onChange}
+                        disablePortal
+                    />
+                </FormControl>
                 <FormMessage />
                 </FormItem>
             )}

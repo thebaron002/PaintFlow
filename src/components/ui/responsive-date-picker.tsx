@@ -17,6 +17,7 @@ type ResponsiveDatePickerProps = {
   placeholder?: string;
   className?: string;
   size?: 'full' | 'compact';
+  disablePortal?: boolean;
 };
 
 export function ResponsiveDatePicker({
@@ -25,6 +26,7 @@ export function ResponsiveDatePicker({
   placeholder = "Pick a date",
   className,
   size = 'full',
+  disablePortal,
 }: ResponsiveDatePickerProps) {
   const isMobile = useIsMobile();
   const [open, setOpen] = React.useState(false);
@@ -76,7 +78,8 @@ export function ResponsiveDatePicker({
       <PopoverTrigger asChild>{TriggerBtn}</PopoverTrigger>
       <PopoverContent
         align="start"
-        className="w-auto p-0"
+        disablePortal={disablePortal}
+        className="w-auto p-0 pointer-events-auto"
         onInteractOutside={() => setOpen(false)}
       >
         <Calendar
