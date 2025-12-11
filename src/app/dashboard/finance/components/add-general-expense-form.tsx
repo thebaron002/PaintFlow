@@ -80,7 +80,7 @@ export function AddGeneralExpenseForm({ categories, onSuccess }: AddGeneralExpen
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4 min-h-[500px]">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-6 py-6 min-h-[500px]">
         <FormField
           control={form.control}
           name="category"
@@ -128,7 +128,12 @@ export function AddGeneralExpenseForm({ categories, onSuccess }: AddGeneralExpen
                 <FormControl>
                     <div className="relative">
                         <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">$</span>
-                        <Input type="number" step="0.01" placeholder="0.00" className="pl-7" {...field} />
+                        <Input 
+                          type="number" 
+                          step="0.01" 
+                          placeholder="0.00" 
+                          className="pl-7 text-lg font-medium shadow-sm transition-all focus:ring-primary/20"
+                          {...field} />
                     </div>
                 </FormControl>
                 <FormMessage />
@@ -151,8 +156,8 @@ export function AddGeneralExpenseForm({ categories, onSuccess }: AddGeneralExpen
           )}
         />
         
-        <div className="flex items-center justify-end">
-            <Button type="submit">Add Expense</Button>
+        <div className="flex items-center justify-end mt-4">
+            <Button type="submit" size="lg" className="w-full sm:w-auto min-w-[200px] shadow-md hover:shadow-lg transition-all">Add Expense</Button>
         </div>
       </form>
     </Form>
