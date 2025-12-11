@@ -27,6 +27,10 @@ interface CashFlowChartProps {
 }
 export function CashFlowChart({ income, expenses, isLoading }: CashFlowChartProps) {
   const [granularity, setGranularity] = useState<'week' | 'month' | 'all'>('all');
+  const [isMounted, setIsMounted] = useState(false);
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
   const chartData = React.useMemo(() => {
     const data = [];
     const now = new Date();
@@ -70,7 +74,7 @@ export function CashFlowChart({ income, expenses, isLoading }: CashFlowChartProp
       };
     });
   }, [income, expenses, granularity]);
-  if (isLoading) {
+  if (isLoading || !isMounted) {
     return <Skeleton className="h-[250px] w-full" />
   }
   return (

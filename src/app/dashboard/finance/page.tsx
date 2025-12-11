@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { startOfMonth, endOfMonth } from "date-fns";
 import { DateRange } from "react-day-picker";
 import { PageHeader } from "@/components/page-header";
@@ -71,10 +71,15 @@ export default function FinancePage() {
   const isLoading = isLoadingJobs || isLoadingGeneralExpenses || isLoadingSettings;
   const openPaymentJobs = jobs?.filter(job => job.status === 'Open Payment') ?? [];
   // --- Date Range State ---
-  const [date, setDate] = useState<DateRange | undefined>({
-    from: startOfMonth(new Date()),
-    to: endOfMonth(new Date()),
-  });
+  // Initialize with undefined or a fixed date to prevent hydration mismatch 
+  const [date, setDate] = useState<DateRange | undefined>();
+  // Set default to current month only on client side
+  useEffect(() => {
+    setDate({
+        from: startOfMonth(new Date()),
+        to: endOfMonth(new Date()),
+    });
+  }, []);
   // --- Data Hook ---
   const {
     income,
