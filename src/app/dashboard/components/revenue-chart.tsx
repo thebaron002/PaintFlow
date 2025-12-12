@@ -37,7 +37,7 @@ const chartConfig = {
   }
 }
 
-export function RevenueChart() {
+export function RevenueChart({ simple = false }: { simple?: boolean }) {
   const firestore = useFirestore();
   const { user } = useUser();
   const [isMounted, setIsMounted] = React.useState(false);
@@ -57,20 +57,20 @@ export function RevenueChart() {
     return collection(firestore, 'users', user.uid, 'generalExpenses');
   }, [firestore, user]);
   const { data: generalExpenses, isLoading: isLoadingGeneralExpenses } = useCollection<GeneralExpense>(generalExpensesQuery);
-  
+
   const settingsRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return doc(firestore, "settings", "global");
   }, [firestore]);
   const { data: settings, isLoading: isLoadingSettings } = useDoc<GeneralSettings>(settingsRef);
-  
+
   const isLoading = isLoadingJobs || isLoadingGeneralExpenses || isLoadingSettings;
-  
+
   const chartData = React.useMemo(() => {
     if (!jobs || !generalExpenses) return [];
 
     const now = new Date();
-    
+
     const getDate = (d: string | Date | Timestamp) => {
       if (d instanceof Timestamp) return d.toDate();
       if (typeof d === 'string') return parseISO(d);
@@ -80,7 +80,7 @@ export function RevenueChart() {
     const firstJobStartDate = jobs.length > 0
       ? jobs.map(j => getDate(j.startDate)).sort((a, b) => a.getTime() - b.getTime())[0]
       : now;
-    
+
     const weeksSinceFirstJob = differenceInWeeks(now, firstJobStartDate);
     const weeksToShow = Math.min(weeksSinceFirstJob, 5); // Show up to 6 weeks (0 to 5)
 
@@ -89,64 +89,180 @@ export function RevenueChart() {
 
     // First pass: calculate weekly income and expenses
     for (let i = weeksToShow; i >= 0; i--) {
-        const date = subWeeks(now, i);
-        const weekStart = startOfWeek(date);
-        const weekEnd = endOfWeek(date);
+      const date = subWeeks(now, i);
+      const weekStart = startOfWeek(date);
+      const weekEnd = endOfWeek(date);
 
-        const weeklyIncome = jobs
-            .filter(job => {
-                const finalizationDate = job.finalizationDate ? getDate(job.finalizationDate) : null;
-                return job.status === 'Finalized' && finalizationDate && isWithinInterval(finalizationDate, { start: weekStart, end: weekEnd });
-            })
-            .reduce((sum, job) => sum + calculateJobPayout(job, settings), 0);
-        
-        totalIncomeForPeriod += weeklyIncome;
-        
-        const weeklyJobExpenses = jobs
-            .flatMap(job => job.invoices || [])
-            .filter(invoice => 
-                !invoice.paidByContractor && 
-                isWithinInterval(getDate(invoice.date), { start: weekStart, end: weekEnd })
-            )
-            .reduce((sum, invoice) => sum + invoice.amount, 0);
+      const weeklyIncome = jobs
+        .filter(job => {
+          const finalizationDate = job.finalizationDate ? getDate(job.finalizationDate) : null;
+          return job.status === 'Finalized' && finalizationDate && isWithinInterval(finalizationDate, { start: weekStart, end: weekEnd });
+        })
+        .reduce((sum, job) => sum + calculateJobPayout(job, settings), 0);
 
-        const weeklyGeneralExpenses = generalExpenses
-            .filter(exp => isWithinInterval(getDate(exp.date), { start: weekStart, end: weekEnd }))
-            .reduce((sum, exp) => sum + exp.amount, 0);
-        
-        const totalWeeklyExpenses = weeklyJobExpenses + weeklyGeneralExpenses;
+      totalIncomeForPeriod += weeklyIncome;
 
-        weeklyData.push({
-            week: format(weekStart, 'MMM dd'),
-            income: weeklyIncome,
-            expenses: totalWeeklyExpenses,
-        });
+      const weeklyJobExpenses = jobs
+        .flatMap(job => job.invoices || [])
+        .filter(invoice =>
+          !invoice.paidByContractor &&
+          isWithinInterval(getDate(invoice.date), { start: weekStart, end: weekEnd })
+        )
+        .reduce((sum, invoice) => sum + invoice.amount, 0);
+
+      const weeklyGeneralExpenses = generalExpenses
+        .filter(exp => isWithinInterval(getDate(exp.date), { start: weekStart, end: weekEnd }))
+        .reduce((sum, exp) => sum + exp.amount, 0);
+
+      const totalWeeklyExpenses = weeklyJobExpenses + weeklyGeneralExpenses;
+
+      weeklyData.push({
+        week: format(weekStart, 'MMM dd'),
+        income: weeklyIncome,
+        expenses: totalWeeklyExpenses,
+      });
     }
 
     // Second pass: add the average to each week's data
     const averageIncomeForPeriod = weeklyData.length > 0 ? totalIncomeForPeriod / weeklyData.length : 0;
-    
+
     return weeklyData.map(data => ({
-        ...data,
-        average: averageIncomeForPeriod,
+      ...data,
+      average: averageIncomeForPeriod,
     }));
 
   }, [jobs, generalExpenses, settings]);
 
 
   if (isLoading || !isMounted) {
+    if (simple) return <Skeleton className="h-full w-full" />;
+
     return (
-        <Card className="bg-white/70 backdrop-blur-md border-white/50 shadow-xl dark:bg-zinc-900/60 dark:border-white/10">
-            <CardHeader>
-                <CardTitle>Revenue Overview</CardTitle>
-                <CardDescription>Income vs. Expenses over the last weeks</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Skeleton className="h-[250px] w-full" />
-            </CardContent>
-        </Card>
+      <Card className="bg-white/70 backdrop-blur-md border-white/50 shadow-xl dark:bg-zinc-900/60 dark:border-white/10">
+        <CardHeader>
+          <CardTitle>Revenue Overview</CardTitle>
+          <CardDescription>Income vs. Expenses over the last weeks</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-[250px] w-full" />
+        </CardContent>
+      </Card>
     )
   }
+
+  const ChartContent = (
+    <ChartContainer config={chartConfig} className="h-full w-full min-h-[200px]">
+      <AreaChart
+        accessibilityLayer
+        data={chartData}
+        margin={{
+          left: -20,
+          right: 12,
+          top: 10,
+        }}
+      >
+        <CartesianGrid vertical={false} />
+        <XAxis
+          dataKey="week"
+          tickLine={false}
+          axisLine={false}
+          tickMargin={8}
+        />
+        <YAxis
+          tickLine={false}
+          axisLine={false}
+          tickMargin={8}
+          tickFormatter={(value) => `$${Number(value) / 1000}k`}
+        />
+        <ChartTooltip
+          cursor={false}
+          content={<ChartTooltipContent
+            indicator="dot"
+            formatter={(value, name) => {
+              const currencyValue = value.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 });
+              return (
+                <div className="flex min-w-[120px] items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className={
+                      "h-2 w-2 shrink-0 rounded-[2px] border-[--color-border] bg-[--color-bg]"
+                    } style={{
+                      "--color-bg": `var(--color-${name})`,
+                      "--color-border": `var(--color-${name})`,
+                    } as React.CSSProperties} />
+                    <p className="capitalize text-muted-foreground">{name === 'average' ? 'Period Avg' : name}</p>
+                  </div>
+                  <p className="font-medium">{currencyValue}</p>
+                </div>
+              )
+            }}
+          />}
+        />
+        <defs>
+          <linearGradient id="fillIncome" x1="0" y1="0" x2="0" y2="1">
+            <stop
+              offset="5%"
+              stopColor="var(--color-income)"
+              stopOpacity={0.8}
+            />
+            <stop
+              offset="95%"
+              stopColor="var(--color-income)"
+              stopOpacity={0.1}
+            />
+          </linearGradient>
+          <linearGradient id="fillExpenses" x1="0" y1="0" x2="0" y2="1">
+            <stop
+              offset="5%"
+              stopColor="var(--color-expenses)"
+              stopOpacity={0.8}
+            />
+            <stop
+              offset="95%"
+              stopColor="var(--color-expenses)"
+              stopOpacity={0.1}
+            />
+          </linearGradient>
+          <linearGradient id="fillAverage" x1="0" y1="0" x2="0" y2="1">
+            <stop
+              offset="5%"
+              stopColor="var(--color-average)"
+              stopOpacity={0.8}
+            />
+            <stop
+              offset="95%"
+              stopColor="var(--color-average)"
+              stopOpacity={0.1}
+            />
+          </linearGradient>
+        </defs>
+        <Area
+          dataKey="expenses"
+          type="natural"
+          fill="url(#fillExpenses)"
+          fillOpacity={0.4}
+          stroke="var(--color-expenses)"
+        />
+        <Area
+          dataKey="income"
+          type="natural"
+          fill="url(#fillIncome)"
+          fillOpacity={0.4}
+          stroke="var(--color-income)"
+        />
+        <Area
+          dataKey="average"
+          type="natural"
+          fill="url(#fillAverage)"
+          fillOpacity={0.2}
+          stroke="var(--color-average)"
+          strokeWidth={2}
+          strokeDasharray="3 3"
+        />
+      </AreaChart>
+    </ChartContainer>
+  );
+
+  if (simple) return ChartContent;
 
   return (
     <Card className="bg-white/70 backdrop-blur-md border-white/50 shadow-xl dark:bg-zinc-900/60 dark:border-white/10">
@@ -155,116 +271,9 @@ export function RevenueChart() {
         <CardDescription>Income vs. Expenses over the last weeks</CardDescription>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig} className="h-full w-full min-h-[200px]">
-          <AreaChart
-            accessibilityLayer
-            data={chartData}
-            margin={{
-              left: -20,
-              right: 12,
-              top: 10,
-            }}
-          >
-            <CartesianGrid vertical={false} />
-            <XAxis
-              dataKey="week"
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-            />
-            <YAxis
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              tickFormatter={(value) => `$${Number(value) / 1000}k`}
-            />
-            <ChartTooltip
-              cursor={false}
-              content={<ChartTooltipContent
-                indicator="dot"
-                formatter={(value, name) => {
-                  const currencyValue = value.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 });
-                  return (
-                    <div className="flex min-w-[120px] items-center justify-between">
-                      <div className="flex items-center gap-2">
-                         <div className={
-                            "h-2 w-2 shrink-0 rounded-[2px] border-[--color-border] bg-[--color-bg]"
-                         } style={{
-                            "--color-bg": `var(--color-${name})`,
-                            "--color-border": `var(--color-${name})`,
-                         } as React.CSSProperties} />
-                         <p className="capitalize text-muted-foreground">{name === 'average' ? 'Period Avg' : name}</p>
-                      </div>
-                      <p className="font-medium">{currencyValue}</p>
-                    </div>
-                  )
-                }}
-              />}
-            />
-            <defs>
-              <linearGradient id="fillIncome" x1="0" y1="0" x2="0" y2="1">
-                <stop
-                  offset="5%"
-                  stopColor="var(--color-income)"
-                  stopOpacity={0.8}
-                />
-                <stop
-                  offset="95%"
-                  stopColor="var(--color-income)"
-                  stopOpacity={0.1}
-                />
-              </linearGradient>
-              <linearGradient id="fillExpenses" x1="0" y1="0" x2="0" y2="1">
-                <stop
-                  offset="5%"
-                  stopColor="var(--color-expenses)"
-                  stopOpacity={0.8}
-                />
-                <stop
-                  offset="95%"
-                  stopColor="var(--color-expenses)"
-                  stopOpacity={0.1}
-                />
-              </linearGradient>
-               <linearGradient id="fillAverage" x1="0" y1="0" x2="0" y2="1">
-                <stop
-                  offset="5%"
-                  stopColor="var(--color-average)"
-                  stopOpacity={0.8}
-                />
-                <stop
-                  offset="95%"
-                  stopColor="var(--color-average)"
-                  stopOpacity={0.1}
-                />
-              </linearGradient>
-            </defs>
-            <Area
-              dataKey="expenses"
-              type="natural"
-              fill="url(#fillExpenses)"
-              fillOpacity={0.4}
-              stroke="var(--color-expenses)"
-            />
-            <Area
-              dataKey="income"
-              type="natural"
-              fill="url(#fillIncome)"
-              fillOpacity={0.4}
-              stroke="var(--color-income)"
-            />
-             <Area
-              dataKey="average"
-              type="natural"
-              fill="url(#fillAverage)"
-              fillOpacity={0.2}
-              stroke="var(--color-average)"
-              strokeWidth={2}
-              strokeDasharray="3 3"
-            />
-          </AreaChart>
-        </ChartContainer>
+        {ChartContent}
+
       </CardContent>
-    </Card>
+    </Card >
   )
 }

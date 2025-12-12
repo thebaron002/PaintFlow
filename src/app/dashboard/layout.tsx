@@ -112,6 +112,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     );
   }
 
+  if (pathname === '/dashboard/mobile') {
+    return <>{children}</>;
+  }
+
   return (
     <SidebarProvider>
       <Sidebar variant="floating" className="bg-white/40 backdrop-blur-sm">
