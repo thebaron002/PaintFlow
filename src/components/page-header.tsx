@@ -25,7 +25,7 @@ export function PageHeader({
           {title}
         </h2>
       </div>
-      {children && <div className="shrink-0 flex items-center gap-4">{children}</div>}
+      {children && <div className="flex flex-wrap items-center gap-4 mt-4 sm:mt-0">{children}</div>}
     </div>
   );
 }

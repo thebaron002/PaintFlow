@@ -24,8 +24,8 @@ export function UseAuthRouteGuard() {
     if (loading) return;
 
     if (!user) {
-      // Não autenticado: se tentar abrir dashboard, manda pra login.
-      if (pathname.startsWith("/dashboard")) {
+      // Não autenticado: manda pra login exceto se já estiver em /login ou /signup
+      if (!pathname.startsWith("/login") && !pathname.startsWith("/signup")) {
         router.replace("/login");
       }
       return;

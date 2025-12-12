@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -25,7 +24,7 @@ import { ResponsiveDatePicker } from "@/components/ui/responsive-date-picker";
 
 const expenseSchema = z.object({
   category: z.string().min(1, "Category is required."),
-  date: z.date({ required_error: "Date is required."}),
+  date: z.date({ required_error: "Date is required." }),
   amount: z.coerce.number().min(0.01, "Amount must be greater than 0."),
   description: z.string().min(1, "Description is required."),
 });
@@ -38,13 +37,13 @@ interface AddGeneralExpenseFormProps {
 }
 
 const defaultCategories = [
-    { value: 'Gas', label: 'Gas' },
-    { value: 'Insurance', label: 'Insurance' },
-    { value: 'Tools', label: 'Tools' },
-    { value: 'Storage', label: 'Storage' },
-    { value: 'Marketing', label: 'Marketing' },
-    { value: 'Office Supplies', label: 'Office Supplies' },
-    { value: 'Other', label: 'Other' },
+  { value: 'Gas', label: 'Gas' },
+  { value: 'Insurance', label: 'Insurance' },
+  { value: 'Tools', label: 'Tools' },
+  { value: 'Storage', label: 'Storage' },
+  { value: 'Marketing', label: 'Marketing' },
+  { value: 'Office Supplies', label: 'Office Supplies' },
+  { value: 'Other', label: 'Other' },
 ]
 
 export function AddGeneralExpenseForm({ categories, onSuccess }: AddGeneralExpenseFormProps) {
@@ -65,13 +64,13 @@ export function AddGeneralExpenseForm({ categories, onSuccess }: AddGeneralExpen
     if (!firestore || !user) return;
 
     const newExpense: Omit<GeneralExpense, 'id'> = {
-        ...data,
-        date: data.date.toISOString(),
+      ...data,
+      date: data.date.toISOString(),
     };
 
     const expensesCollection = collection(firestore, 'users', user.uid, 'generalExpenses');
     addDocumentNonBlocking(expensesCollection, newExpense);
-    
+
     onSuccess();
     form.reset();
   };
@@ -80,7 +79,7 @@ export function AddGeneralExpenseForm({ categories, onSuccess }: AddGeneralExpen
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-6 py-6 min-h-[500px]">
         <FormField
           control={form.control}
           name="category"
@@ -89,51 +88,58 @@ export function AddGeneralExpenseForm({ categories, onSuccess }: AddGeneralExpen
               <FormLabel>Category</FormLabel>
               <FormControl>
                 <Combobox
-                    options={categoryOptions}
-                    value={field.value}
-                    onChange={field.onChange}
-                    placeholder="Select or create category..."
-                    emptyMessage="No categories found."
+                  options={categoryOptions}
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="Select or create category..."
+                  emptyMessage="No categories found."
                 />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
-        
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FormField
+          <FormField
             control={form.control}
             name="date"
             render={({ field }) => (
-                <FormItem className="flex flex-col">
+              <FormItem>
                 <FormLabel>Date</FormLabel>
                 <FormControl>
-                   <ResponsiveDatePicker
-                      value={field.value}
-                      onChange={field.onChange}
-                   />
+                  <ResponsiveDatePicker
+                    value={field.value}
+                    onChange={field.onChange}
+                    disablePortal
+                  />
                 </FormControl>
                 <FormMessage />
-                </FormItem>
+              </FormItem>
             )}
-            />
-            <FormField
+          />
+          <FormField
             control={form.control}
             name="amount"
             render={({ field }) => (
-                <FormItem>
+              <FormItem>
                 <FormLabel>Amount</FormLabel>
                 <FormControl>
-                    <div className="relative">
-                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">$</span>
-                        <Input type="number" step="0.01" placeholder="0.00" className="pl-7" {...field} />
-                    </div>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">$</span>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      className="pl-7 text-lg font-medium shadow-sm transition-all focus:ring-primary/20"
+                      {...field}
+                    />
+                  </div>
                 </FormControl>
                 <FormMessage />
-                </FormItem>
+              </FormItem>
             )}
-            />
+          />
         </div>
 
         <FormField
@@ -149,9 +155,9 @@ export function AddGeneralExpenseForm({ categories, onSuccess }: AddGeneralExpen
             </FormItem>
           )}
         />
-        
-        <div className="flex items-center justify-end">
-            <Button type="submit">Add Expense</Button>
+
+        <div className="flex items-center justify-end mt-4">
+          <Button type="submit" size="lg" className="w-full sm:w-auto min-w-[200px] shadow-md hover:shadow-lg transition-all">Add Expense</Button>
         </div>
       </form>
     </Form>

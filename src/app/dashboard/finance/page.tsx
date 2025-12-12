@@ -1,7 +1,9 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { startOfMonth, endOfMonth } from "date-fns";
+import { DateRange } from "react-day-picker";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -42,29 +44,12 @@ import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from "@
 import { collection, doc } from "firebase/firestore";
 import { AddGeneralExpenseForm } from "./components/add-general-expense-form";
 import { useToast } from "@/hooks/use-toast";
-import { calculateJobPayout } from "@/app/lib/job-financials";
+
 import { FinalizePaymentsModal } from "./components/finalize-payments-modal";
-
-type IncomeItem = {
-    id: string;
-    jobId: string;
-    jobTitle: string;
-    description: string;
-    date: string; // ISO
-    amount: number;
-}
-
-type ExpenseItem = {
-    id: string;
-    jobId?: string; // Optional for general expenses
-    jobTitle?: string;
-    clientName?: string;
-    category: string;
-    description: string;
-    date: string; // ISO
-    amount: number;
-}
-
+import { DatePickerWithRange } from "@/components/ui/date-range-picker";
+import { useFinanceData } from "@/hooks/use-finance-data";
+import { StatCard } from "./components/stat-card";
+import { RecentTransactionsList, Transaction } from "./components/recent-transactions-list";
 
 export default function FinancePage() {
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
@@ -72,7 +57,7 @@ export default function FinancePage() {
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
-  
+
   const jobsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return collection(firestore, 'users', user.uid, 'jobs');
@@ -84,59 +69,65 @@ export default function FinancePage() {
     return collection(firestore, 'users', user.uid, 'generalExpenses');
   }, [firestore, user]);
   const { data: generalExpenses, isLoading: isLoadingGeneralExpenses } = useCollection<GeneralExpense>(generalExpensesQuery);
-  
+
   const settingsRef = useMemoFirebase(() => {
-      if (!firestore) return null;
-      return doc(firestore, "settings", "global");
+    if (!firestore) return null;
+    return doc(firestore, "settings", "global");
   }, [firestore]);
   const { data: settings, isLoading: isLoadingSettings } = useDoc<GeneralSettings>(settingsRef);
 
   const isLoading = isLoadingJobs || isLoadingGeneralExpenses || isLoadingSettings;
-  
+
   const openPaymentJobs = jobs?.filter(job => job.status === 'Open Payment') ?? [];
 
-  const income: IncomeItem[] = jobs
-    ?.filter(job => job.status === 'Finalized')
-    .map(job => ({
-        id: job.id,
-        jobId: job.id,
-        jobTitle: job.title || `${job.clientName} #${job.quoteNumber}`,
-        description: "Job payment finalized",
-        date: job.finalizationDate || job.deadline, // Prioritize finalization date
-        amount: calculateJobPayout(job, settings),
-    })) ?? [];
+  // --- Date Range State ---
+  // Initialize with undefined or a fixed date to prevent hydration mismatch 
+  // if server time differs from client time.
+  const [date, setDate] = useState<DateRange | undefined>();
 
-  const allExpenses: ExpenseItem[] = [
-    ...(jobs?.flatMap(job => 
-        (job.invoices || []).filter(invoice => !invoice.paidByContractor).map(invoice => ({
-            id: invoice.id,
-            jobId: job.id,
-            jobTitle: job.title || `${job.clientName} #${job.quoteNumber}`,
-            clientName: job.clientName,
-            category: invoice.origin,
-            description: invoice.notes || `Invoice from ${invoice.origin}`,
-            date: invoice.date,
-            amount: invoice.amount,
-        }))
-    ) ?? []),
-    ...(generalExpenses?.map(exp => ({
-        id: exp.id,
-        category: exp.category,
-        description: exp.description,
-        date: exp.date,
-        amount: exp.amount
-    })) ?? [])
-  ].sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime());
+  // Set default to current month only on client side
+  useEffect(() => {
+    setDate({
+      from: startOfMonth(new Date()),
+      to: endOfMonth(new Date()),
+    });
+  }, []);
 
-
-  const totalIncome = income?.reduce((acc, item) => acc + item.amount, 0) ?? 0;
-  const totalExpenses = allExpenses?.reduce((acc, item) => acc + item.amount, 0) ?? 0;
-  const netProfit = totalIncome - totalExpenses;
-
-  const taxRate = settings?.taxRate ? settings.taxRate / 100 : 0.22; // Default to 22% if not set
-  const estimatedTax = netProfit > 0 ? netProfit * taxRate : 0;
+  // --- Data Hook ---
+  const {
+    income,
+    expenses: allExpenses,
+    totalIncome,
+    totalExpenses,
+    netProfit,
+    estimatedTax,
+    trends,
+    allIncome: unfilteredIncome,
+    allExpenses: unfilteredExpenses
+  } = useFinanceData(jobs || [], generalExpenses || [], settings, date);
 
   const expenseCategories = [...new Set(allExpenses.map(e => e.category))];
+
+  // --- Prepare Recent Transactions (Last 5 Global) ---
+  const recentTransactions: Transaction[] = isLoading ? [] : [
+    ...(unfilteredIncome || []).map(i => ({
+      id: i.id,
+      type: 'income' as const,
+      description: i.jobTitle || i.description,
+      amount: i.amount,
+      date: i.date,
+      category: 'Job Payment'
+    })),
+    ...(unfilteredExpenses || []).map(e => ({
+      id: e.id,
+      type: 'expense' as const,
+      description: e.description,
+      amount: e.amount,
+      date: e.date,
+      category: e.category
+    }))
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
 
   const handleExpenseFormSuccess = () => {
     setIsExpenseModalOpen(false);
@@ -145,52 +136,40 @@ export default function FinancePage() {
       description: "The new expense has been recorded successfully.",
     });
   };
-  
+
   const handleFinalizeSuccess = (count: number) => {
     setIsFinalizeModalOpen(false);
     toast({
-        title: "Payments Finalized",
-        description: `${count} job(s) have been marked as Finalized.`,
+      title: "Payments Finalized",
+      description: `${count} job(s) have been marked as Finalized.`,
     });
   }
 
-  const renderStatCard = (title: string, value: number, colorClass: string = '', isLoading: boolean, icon: React.ElementType = DollarSign) => {
-    const Icon = icon;
-    return (
-     <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">{title}</CardTitle>
-          <Icon className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          {isLoading ? <Skeleton className="h-8 w-24" /> : <div className={`text-2xl font-bold ${colorClass}`}>${value.toLocaleString()}</div>}
-        </CardContent>
-      </Card>
-  )};
-
   return (
-    <div>
+    <div className="container max-w-7xl mx-auto py-6 space-y-6">
       <PageHeader title="Financials">
-        <div className="flex items-center gap-2">
-           <Dialog open={isFinalizeModalOpen} onOpenChange={setIsFinalizeModalOpen}>
+        <div className="flex flex-wrap items-center gap-2">
+          <DatePickerWithRange date={date} setDate={setDate} className="w-full sm:w-auto" />
+
+          <Dialog open={isFinalizeModalOpen} onOpenChange={setIsFinalizeModalOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline" disabled={openPaymentJobs.length === 0}>
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                    Finalize Payments
-                </Button>
+              <Button variant="outline" disabled={openPaymentJobs.length === 0}>
+                <CheckCircle className="mr-2 h-4 w-4" />
+                Finalize Payments
+              </Button>
             </DialogTrigger>
             <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Finalize Job Payments</DialogTitle>
-                    <DialogDescription>
-                        Select the jobs you have received payment for to mark them as 'Finalized'.
-                    </DialogDescription>
-                </DialogHeader>
-                <FinalizePaymentsModal 
-                    jobs={openPaymentJobs} 
-                    settings={settings}
-                    onSuccess={handleFinalizeSuccess} 
-                />
+              <DialogHeader>
+                <DialogTitle>Finalize Job Payments</DialogTitle>
+                <DialogDescription>
+                  Select the jobs you have received payment for to mark them as 'Finalized'.
+                </DialogDescription>
+              </DialogHeader>
+              <FinalizePaymentsModal
+                jobs={openPaymentJobs}
+                settings={settings}
+                onSuccess={handleFinalizeSuccess}
+              />
             </DialogContent>
           </Dialog>
 
@@ -200,43 +179,79 @@ export default function FinancePage() {
           </Button>
           <Dialog open={isExpenseModalOpen} onOpenChange={setIsExpenseModalOpen}>
             <DialogTrigger asChild>
-                <Button>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Add Transaction
-                </Button>
+              <Button>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Add Transaction
+              </Button>
             </DialogTrigger>
             <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Add General Expense</DialogTitle>
-                </DialogHeader>
-                <AddGeneralExpenseForm categories={expenseCategories} onSuccess={handleExpenseFormSuccess} />
+              <DialogHeader>
+                <DialogTitle>Add General Expense</DialogTitle>
+              </DialogHeader>
+              <AddGeneralExpenseForm categories={expenseCategories} onSuccess={handleExpenseFormSuccess} />
             </DialogContent>
           </Dialog>
         </div>
       </PageHeader>
+
       <Tabs defaultValue="overview">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="income">Income</TabsTrigger>
           <TabsTrigger value="expenses">Expenses</TabsTrigger>
         </TabsList>
-        <TabsContent value="overview" className="mt-4">
+
+        <TabsContent value="overview" className="mt-4 space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {renderStatCard("Total Income", totalIncome, "text-green-600", isLoading)}
-            {renderStatCard("Total Expenses", totalExpenses, "text-red-600", isLoading)}
-            {renderStatCard("Net Profit", netProfit, "", isLoading)}
-            {renderStatCard("IRS (Est.)", estimatedTax, "text-orange-600", isLoading, Banknote)}
+            <StatCard
+              title="Total Income"
+              value={totalIncome}
+              trend={trends.income}
+              icon={DollarSign}
+              isLoading={isLoading}
+              valueColorClass="text-emerald-600"
+            />
+            <StatCard
+              title="Total Expenses"
+              value={totalExpenses}
+              trend={trends.expenses}
+              icon={DollarSign}
+              isLoading={isLoading}
+              valueColorClass="text-rose-600"
+            />
+            <StatCard
+              title="Net Profit"
+              value={netProfit}
+              icon={DollarSign}
+              isLoading={isLoading}
+            />
+            <StatCard
+              title="Tax Reserve (Est.)"
+              value={estimatedTax}
+              icon={Banknote}
+              isLoading={isLoading}
+              valueColorClass="text-amber-600"
+              subtext={`${settings?.taxRate ?? 22}% rate`}
+            />
           </div>
-          <Card className="mt-4">
-            <CardHeader>
-              <CardTitle>Cash Flow</CardTitle>
-              <CardDescription>Income vs. Expenses over the last 6 months.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <CashFlowChart income={income} expenses={allExpenses} isLoading={isLoading} />
-            </CardContent>
-          </Card>
+
+          <div className="grid gap-4 md:grid-cols-7 lg:grid-cols-7">
+            <Card className="col-span-1 md:col-span-4 lg:col-span-5 h-[400px]">
+              <CardHeader>
+                <CardTitle>Cash Flow</CardTitle>
+                <CardDescription>Income vs. Expenses over time.</CardDescription>
+              </CardHeader>
+              <CardContent className="pl-2 h-[320px]">
+                <CashFlowChart income={income} expenses={allExpenses} isLoading={isLoading} />
+              </CardContent>
+            </Card>
+
+            <div className="col-span-1 md:col-span-3 lg:col-span-2 h-[400px]">
+              <RecentTransactionsList transactions={recentTransactions} isLoading={isLoading} />
+            </div>
+          </div>
         </TabsContent>
+
         <TabsContent value="income" className="mt-4">
           <Card>
             <CardHeader>
@@ -263,17 +278,17 @@ export default function FinancePage() {
                     ))
                   ) : income?.length > 0 ? (
                     income.map((item) => {
-                    return (
-                      <TableRow key={item.id}>
-                        <TableCell>
-                          <div className="font-medium">{item?.jobTitle}</div>
-                          <div className="text-sm text-muted-foreground">{item.description}</div>
-                        </TableCell>
-                        <TableCell>{format(parseISO(item.date), "MMM dd, yyyy")}</TableCell>
-                        <TableCell className="text-right text-green-600 font-semibold">${item.amount.toLocaleString()}</TableCell>
-                      </TableRow>
-                    )
-                  })
+                      return (
+                        <TableRow key={item.id}>
+                          <TableCell>
+                            <div className="font-medium">{item?.jobTitle}</div>
+                            <div className="text-sm text-muted-foreground">{item.description}</div>
+                          </TableCell>
+                          <TableCell>{format(parseISO(item.date), "MMM dd, yyyy")}</TableCell>
+                          <TableCell className="text-right text-green-600 font-semibold">${item.amount.toLocaleString()}</TableCell>
+                        </TableRow>
+                      )
+                    })
                   ) : (
                     <TableRow>
                       <TableCell colSpan={3} className="h-24 text-center">
@@ -304,7 +319,7 @@ export default function FinancePage() {
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
-                     [...Array(4)].map((_, i) => (
+                    [...Array(4)].map((_, i) => (
                       <TableRow key={i}>
                         <TableCell><Skeleton className="h-5 w-32 mb-1" /><Skeleton className="h-4 w-40" /></TableCell>
                         <TableCell><Skeleton className="h-5 w-20" /></TableCell>
@@ -314,20 +329,20 @@ export default function FinancePage() {
                     ))
                   ) : allExpenses?.length > 0 ? (
                     allExpenses.map((item) => {
-                    return(
-                      <TableRow key={item.id}>
-                        <TableCell>
-                          <div className="font-medium">{item.description}</div>
-                           {item.jobTitle && <div className="text-sm text-muted-foreground">{item.jobTitle} ({item?.clientName})</div>}
-                        </TableCell>
-                        <TableCell>{item.category}</TableCell>
-                        <TableCell>{format(parseISO(item.date), "MMM dd, yyyy")}</TableCell>
-                        <TableCell className="text-right text-red-600 font-semibold">${item.amount.toLocaleString()}</TableCell>
-                      </TableRow>
-                    )
-                  })
+                      return (
+                        <TableRow key={item.id}>
+                          <TableCell>
+                            <div className="font-medium">{item.description}</div>
+                            {item.jobTitle && <div className="text-sm text-muted-foreground">{item.jobTitle} ({item?.clientName})</div>}
+                          </TableCell>
+                          <TableCell>{item.category}</TableCell>
+                          <TableCell>{format(parseISO(item.date), "MMM dd, yyyy")}</TableCell>
+                          <TableCell className="text-right text-red-600 font-semibold">${item.amount.toLocaleString()}</TableCell>
+                        </TableRow>
+                      )
+                    })
                   ) : (
-                     <TableRow>
+                    <TableRow>
                       <TableCell colSpan={4} className="h-24 text-center">
                         No expenses recorded.
                       </TableCell>
@@ -338,7 +353,7 @@ export default function FinancePage() {
             </CardContent>
           </Card>
         </TabsContent>
-      </Tabs>
-    </div>
+      </Tabs >
+    </div >
   );
 }
