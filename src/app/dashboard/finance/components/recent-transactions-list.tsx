@@ -1,17 +1,11 @@
-<<<<<<< HEAD
-=======
 
->>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowUpRight, ArrowDownLeft, Calendar } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-<<<<<<< HEAD
 
-=======
->>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
 export type Transaction = {
     id: string;
     type: 'income' | 'expense';
@@ -20,19 +14,13 @@ export type Transaction = {
     date: string; // ISO
     category?: string;
 };
-<<<<<<< HEAD
 
-=======
->>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
 interface RecentTransactionsListProps {
     transactions: Transaction[];
     isLoading: boolean;
     className?: string;
 }
-<<<<<<< HEAD
 
-=======
->>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
 export function RecentTransactionsList({ transactions, isLoading, className }: RecentTransactionsListProps) {
     return (
         <Card className={cn("h-full flex flex-col", className)}>

@@ -1,16 +1,10 @@
-<<<<<<< HEAD
-=======
 
->>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
 import { useMemo } from "react";
 import { isWithinInterval, parseISO, startOfMonth, endOfMonth, subMonths, isSameMonth } from "date-fns";
 import { DateRange } from "react-day-picker";
 import type { Job, GeneralExpense } from "@/app/lib/types";
 import { calculateJobPayout } from "@/app/lib/job-financials";
-<<<<<<< HEAD
 
-=======
->>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
 // Helper Types
 export type IncomeItem = {
     id: string;
@@ -20,10 +14,7 @@ export type IncomeItem = {
     date: string; // ISO
     amount: number;
 }
-<<<<<<< HEAD
 
-=======
->>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
 export type ExpenseItem = {
     id: string;
     jobId?: string; // Optional for general expenses
@@ -34,10 +25,7 @@ export type ExpenseItem = {
     date: string; // ISO
     amount: number;
 }
-<<<<<<< HEAD
 
-=======
->>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
 export function useFinanceData(
     jobs: Job[] = [],
     generalExpenses: GeneralExpense[] = [],
@@ -47,28 +35,16 @@ export function useFinanceData(
     // 1. Process Raw Data into Lists
     const allIncome: IncomeItem[] = useMemo(() => {
         return jobs
-<<<<<<< HEAD
             .filter(job => job.status === 'Finalized')
-=======
-            .filter(job => job.status === 'Finalized' && job.finalizationDate)
->>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
             .map(job => ({
                 id: job.id,
                 jobId: job.id,
                 jobTitle: job.title || `${job.clientName} #${job.quoteNumber}`,
                 description: "Job payment finalized",
-<<<<<<< HEAD
                 date: job.finalizationDate || job.deadline,
                 amount: calculateJobPayout(job, settings),
             }));
     }, [jobs, settings]);
-
-=======
-                date: job.finalizationDate!,
-                amount: calculateJobPayout(job, settings),
-            }));
-    }, [jobs, settings]);
->>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
     const allExpenses: ExpenseItem[] = useMemo(() => {
         const jobExpenses = jobs.flatMap(job =>
             (job.invoices || [])
@@ -84,10 +60,7 @@ export function useFinanceData(
                     amount: invoice.amount,
                 }))
         );
-<<<<<<< HEAD
 
-=======
->>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
         const genExpenses = generalExpenses.map(exp => ({
             id: exp.id,
             category: exp.category,
@@ -95,7 +68,6 @@ export function useFinanceData(
             date: exp.date,
             amount: exp.amount
         }));
-<<<<<<< HEAD
 
         return [...jobExpenses, ...genExpenses].sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime());
     }, [jobs, generalExpenses]);
@@ -113,24 +85,10 @@ export function useFinanceData(
     }, [allExpenses, dateRange]);
 
 
-=======
-        return [...jobExpenses, ...genExpenses].sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime());
-    }, [jobs, generalExpenses]);
-    // 2. Filter by Date Range
-    const filteredIncome = useMemo(() => {
-        if (!dateRange?.from || !dateRange?.to) return [];
-        return allIncome.filter(item => isWithinInterval(parseISO(item.date), { start: dateRange.from!, end: dateRange.to! }));
-    }, [allIncome, dateRange]);
-    const filteredExpenses = useMemo(() => {
-        if (!dateRange?.from || !dateRange?.to) return [];
-        return allExpenses.filter(item => isWithinInterval(parseISO(item.date), { start: dateRange.from!, end: dateRange.to! }));
-    }, [allExpenses, dateRange]);
->>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
     // 3. Calculate Totals
     const totalIncome = filteredIncome.reduce((acc, item) => acc + item.amount, 0);
     const totalExpenses = filteredExpenses.reduce((acc, item) => acc + item.amount, 0);
     const netProfit = totalIncome - totalExpenses;
-<<<<<<< HEAD
 
     const rawTaxRate = settings?.taxRate ?? 22; // Store as whole number (e.g. 22)
     const taxRate = rawTaxRate ? rawTaxRate / 100 : 0.22;
@@ -160,36 +118,15 @@ export function useFinanceData(
 
         const prevExpenses = allExpenses.filter(item => isWithinInterval(parseISO(item.date), { start: prevStart, end: prevEnd }))
             .reduce((acc, i) => acc + i.amount, 0);
-
-=======
-    const rawTaxRate = settings?.taxRate ?? 22; // Store as whole number (e.g. 22)
-    const taxRate = rawTaxRate ? rawTaxRate / 100 : 0.22;
-    const estimatedTax = netProfit > 0 ? netProfit * taxRate : 0;
-    // 4. Trend Calculation
-    const trends = useMemo(() => {
-        if (!dateRange?.from || !dateRange?.to) return { income: 0, expenses: 0 };
-        
-        const duration = dateRange.to.getTime() - dateRange.from.getTime();
-        const prevStart = new Date(dateRange.from.getTime() - duration);
-        const prevEnd = new Date(dateRange.to.getTime() - duration);
-        const prevIncome = allIncome.filter(item => isWithinInterval(parseISO(item.date), { start: prevStart, end: prevEnd }))
-            .reduce((acc, i) => acc + i.amount, 0);
-        const prevExpenses = allExpenses.filter(item => isWithinInterval(parseISO(item.date), { start: prevStart, end: prevEnd }))
-            .reduce((acc, i) => acc + i.amount, 0);
->>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
         const calculateGrowth = (current: number, previous: number) => {
             if (previous === 0) return current > 0 ? 100 : 0;
             return Math.round(((current - previous) / previous) * 100);
         };
-<<<<<<< HEAD
 
-=======
->>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
         return {
             income: calculateGrowth(totalIncome, prevIncome),
             expenses: calculateGrowth(totalExpenses, prevExpenses)
         };
-<<<<<<< HEAD
 
     }, [dateRange, allIncome, allExpenses, totalIncome, totalExpenses]);
 
@@ -199,14 +136,6 @@ export function useFinanceData(
         expenses: filteredExpenses,
         allIncome, // Unfiltered for historical charts
         allExpenses, // Unfiltered for historical charts
-=======
-    }, [dateRange, allIncome, allExpenses, totalIncome, totalExpenses]);
-    return {
-        income: filteredIncome,
-        expenses: filteredExpenses,
-        allIncome,
-        allExpenses,
->>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
         totalIncome,
         totalExpenses,
         netProfit,

@@ -48,20 +48,20 @@ const navItems = [
   { href: "/dashboard/migrate", icon: HardHat, label: "Migrate" },
 ];
 
-const mobileNavItems = navItems.filter(item => 
-    !["/dashboard/migrate", "/dashboard/profile", "/dashboard/settings", "/dashboard/styleguide"].includes(item.href)
+const mobileNavItems = navItems.filter(item =>
+  !["/dashboard/migrate", "/dashboard/profile", "/dashboard/settings", "/dashboard/styleguide"].includes(item.href)
 );
 
 const getNavGridCols = (count: number) => {
-    switch (count) {
-        case 1: return 'grid-cols-1';
-        case 2: return 'grid-cols-2';
-        case 3: return 'grid-cols-3';
-        case 4: return 'grid-cols-4';
-        case 5: return 'grid-cols-5';
-        case 6: return 'grid-cols-6';
-        default: return 'grid-cols-5';
-    }
+  switch (count) {
+    case 1: return 'grid-cols-1';
+    case 2: return 'grid-cols-2';
+    case 3: return 'grid-cols-3';
+    case 4: return 'grid-cols-4';
+    case 5: return 'grid-cols-5';
+    case 6: return 'grid-cols-6';
+    default: return 'grid-cols-5';
+  }
 }
 
 const BottomNavBar = () => {
@@ -69,7 +69,7 @@ const BottomNavBar = () => {
   const maxItems = 5;
   const itemsToShow = mobileNavItems.slice(0, maxItems);
   const navGridCols = getNavGridCols(itemsToShow.length);
-  
+
   const navBgClass = 'bg-background/80 backdrop-blur-sm border-t';
 
   return (
@@ -100,11 +100,11 @@ const BottomNavBar = () => {
 
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-  const { user, isUserLoading } = useUser();
+  const { user, loading } = useUser();
   const pathname = usePathname();
 
   // The guard logic is now handled globally by UseAuthRouteGuard
-  if (isUserLoading || !user) {
+  if (loading || !user) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
@@ -113,7 +113,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-     <SidebarProvider>
+    <SidebarProvider>
       <Sidebar variant="floating" className="bg-white/40 backdrop-blur-sm">
         <SidebarHeader>
           <div className="p-2">
@@ -145,13 +145,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/80 backdrop-blur-sm px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 py-4">
           <SidebarTrigger className="sm:hidden" />
           <div className="ml-auto flex items-center gap-4">
-              <UserNav />
+            <UserNav />
           </div>
         </header>
         <main className={cn(
-            "flex-1 flex flex-col pb-24 md:pb-4"
+          "flex-1 flex flex-col pb-24 md:pb-4"
         )}>
-           {children}
+          {children}
         </main>
       </SidebarInset>
       <BottomNavBar />
@@ -159,4 +159,3 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   );
 }
 
-    
