@@ -39,7 +39,7 @@ export type PayrollReportOutput = z.infer<typeof PayrollReportOutputSchema>;
 
 
 
-const subject = `${input.businessName ? `${input.businessName}: ` : ''}Weekly Payroll Report - Week ${input.weekNumber}`;
+
 
 const prompt = ai.definePrompt({
   name: 'payrollReportPrompt',
