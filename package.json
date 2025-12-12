@@ -9,7 +9,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "postinstall": "patch-package"
+  },
+  "engines": {
+    "node": "22.x"
   },
   "dependencies": {
     "@genkit-ai/google-genai": "^1.20.0",
@@ -48,7 +52,11 @@
     "firebase-admin": "^12.7.0",
     "genkit": "^1.20.0",
     "lucide-react": "^0.475.0",
+<<<<<<< HEAD
     "next": "^15.4.8",
+=======
+    "next": "15.4.9",
+>>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
     "patch-package": "^8.0.0",
     "react": "^19.2.1",
     "react-day-picker": "^8.10.1",
@@ -73,5 +81,8 @@
     "tailwindcss": "^3.4.1",
     "tsx": "^4.16.2",
     "typescript": "^5"
+  },
+  "resolutions": {
+    "next": "15.4.8"
   }
 }

@@ -1,9 +1,15 @@
 
 "use client";
+<<<<<<< HEAD
 
 import { useState, useEffect } from "react";
 import { startOfMonth, endOfMonth } from "date-fns";
 import { DateRange } from "react-day-picker";
+=======
+import { useState, useEffect } from "react";
+import { startOfMonth, endOfMonth } from "date-fns";
+import { type DateRange } from "react-day-picker";
+>>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import {
@@ -44,46 +50,62 @@ import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from "@
 import { collection, doc } from "firebase/firestore";
 import { AddGeneralExpenseForm } from "./components/add-general-expense-form";
 import { useToast } from "@/hooks/use-toast";
+<<<<<<< HEAD
 
+=======
+>>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
 import { FinalizePaymentsModal } from "./components/finalize-payments-modal";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { useFinanceData } from "@/hooks/use-finance-data";
 import { StatCard } from "./components/stat-card";
+<<<<<<< HEAD
 import { RecentTransactionsList, Transaction } from "./components/recent-transactions-list";
 
+=======
+import { RecentTransactionsList, type Transaction } from "./components/recent-transactions-list";
+>>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
 export default function FinancePage() {
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [isFinalizeModalOpen, setIsFinalizeModalOpen] = useState(false);
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
+<<<<<<< HEAD
 
+=======
+>>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
   const jobsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return collection(firestore, 'users', user.uid, 'jobs');
   }, [firestore, user]);
   const { data: jobs, isLoading: isLoadingJobs } = useCollection<Job>(jobsQuery);
-
   const generalExpensesQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return collection(firestore, 'users', user.uid, 'generalExpenses');
   }, [firestore, user]);
   const { data: generalExpenses, isLoading: isLoadingGeneralExpenses } = useCollection<GeneralExpense>(generalExpensesQuery);
+<<<<<<< HEAD
 
+=======
+>>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
   const settingsRef = useMemoFirebase(() => {
     if (!firestore) return null;
     return doc(firestore, "settings", "global");
   }, [firestore]);
   const { data: settings, isLoading: isLoadingSettings } = useDoc<GeneralSettings>(settingsRef);
-
   const isLoading = isLoadingJobs || isLoadingGeneralExpenses || isLoadingSettings;
+<<<<<<< HEAD
 
   const openPaymentJobs = jobs?.filter(job => job.status === 'Open Payment') ?? [];
 
+=======
+  const openPaymentJobs = jobs?.filter(job => job.status === 'Open Payment') ?? [];
+>>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
   // --- Date Range State ---
   // Initialize with undefined or a fixed date to prevent hydration mismatch 
   // if server time differs from client time.
   const [date, setDate] = useState<DateRange | undefined>();
+<<<<<<< HEAD
 
   // Set default to current month only on client side
   useEffect(() => {
@@ -93,6 +115,15 @@ export default function FinancePage() {
     });
   }, []);
 
+=======
+  // Set default to current month only on client side
+  useEffect(() => {
+    setDate({
+        from: startOfMonth(new Date()),
+        to: endOfMonth(new Date()),
+    });
+  }, []);
+>>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
   // --- Data Hook ---
   const {
     income,
@@ -105,6 +136,7 @@ export default function FinancePage() {
     allIncome: unfilteredIncome,
     allExpenses: unfilteredExpenses
   } = useFinanceData(jobs || [], generalExpenses || [], settings, date);
+<<<<<<< HEAD
 
   const expenseCategories = [...new Set(allExpenses.map(e => e.category))];
 
@@ -129,6 +161,28 @@ export default function FinancePage() {
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
 
+=======
+  const expenseCategories = [...new Set(allExpenses.map(e => e.category))];
+  // --- Prepare Recent Transactions (Last 5 Global) ---
+  const recentTransactions: Transaction[] = isLoading ? [] : [
+    ...(unfilteredIncome || []).map(i => ({
+        id: i.id,
+        type: 'income' as const,
+        description: i.jobTitle || i.description,
+        amount: i.amount,
+        date: i.date,
+        category: 'Job Payment'
+    })),
+    ...(unfilteredExpenses || []).map(e => ({
+        id: e.id,
+        type: 'expense' as const,
+        description: e.description,
+        amount: e.amount,
+        date: e.date,
+        category: e.category
+    }))
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+>>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
   const handleExpenseFormSuccess = () => {
     setIsExpenseModalOpen(false);
     toast({
@@ -136,7 +190,10 @@ export default function FinancePage() {
       description: "The new expense has been recorded successfully.",
     });
   };
+<<<<<<< HEAD
 
+=======
+>>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
   const handleFinalizeSuccess = (count: number) => {
     setIsFinalizeModalOpen(false);
     toast({
@@ -144,13 +201,19 @@ export default function FinancePage() {
       description: `${count} job(s) have been marked as Finalized.`,
     });
   }
+<<<<<<< HEAD
 
+=======
+>>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
   return (
     <div className="container max-w-7xl mx-auto py-6 space-y-6">
       <PageHeader title="Financials">
         <div className="flex flex-wrap items-center gap-2">
           <DatePickerWithRange date={date} setDate={setDate} className="w-full sm:w-auto" />
+<<<<<<< HEAD
 
+=======
+>>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
           <Dialog open={isFinalizeModalOpen} onOpenChange={setIsFinalizeModalOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" disabled={openPaymentJobs.length === 0}>
@@ -172,7 +235,6 @@ export default function FinancePage() {
               />
             </DialogContent>
           </Dialog>
-
           <Button variant="outline">
             <FileDown className="mr-2 h-4 w-4" />
             Export Report
@@ -193,14 +255,22 @@ export default function FinancePage() {
           </Dialog>
         </div>
       </PageHeader>
+<<<<<<< HEAD
 
+=======
+      
+>>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
       <Tabs defaultValue="overview">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="income">Income</TabsTrigger>
           <TabsTrigger value="expenses">Expenses</TabsTrigger>
         </TabsList>
+<<<<<<< HEAD
 
+=======
+        
+>>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
         <TabsContent value="overview" className="mt-4 space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <StatCard
@@ -234,6 +304,7 @@ export default function FinancePage() {
               subtext={`${settings?.taxRate ?? 22}% rate`}
             />
           </div>
+<<<<<<< HEAD
 
           <div className="grid gap-4 md:grid-cols-7 lg:grid-cols-7">
             <Card className="col-span-1 md:col-span-4 lg:col-span-5 h-[400px]">
@@ -248,6 +319,21 @@ export default function FinancePage() {
 
             <div className="col-span-1 md:col-span-3 lg:col-span-2 h-[400px]">
               <RecentTransactionsList transactions={recentTransactions} isLoading={isLoading} />
+=======
+          <div className="grid gap-4 md:grid-cols-7 lg:grid-cols-7">
+            <Card className="col-span-1 md:col-span-4 lg:col-span-5 h-[400px]">
+                <CardHeader>
+                  <CardTitle>Cash Flow</CardTitle>
+                  <CardDescription>Income vs. Expenses over time.</CardDescription>
+                </CardHeader>
+                <CardContent className="pl-2 h-[320px]">
+                   <CashFlowChart income={unfilteredIncome} expenses={unfilteredExpenses} isLoading={isLoading} />
+                </CardContent>
+            </Card>
+            
+            <div className="col-span-1 md:col-span-3 lg:col-span-2 h-[400px]">
+                <RecentTransactionsList transactions={recentTransactions} isLoading={isLoading} />
+>>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
             </div>
           </div>
         </TabsContent>

@@ -25,7 +25,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <head>
-        <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#fff" />
       </head>
       <body className={cn("app-bg min-h-dvh antialiased text-zinc-900")} suppressHydrationWarning>

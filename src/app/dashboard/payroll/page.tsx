@@ -30,7 +30,6 @@ import { collection, query, where, orderBy, limit, doc, getDocs } from "firebase
 import { format, parseISO, getWeek, startOfWeek, endOfWeek, getYear } from "date-fns";
 import { cn } from "@/lib/utils";
 import React from "react";
-import { generatePayrollReport, PayrollReportInput } from "@/ai/flows/generate-payroll-report-flow";
 import { calculateJobPayout, calculateMaterialCost } from "@/app/lib/job-financials";
 import {
   DropdownMenu,
@@ -102,6 +101,30 @@ const JobDetailsRow = ({ job }: { job: Job }) => {
         </TableRow>
     )
 }
+
+const JobCard = ({ job, settings }: { job: Job, settings: GeneralSettings | null }) => {
+    const router = useRouter();
+    const jobTitle = job.title || `${job.clientName.split(" ").pop() || "N/A"} #${job.quoteNumber}`;
+    const payout = calculateJobPayout(job, settings);
+
+    return (
+        <Card onClick={() => router.push(`/dashboard/jobs/${job.id}`)} className="cursor-pointer">
+            <CardContent className="p-4">
+                <div className="flex justify-between items-start gap-3">
+                    <div className="flex-1 min-w-0">
+                        <p className="font-semibold truncate">{jobTitle}</p>
+                        <p className="text-sm text-muted-foreground truncate">{job.address}</p>
+                    </div>
+                    <p className="text-lg font-bold ml-4 shrink-0">${payout.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+                </div>
+                <div className="flex justify-between items-center mt-3 text-xs text-muted-foreground">
+                    <span>Completion Date</span>
+                    <span>{format(new Date(job.deadline), "MMM dd, yyyy")}</span>
+                </div>
+            </CardContent>
+        </Card>
+    );
+};
 
 export default function PayrollPage() {
   const router = useRouter();
@@ -204,29 +227,6 @@ export default function PayrollPage() {
         const end = endOfWeek(now);
         const totalPayout = sortedJobsToPay.reduce((acc, job) => acc + calculateJobPayout(job, settings), 0);
 
-        const reportInput: PayrollReportInput = {
-            jobs: sortedJobsToPay.map(job => {
-                const payout = calculateJobPayout(job, settings);
-                const jobTitle = job.title || `${job.clientName.split(" ").pop() || "N/A"} #${job.quoteNumber}`;
-                return {
-                    ...job,
-                    title: jobTitle,
-                    startDate: format(new Date(job.startDate), "MM/dd/yyyy"),
-                    deadline: format(new Date(job.deadline), "MM/dd/yyyy"),
-                    payout: parseFloat(payout.toFixed(2)),
-                }
-            }),
-            currentDate: format(now, "MM/dd/yyyy"),
-            weekNumber: currentWeek,
-            startDate: format(start, "MM/dd/yyyy"),
-            endDate: format(end, "MM/dd/yyyy"),
-            businessName: userProfile?.businessName || "",
-            businessLogoUrl: userProfile?.businessLogoUrl || "",
-            totalPayout: parseFloat(totalPayout.toFixed(2)),
-        };
-        
-        await generatePayrollReport(reportInput);
-        
         const newReport: Omit<PayrollReport, 'id'> = {
             weekNumber: currentWeek,
             year: currentYear,
@@ -281,74 +281,99 @@ export default function PayrollPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Job</TableHead>
-                    <TableHead>Completion Date</TableHead>
-                    <TableHead className="text-right">Payout</TableHead>
-                    <TableHead className="w-[100px] text-center">Details</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoadingJobs ? (
-                    [...Array(3)].map((_, i) => (
-                      <TableRow key={i}>
-                        <TableCell>
-                          <Skeleton className="h-5 w-32 mb-1" />
-                          <Skeleton className="h-4 w-40" />
-                        </TableCell>
-                        <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                        <TableCell className="text-right"><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
-                         <TableCell><Skeleton className="h-8 w-full" /></TableCell>
-                      </TableRow>
-                    ))
-                  ) : sortedJobsToPay && sortedJobsToPay.length > 0 ? sortedJobsToPay.map(job => {
-                     const jobTitle = job.title || `${job.clientName.split(" ").pop() || "N/A"} #${job.quoteNumber}`;
-                     const payout = calculateJobPayout(job, settings);
+                {/* Desktop Table */}
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Job</TableHead>
+                      <TableHead>Completion Date</TableHead>
+                      <TableHead className="text-right">Payout</TableHead>
+                      <TableHead className="w-[100px] text-center">Details</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {isLoadingJobs ? (
+                      [...Array(3)].map((_, i) => (
+                        <TableRow key={i}>
+                          <TableCell>
+                            <Skeleton className="h-5 w-32 mb-1" />
+                            <Skeleton className="h-4 w-40" />
+                          </TableCell>
+                          <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                          <TableCell className="text-right"><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
+                           <TableCell><Skeleton className="h-8 w-full" /></TableCell>
+                        </TableRow>
+                      ))
+                    ) : sortedJobsToPay && sortedJobsToPay.length > 0 ? sortedJobsToPay.map(job => {
+                       const jobTitle = job.title || `${job.clientName.split(" ").pop() || "N/A"} #${job.quoteNumber}`;
+                       const payout = calculateJobPayout(job, settings);
 
-                    return (
-                        <React.Fragment key={job.id}>
-                           <TableRow>
-                            <TableCell>
-                              <div 
-                                className="font-medium cursor-pointer hover:underline"
-                                onClick={() => handleJobClick(job.id)}
-                              >
-                                {jobTitle}
-                              </div>
-                              <div className="text-sm text-muted-foreground">{job.address}</div>
-                            </TableCell>
-                            <TableCell>{format(new Date(job.deadline), "MMM dd, yyyy")}</TableCell>
-                            <TableCell className="text-right">${payout.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</TableCell>
-                            <TableCell className="text-center">
-                                <Button variant="ghost" size="sm" onClick={() => toggleRow(job.id)}>
-                                    <span className="sr-only">Toggle Details</span>
-                                    <ChevronDown className={cn("h-4 w-4 transition-transform", expandedJobId === job.id && "rotate-180")} />
-                                </Button>
-                            </TableCell>
-                          </TableRow>
-                          {expandedJobId === job.id && <JobDetailsRow job={job} />}
-                       </React.Fragment>
-                    )
-                  }) : (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center h-24">
-                        No jobs are currently awaiting payment.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-                <TableFooter>
-                    <TableRow>
-                        <TableCell colSpan={2} className="font-bold">Total</TableCell>
-                        <TableCell className="text-right font-bold">
-                            ${totalReadyForPayout.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                      return (
+                          <React.Fragment key={job.id}>
+                             <TableRow>
+                              <TableCell>
+                                <div 
+                                  className="font-medium cursor-pointer hover:underline"
+                                  onClick={() => handleJobClick(job.id)}
+                                >
+                                  {jobTitle}
+                                </div>
+                                <div className="text-sm text-muted-foreground">{job.address}</div>
+                              </TableCell>
+                              <TableCell>{format(new Date(job.deadline), "MMM dd, yyyy")}</TableCell>
+                              <TableCell className="text-right">${payout.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</TableCell>
+                              <TableCell className="text-center">
+                                  <Button variant="ghost" size="sm" onClick={() => toggleRow(job.id)}>
+                                      <span className="sr-only">Toggle Details</span>
+                                      <ChevronDown className={cn("h-4 w-4 transition-transform", expandedJobId === job.id && "rotate-180")} />
+                                  </Button>
+                              </TableCell>
+                            </TableRow>
+                            {expandedJobId === job.id && <JobDetailsRow job={job} />}
+                         </React.Fragment>
+                      )
+                    }) : (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center h-24">
+                          No jobs are currently awaiting payment.
                         </TableCell>
-                        <TableCell></TableCell>
-                    </TableRow>
-                </TableFooter>
-              </Table>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                  <TableFooter>
+                      <TableRow>
+                          <TableCell colSpan={2} className="font-bold">Total</TableCell>
+                          <TableCell className="text-right font-bold">
+                              ${totalReadyForPayout.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                          </TableCell>
+                          <TableCell></TableCell>
+                      </TableRow>
+                  </TableFooter>
+                </Table>
+              </div>
+
+               {/* Mobile Card List */}
+               <div className="md:hidden space-y-4">
+                  {isLoadingJobs ? (
+                      [...Array(3)].map((_, i) => <Skeleton key={i} className="h-24 w-full" />)
+                  ) : sortedJobsToPay && sortedJobsToPay.length > 0 ? (
+                      sortedJobsToPay.map(job => (
+                          <JobCard key={job.id} job={job} settings={settings} />
+                      ))
+                  ) : (
+                      <div className="text-center text-muted-foreground py-10">
+                          No jobs are currently awaiting payment.
+                      </div>
+                  )}
+
+                  {sortedJobsToPay && sortedJobsToPay.length > 0 && (
+                      <div className="flex justify-between items-center border-t pt-4 mt-4">
+                          <p className="font-bold">Total</p>
+                          <p className="font-bold text-lg">${totalReadyForPayout.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+                      </div>
+                  )}
+              </div>
             </CardContent>
           </Card>
           

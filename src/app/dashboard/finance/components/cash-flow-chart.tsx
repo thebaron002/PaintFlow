@@ -1,6 +1,5 @@
 
 "use client"
-
 import * as React from "react";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts"
 import {
@@ -12,7 +11,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+<<<<<<< HEAD
 
+=======
+>>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
 const chartConfig = {
   income: {
     label: "Income",
@@ -23,16 +25,15 @@ const chartConfig = {
     color: "#f43f5e", // rose-500
   },
 } as const;
-
 interface CashFlowChartProps {
   income: { date: string, amount: number }[];
   expenses: { date: string, amount: number }[];
   isLoading: boolean;
 }
-
 export function CashFlowChart({ income, expenses, isLoading }: CashFlowChartProps) {
   const [granularity, setGranularity] = useState<'week' | 'month' | 'all'>('all');
   const [isMounted, setIsMounted] = useState(false);
+<<<<<<< HEAD
 
   React.useEffect(() => {
     setIsMounted(true);
@@ -45,6 +46,16 @@ export function CashFlowChart({ income, expenses, isLoading }: CashFlowChartProp
     let labels: Date[] = [];
     let formatLabel = (d: Date) => format(d, 'MMM');
 
+=======
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
+  const chartData = React.useMemo(() => {
+    const data = [];
+    const now = new Date();
+    let labels: Date[] = [];
+    let formatLabel = (d: Date) => format(d, 'MMM');
+>>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
     if (granularity === 'all') {
       const start = subYears(now, 1);
       labels = eachMonthOfInterval({ start, end: now });
@@ -58,16 +69,22 @@ export function CashFlowChart({ income, expenses, isLoading }: CashFlowChartProp
       labels = eachDayOfInterval({ start, end: now });
       formatLabel = (d) => format(d, 'EEE');
     }
+<<<<<<< HEAD
 
     return labels.map(date => {
       let bucketStart, bucketEnd;
 
+=======
+    return labels.map(date => {
+      let bucketStart, bucketEnd;
+>>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
       if (granularity === 'all') {
         bucketStart = startOfMonth(date);
         bucketEnd = endOfMonth(date);
       } else if (granularity === 'month') {
         bucketStart = startOfWeek(date);
         bucketEnd = endOfWeek(date);
+<<<<<<< HEAD
       } else {
         bucketStart = new Date(date.setHours(0, 0, 0, 0));
         bucketEnd = new Date(date.setHours(23, 59, 59, 999));
@@ -81,6 +98,18 @@ export function CashFlowChart({ income, expenses, isLoading }: CashFlowChartProp
         .filter(item => isWithinInterval(parseISO(item.date), { start: bucketStart, end: bucketEnd }))
         .reduce((sum, item) => sum + item.amount, 0);
 
+=======
+      } else { 
+        bucketStart = new Date(date.setHours(0, 0, 0, 0));
+        bucketEnd = new Date(date.setHours(23, 59, 59, 999));
+      }
+      const bucketIncome = income
+        .filter(item => isWithinInterval(parseISO(item.date), { start: bucketStart, end: bucketEnd }))
+        .reduce((sum, item) => sum + item.amount, 0);
+      const bucketExpenses = expenses
+        .filter(item => isWithinInterval(parseISO(item.date), { start: bucketStart, end: bucketEnd }))
+        .reduce((sum, item) => sum + item.amount, 0);
+>>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
       return {
         label: formatLabel(date),
         income: bucketIncome,
@@ -88,11 +117,13 @@ export function CashFlowChart({ income, expenses, isLoading }: CashFlowChartProp
       };
     });
   }, [income, expenses, granularity]);
+<<<<<<< HEAD
 
+=======
+>>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
   if (isLoading || !isMounted) {
     return <Skeleton className="h-[250px] w-full" />
   }
-
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-end">

@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -13,8 +14,12 @@ const PopoverContent = React.forwardRef<
   React.ElementRef<typeof PopoverPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content> & { disablePortal?: boolean }
 >(({ className, align = "center", sideOffset = 4, disablePortal, ...props }, ref) => {
+<<<<<<< HEAD
   const Portal = disablePortal ? React.Fragment : PopoverPrimitive.Portal
 
+=======
+  const Portal = disablePortal ? React.Fragment : PopoverPrimitive.Portal;
+>>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
   return (
     <Portal>
       <PopoverPrimitive.Content

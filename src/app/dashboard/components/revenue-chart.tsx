@@ -40,6 +40,11 @@ const chartConfig = {
 export function RevenueChart() {
   const firestore = useFirestore();
   const { user } = useUser();
+  const [isMounted, setIsMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const jobsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -129,8 +134,18 @@ export function RevenueChart() {
   }, [jobs, generalExpenses, settings]);
 
 
-  if (isLoading) {
-    return <Skeleton className="h-[350px] w-full" />
+  if (isLoading || !isMounted) {
+    return (
+        <Card className="bg-white/70 backdrop-blur-md border-white/50 shadow-xl dark:bg-zinc-900/60 dark:border-white/10">
+            <CardHeader>
+                <CardTitle>Revenue Overview</CardTitle>
+                <CardDescription>Income vs. Expenses over the last weeks</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Skeleton className="h-[250px] w-full" />
+            </CardContent>
+        </Card>
+    )
   }
 
   return (

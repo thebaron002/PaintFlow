@@ -11,6 +11,15 @@ console.log('🔑 GEMINI_API_KEY loaded:', !!process.env.GEMINI_API_KEY);
 console.log('🔑 GOOGLE_API_KEY loaded:', !!process.env.GOOGLE_API_KEY);
 
 export const ai = genkit({
+<<<<<<< HEAD
   plugins: [googleAI()],
   model: 'googleai/gemini-1.5-flash',
+=======
+  plugins: [
+    googleAI({
+      projectId: process.env.GCLOUD_PROJECT,
+      apiVersion: 'v1beta', // Recommended for gemini-2.5-flash
+    }),
+  ],
+>>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
 });

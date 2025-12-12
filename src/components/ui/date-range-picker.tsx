@@ -1,10 +1,18 @@
+<<<<<<< HEAD
 "use client"
 
+=======
+
+"use client"
+>>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
 import * as React from "react"
 import { CalendarIcon } from "lucide-react"
 import { addDays, format, startOfMonth, endOfMonth, startOfYear, subMonths } from "date-fns"
 import { DateRange } from "react-day-picker"
+<<<<<<< HEAD
 
+=======
+>>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
@@ -13,6 +21,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover"
+<<<<<<< HEAD
 import {
     Select,
     SelectContent,
@@ -21,17 +30,25 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 
+=======
+>>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
 export interface DatePickerWithRangeProps extends React.HTMLAttributes<HTMLDivElement> {
     date: DateRange | undefined
     setDate: (date: DateRange | undefined) => void
 }
+<<<<<<< HEAD
 
+=======
+>>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
 export function DatePickerWithRange({
     className,
     date,
     setDate,
 }: DatePickerWithRangeProps) {
+<<<<<<< HEAD
 
+=======
+>>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
     // Preset handlers
     const applyPreset = (daysToCheck: number | 'thisMonth' | 'lastMonth' | 'thisYear') => {
         const today = new Date();
@@ -46,7 +63,10 @@ export function DatePickerWithRange({
             setDate({ from: addDays(today, -daysToCheck), to: today });
         }
     }
+<<<<<<< HEAD
 
+=======
+>>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
     return (
         <div className={cn("grid gap-2", className)}>
             <Popover>
@@ -77,6 +97,7 @@ export function DatePickerWithRange({
                 <PopoverContent className="w-auto p-0" align="end">
                     <div className="flex">
                         <div className="border-r p-2 flex flex-col gap-1 w-[140px]">
+<<<<<<< HEAD
                             <div className="text-xs font-medium text-muted-foreground mb-1 px-2 py-1">Presets</div>
                             <Button variant="ghost" size="sm" className="justify-start h-8 text-xs font-normal" onClick={() => applyPreset('thisMonth')}>This Month</Button>
                             <Button variant="ghost" size="sm" className="justify-start h-8 text-xs font-normal" onClick={() => applyPreset('lastMonth')}>Last Month</Button>
@@ -84,6 +105,15 @@ export function DatePickerWithRange({
                             <Button variant="ghost" size="sm" className="justify-start h-8 text-xs font-normal" onClick={() => applyPreset(30)}>Last 30 Days</Button>
                             <Button variant="ghost" size="sm" className="justify-start h-8 text-xs font-normal" onClick={() => applyPreset(90)}>Last 90 Days</Button>
                             <Button variant="ghost" size="sm" className="justify-start h-8 text-xs font-normal" onClick={() => applyPreset(7)}>Last 7 Days</Button>
+=======
+                             <div className="text-xs font-medium text-muted-foreground mb-1 px-2 py-1">Presets</div>
+                             <Button variant="ghost" size="sm" className="justify-start h-8 text-xs font-normal" onClick={() => applyPreset('thisMonth')}>This Month</Button>
+                             <Button variant="ghost" size="sm" className="justify-start h-8 text-xs font-normal" onClick={() => applyPreset('lastMonth')}>Last Month</Button>
+                             <Button variant="ghost" size="sm" className="justify-start h-8 text-xs font-normal" onClick={() => applyPreset('thisYear')}>This Year</Button>
+                             <Button variant="ghost" size="sm" className="justify-start h-8 text-xs font-normal" onClick={() => applyPreset(30)}>Last 30 Days</Button>
+                             <Button variant="ghost" size="sm" className="justify-start h-8 text-xs font-normal" onClick={() => applyPreset(90)}>Last 90 Days</Button>
+                             <Button variant="ghost" size="sm" className="justify-start h-8 text-xs font-normal" onClick={() => applyPreset(7)}>Last 7 Days</Button>
+>>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
                         </div>
                         <Calendar
                             initialFocus

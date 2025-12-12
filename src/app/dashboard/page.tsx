@@ -298,6 +298,13 @@ function CurrentJobFallback() {
 export default function DashboardPage() {
   const { user } = useUser();
   const firestore = useFirestore();
+  const [timeOfDay, setTimeOfDay] = React.useState('');
+
+  React.useEffect(() => {
+    // This now runs only on the client, avoiding hydration mismatches.
+    const hour = new Date().getHours();
+    setTimeOfDay(hour < 12 ? "morning" : "afternoon");
+  }, []);
 
   const settingsRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -323,6 +330,7 @@ export default function DashboardPage() {
 
   // Fallback: se não houver In Progress, pega 1 Not Started mais próximo do futuro
   const notStartedJobs = React.useMemo(() => {
+    if (!allJobs) return [];
     const today = startOfToday();
     return allJobs?.filter(job => {
         const startDate = parseISO(job.startDate);
@@ -341,6 +349,7 @@ export default function DashboardPage() {
     const upcoming = allJobs.map(job => {
       const allDates = [job.startDate, ...(job.productionDays?.map(pd => pd.date) || [])];
       const nextActivityDate = allDates
+        .filter(d => !!d) // ensure date is not null/undefined
         .map(d => parseISO(d))
         .filter(d => isWithinInterval(d, { start: today, end: nextWeek }))
         .sort((a,b) => a.getTime() - b.getTime())[0];
@@ -373,7 +382,7 @@ export default function DashboardPage() {
       <div className="mb-5">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Good {new Date().getHours() < 12 ? "morning" : "afternoon"}, {user?.displayName?.split(' ')[0] || 'User'} 👋</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Good {timeOfDay}, {user?.displayName?.split(' ')[0] || 'User'} 👋</h1>
             <p className="text-sm text-zinc-600 dark:text-zinc-400">Let’s make today productive.</p>
           </div>
         </div>
@@ -450,3 +459,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+

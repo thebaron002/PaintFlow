@@ -105,6 +105,7 @@ export function AddGeneralExpenseForm({ categories, onSuccess }: AddGeneralExpen
             control={form.control}
             name="date"
             render={({ field }) => (
+<<<<<<< HEAD
               <FormItem>
                 <FormLabel>Date</FormLabel>
                 <FormControl>
@@ -113,6 +114,16 @@ export function AddGeneralExpenseForm({ categories, onSuccess }: AddGeneralExpen
                     onChange={field.onChange}
                     disablePortal
                   />
+=======
+                <FormItem>
+                <FormLabel>Date</FormLabel>
+                <FormControl>
+                    <ResponsiveDatePicker
+                        value={field.value}
+                        onChange={field.onChange}
+                        disablePortal
+                    />
+>>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -125,6 +136,7 @@ export function AddGeneralExpenseForm({ categories, onSuccess }: AddGeneralExpen
               <FormItem>
                 <FormLabel>Amount</FormLabel>
                 <FormControl>
+<<<<<<< HEAD
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">$</span>
                     <Input
@@ -135,6 +147,17 @@ export function AddGeneralExpenseForm({ categories, onSuccess }: AddGeneralExpen
                       {...field}
                     />
                   </div>
+=======
+                    <div className="relative">
+                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">$</span>
+                        <Input 
+                          type="number" 
+                          step="0.01" 
+                          placeholder="0.00" 
+                          className="pl-7 text-lg font-medium shadow-sm transition-all focus:ring-primary/20"
+                          {...field} />
+                    </div>
+>>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -155,9 +178,15 @@ export function AddGeneralExpenseForm({ categories, onSuccess }: AddGeneralExpen
             </FormItem>
           )}
         />
+<<<<<<< HEAD
 
         <div className="flex items-center justify-end mt-4">
           <Button type="submit" size="lg" className="w-full sm:w-auto min-w-[200px] shadow-md hover:shadow-lg transition-all">Add Expense</Button>
+=======
+        
+        <div className="flex items-center justify-end mt-4">
+            <Button type="submit" size="lg" className="w-full sm:w-auto min-w-[200px] shadow-md hover:shadow-lg transition-all">Add Expense</Button>
+>>>>>>> 9cc9be6f2b91575e02281f201a1f62172f7104d1
         </div>
       </form>
     </Form>

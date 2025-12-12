@@ -7,3 +7,4 @@ export const firebaseConfig = {
   storageBucket: "studio-170657449-62ce2.firebasestorage.app",
   messagingSenderId: "145584607779",
 };
+
