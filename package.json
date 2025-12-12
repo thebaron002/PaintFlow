@@ -81,5 +81,11 @@
   },
   "resolutions": {
     "next": "15.4.8"
+  },
+  "overrides": {
+    "react-google-places-autocomplete": {
+      "react": "$react",
+      "react-dom": "$react-dom"
+    }
   }
 }
