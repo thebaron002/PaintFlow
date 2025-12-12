@@ -1,38 +1,39 @@
 import { Resend } from 'resend';
 import { NextRequest, NextResponse } from 'next/server';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 export async function POST(request: NextRequest) {
-    try {
-        const body = await request.json();
-        const {
-            contractorEmail,
-            userEmail,
-            weekNumber,
-            year,
-            startDate,
-            endDate,
-            totalPayout,
-            jobCount,
-            businessName
-        } = body;
+  try {
+    // Initialize Resend inside the handler to avoid build-time errors
+    const resend = new Resend(process.env.RESEND_API_KEY || '');
 
-        // Validate required fields
-        if (!contractorEmail || !userEmail) {
-            return NextResponse.json(
-                { error: 'Missing required email addresses' },
-                { status: 400 }
-            );
-        }
+    const body = await request.json();
+    const {
+      contractorEmail,
+      userEmail,
+      weekNumber,
+      year,
+      startDate,
+      endDate,
+      totalPayout,
+      jobCount,
+      businessName
+    } = body;
 
-        // Send email using Resend
-        const { data, error } = await resend.emails.send({
-            from: `${businessName || 'PaintFlow'} <onboarding@resend.dev>`,
-            to: contractorEmail,
-            cc: userEmail,
-            subject: `Payroll Report - Week ${weekNumber}, ${year}`,
-            html: `
+    // Validate required fields
+    if (!contractorEmail || !userEmail) {
+      return NextResponse.json(
+        { error: 'Missing required email addresses' },
+        { status: 400 }
+      );
+    }
+
+    // Send email using Resend
+    const { data, error } = await resend.emails.send({
+      from: `${businessName || 'PaintFlow'} <onboarding@resend.dev>`,
+      to: contractorEmail,
+      cc: userEmail,
+      subject: `Payroll Report - Week ${weekNumber}, ${year}`,
+      html: `
         <!DOCTYPE html>
         <html>
           <head>
@@ -116,26 +117,26 @@ export async function POST(request: NextRequest) {
           </body>
         </html>
       `,
-        });
+    });
 
-        if (error) {
-            console.error('Resend error:', error);
-            return NextResponse.json(
-                { error: 'Failed to send email', details: error },
-                { status: 500 }
-            );
-        }
-
-        return NextResponse.json({
-            success: true,
-            messageId: data?.id
-        });
-
-    } catch (error) {
-        console.error('Email API error:', error);
-        return NextResponse.json(
-            { error: 'Internal server error' },
-            { status: 500 }
-        );
+    if (error) {
+      console.error('Resend error:', error);
+      return NextResponse.json(
+        { error: 'Failed to send email', details: error },
+        { status: 500 }
+      );
     }
+
+    return NextResponse.json({
+      success: true,
+      messageId: data?.id
+    });
+
+  } catch (error) {
+    console.error('Email API error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
 }
