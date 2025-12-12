@@ -25,7 +25,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <head>
-        <meta name="theme-color" content="#fff" />
+        <meta name="theme-color" content="#7aa8c8" />
+        <link rel="manifest" href="/manifest.webmanifest" />
+        <link rel="icon" href="/icons/icon-192x192.png" />
+        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
       <body className={cn("app-bg min-h-dvh antialiased text-zinc-900")} suppressHydrationWarning>
         <AuthProvider>
