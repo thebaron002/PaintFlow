@@ -60,8 +60,8 @@ const nextConfig: NextConfig = {
             value: 'Bearer ' // Este valor será preenchido pelo cliente
           }
         ]
-      }
-    ]
+      },
+    ];
   }
 };
 
