@@ -19,7 +19,8 @@ import {
     DollarSign,
     ChevronRight,
     PlusCircle, // For center nav
-    CalendarDays
+    CalendarDays,
+    Navigation
 } from "lucide-react";
 
 // Firebase
@@ -109,34 +110,24 @@ function HeroJobCard({ job }: { job: JobType }) {
                 </div>
             </div>
 
-            {/* Right Map Image */}
+            {/* Right: ETA Card (Replaces Map) */}
             <a href={mapLink} target="_blank" rel="noreferrer" className="w-[120px] shrink-0 self-center">
-                {/* Map Container with Glow to match mockup */}
-                <div className="w-[120px] h-[120px] rounded-[24px] overflow-hidden shadow-sm bg-zinc-100 relative border border-zinc-100">
-                    {/* Static Map Mock */}
-                    <div className="absolute inset-0 bg-[url('https://api.mapbox.com/styles/v1/mapbox/light-v10/static/pin-s+fbbf24(-122.42,37.78)/-122.42,37.78,13,0/300x300?access_token=YOUR_TOKEN')] bg-cover bg-center" style={{ filter: 'grayscale(0.1)' }} />
-                    <div className="absolute inset-0 bg-gradient-to-t from-white/20 to-transparent pointer-events-none" />
+                <div className="w-full h-[120px] rounded-[24px] overflow-hidden shadow-sm bg-blue-600 text-white relative flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform">
+                    {/* Background Pattern */}
+                    <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-transparent to-transparent" />
 
-                    {/* SVG Path Mock overlay */}
-                    <svg className="absolute inset-0 w-full h-full p-0 pointer-events-none opacity-90" viewBox="0 0 100 100">
-                        {/* Simple path imitating the blue line in mockup */}
-                        <defs>
-                            <filter id="glow">
-                                <feGaussianBlur stdDeviation="1.5" result="coloredBlur" />
-                                <feMerge><feMergeNode in="coloredBlur" /><feMergeNode in="SourceGraphic" /></feMerge>
-                            </filter>
-                        </defs>
-                        <path d="M 30 80 L 70 60 L 70 35" fill="none" stroke="#3b82f6" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
-                        <circle cx="30" cy="80" r="4" fill="#3b82f6" stroke="white" strokeWidth="2" />
-                    </svg>
+                    <div className="p-2 bg-white/20 rounded-full mb-1 backdrop-blur-sm">
+                        <Navigation className="w-5 h-5 text-white fill-current" />
+                    </div>
 
-                    {/* Pin overlay manually positioned to match line end */}
-                    <div className="absolute top-[28%] right-[28%] transform -translate-x-1/2 -translate-y-1/2">
-                        <div className="relative">
-                            <div className="absolute -inset-1 bg-yellow-400 rounded-full blur opacity-30"></div>
-                            <MapPin className="text-yellow-400 w-7 h-7 fill-yellow-400 drop-shadow-sm relative z-10" />
-                            <div className="absolute top-1/2 left-1/2 w-1 h-1 bg-black rounded-full transform -translate-x-1/2 -translate-y-1/2 z-20 mt-[-2px]"></div>
-                        </div>
+                    <div className="text-center z-10">
+                        <span className="block text-2xl font-bold leading-none tracking-tight">15</span>
+                        <span className="text-[11px] font-medium opacity-90 uppercase tracking-wide">min</span>
+                    </div>
+
+                    {/* Tiny Distance Label */}
+                    <div className="absolute bottom-3 text-[10px] opacity-75 font-medium">
+                        4.2 mi
                     </div>
                 </div>
             </a>
