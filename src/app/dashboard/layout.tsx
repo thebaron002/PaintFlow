@@ -112,7 +112,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     );
   }
 
-  if (pathname === '/dashboard/mobile') {
+  if (pathname?.startsWith('/dashboard/mobile')) {
     return <>{children}</>;
   }
 

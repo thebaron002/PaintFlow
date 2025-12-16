@@ -5,7 +5,7 @@ import Link from "next/link";
 import { format, isFuture } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetClose } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
 
 // Icons 
@@ -20,7 +20,8 @@ import {
     ChevronRight,
     PlusCircle, // For center nav
     CalendarDays,
-    Navigation
+    Navigation,
+    X
 } from "lucide-react";
 
 // Firebase
@@ -37,6 +38,8 @@ import { calculateJobPayout } from "@/app/lib/job-financials";
 // Components
 import { RevenueChart } from "../components/revenue-chart";
 import { AddGeneralExpenseForm } from "../finance/components/add-general-expense-form";
+import { AddJobForm } from "../jobs/components/add-job-form";
+import { FloatingNav } from "./components/floating-nav";
 
 // ---------------------------------------------------------------------
 // NANO-UI COMPONENTS (v4)
@@ -72,82 +75,94 @@ function HeroJobCard({ job }: { job: JobType }) {
     // Placeholder map image style - in a real app, use a static map API
     const mapPlaceholderUrl = "https://placehold.co/400x400/e2e8f0/94a3b8?text=Map";
 
-    // Formatting Price
-    // We assume calculateJobPayout returns a number. 
-    // If you don't have settings, we might just use job value or 0.
-    const price = 1234.56; // Mocking specifically for the design request matching "$ 1234.56"
+    // Formatting Price - use actual job budget (payout)
+    const price = job.budget || job.initialValue || 0;
 
     return (
-        <NanoGlassCard className="p-5 flex justify-between gap-3 bg-white shadow-sm border border-zinc-50">
-            {/* Left Content */}
-            <div className="flex flex-col justify-between flex-1 min-w-0 py-1">
-                <div>
-                    <Link href={`/dashboard/jobs/${job.id}`} className="block hover:opacity-70 transition-opacity">
-                        <h3 className="text-zinc-900 font-extrabold text-[22px] leading-none tracking-tight truncate mb-1">
-                            {/* Mockup Style: "Name #ID" */}
-                            {job.clientName ? job.clientName.split(' ')[0] : "Job"} #{job.quoteNumber || "0001"}
-                        </h3>
-                        <p className="text-zinc-500 font-normal text-sm truncate">
-                            {job.clientName || "Client Name"}
-                        </p>
-                    </Link>
+        <NanoGlassCard className="p-5 flex flex-col gap-4 bg-white shadow-sm border border-zinc-50">
+            {/* Top Row: Title & Chevron */}
+            {/* Top Row: Title & Chevron */}
+            <Link href={`/dashboard/mobile/jobs/${job.id}`} className="flex justify-between items-start group">
+                <div className="flex-1 min-w-0 pr-2">
+                    <h3 className="text-zinc-900 font-extrabold text-[22px] leading-none tracking-tight truncate mb-1">
+                        {job.clientName ? job.clientName.split(' ')[0] : "Job"} #{job.quoteNumber || "0001"}
+                    </h3>
+                    <p className="text-zinc-500 font-normal text-sm truncate">
+                        {job.clientName || "Client Name"}
+                    </p>
+                </div>
+                <ChevronRight className="w-5 h-5 text-zinc-400 mt-1 shrink-0 group-active:text-zinc-600 transition-colors" />
+            </Link>
+
+            {/* Bottom Row: Content + Map */}
+            <div className="flex gap-3 items-stretch">
+                {/* Left Content (Address, Date, Price) */}
+                <div className="flex flex-col justify-between flex-1 min-w-0">
+                    <div className="flex flex-col gap-2">
+                        <div className="flex items-start gap-2 text-zinc-800 text-sm font-medium">
+                            <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-zinc-900" strokeWidth={2} />
+                            <span className="leading-tight line-clamp-2 max-w-[140px]">{job.address}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-zinc-800 text-sm font-medium">
+                            <Calendar className="w-4 h-4 shrink-0 text-zinc-900" strokeWidth={2} />
+                            <span>{job.startDate ? format(new Date(job.startDate), "MMM dd, yyyy") : "TBD"}</span>
+                        </div>
+                    </div>
+
+                    {/* Price Badge */}
+                    <div className="mt-4 bg-[#F2F4F5] rounded-[14px] px-4 py-2 self-start flex items-center justify-center">
+                        <span className="text-zinc-950 font-extrabold text-xl tracking-tight">$ {price.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                    </div>
                 </div>
 
-                <div className="flex flex-col gap-2 mt-4">
-                    <div className="flex items-start gap-2 text-zinc-800 text-sm font-medium">
-                        <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-zinc-900" strokeWidth={2} />
-                        <span className="leading-tight line-clamp-2 max-w-[140px]">{job.address}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-zinc-800 text-sm font-medium">
-                        <Calendar className="w-4 h-4 shrink-0 text-zinc-900" strokeWidth={2} />
-                        <span>{job.startDate ? format(new Date(job.startDate), "MMM dd, yyyy") : "TBD"}</span>
-                    </div>
-                </div>
+                {/* Right: ETA Card (Replaces Map) */}
+                <a href={mapLink} target="_blank" rel="noreferrer" className="w-[120px] shrink-0">
+                    <div className="w-full h-full rounded-[24px] overflow-hidden shadow-sm bg-blue-600 text-white relative flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform">
+                        {/* Background Pattern */}
+                        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-transparent to-transparent" />
 
-                {/* Price Badge */}
-                <div className="mt-5 bg-[#F2F4F5] rounded-[14px] px-4 py-2 self-start flex items-center justify-center">
-                    <span className="text-zinc-950 font-extrabold text-xl tracking-tight">$ {price.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-                </div>
+                        <div className="p-1.5 bg-white/20 rounded-full mb-0.5 backdrop-blur-sm">
+                            <Navigation className="w-5 h-5 text-white fill-current" />
+                        </div>
+
+                        <div className="flex flex-col items-center justify-center gap-0 z-10">
+                            <span className="block text-3xl font-bold leading-none tracking-tight">--</span>
+                            <span className="text-[9px] font-bold opacity-80 uppercase tracking-widest mb-0.5">min</span>
+                            <span className="text-[9px] opacity-75 font-medium">-- mi</span>
+                        </div>
+                    </div>
+                </a>
             </div>
-
-            {/* Right: ETA Card (Replaces Map) */}
-            <a href={mapLink} target="_blank" rel="noreferrer" className="w-[120px] shrink-0 self-center">
-                <div className="w-full h-[120px] rounded-[24px] overflow-hidden shadow-sm bg-blue-600 text-white relative flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform">
-                    {/* Background Pattern */}
-                    <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-transparent to-transparent" />
-
-                    <div className="p-2 bg-white/20 rounded-full mb-1 backdrop-blur-sm">
-                        <Navigation className="w-5 h-5 text-white fill-current" />
-                    </div>
-
-                    <div className="text-center z-10">
-                        <span className="block text-2xl font-bold leading-none tracking-tight">15</span>
-                        <span className="text-[11px] font-medium opacity-90 uppercase tracking-wide">min</span>
-                    </div>
-
-                    {/* Tiny Distance Label */}
-                    <div className="absolute bottom-3 text-[10px] opacity-75 font-medium">
-                        4.2 mi
-                    </div>
-                </div>
-            </a>
         </NanoGlassCard>
     );
 }
 
-function ActionGrid({ upcomingJobs }: { upcomingJobs: any[] }) {
+function ActionGrid({ upcomingJobs }: { upcomingJobs: { job: JobType }[] }) {
     const { toast } = useToast();
+    const [isAddExpenseOpen, setAddExpenseOpen] = React.useState(false);
+    const [isFormValid, setIsFormValid] = React.useState(false);
+    const [isFormDirty, setIsFormDirty] = React.useState(false);
+    const submitTriggerRef = React.useRef<(() => void) | null>(null);
+
     const { user } = useUser();
     const firestore = useFirestore();
-    const [isAddExpenseOpen, setAddExpenseOpen] = React.useState(false);
-
-    // Fetch categories for expense form
     const expensesQuery = useMemoFirebase(() => {
         if (!firestore || !user) return null;
         return collection(firestore, 'users', user.uid, 'generalExpenses');
     }, [firestore, user]);
     const { data: expenses } = useCollection<GeneralExpense>(expensesQuery);
     const categories = [...new Set(expenses?.map((e) => e.category).filter(Boolean))] as string[];
+
+    const handleFormStateChange = (isValid: boolean, isDirty: boolean) => {
+        setIsFormValid(isValid);
+        setIsFormDirty(isDirty);
+    };
+
+    const handleSubmit = () => {
+        if (submitTriggerRef.current) {
+            submitTriggerRef.current();
+        }
+    };
 
     return (
         <div className="grid grid-cols-2 gap-4">
@@ -185,53 +200,46 @@ function ActionGrid({ upcomingJobs }: { upcomingJobs: any[] }) {
                 </div>
             </NanoGlassCard>
 
-            <Dialog open={isAddExpenseOpen} onOpenChange={setAddExpenseOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Add New Expense</DialogTitle>
-                    </DialogHeader>
+            <Sheet open={isAddExpenseOpen} onOpenChange={setAddExpenseOpen}>
+                <SheetContent side="bottom" className="bg-[#F2F2F7]">
+                    <SheetHeader className="flex flex-row items-center justify-between py-2.5 px-1">
+                        {/* iOS Close Button (Left) */}
+                        <SheetClose className="w-8 h-8 rounded-full bg-[#E5E5EA] flex items-center justify-center transition-opacity active:opacity-70">
+                            <X className="w-3.5 h-3.5 text-[#8E8E93] stroke-[3]" />
+                        </SheetClose>
+
+                        <SheetTitle className="text-[17px] font-semibold text-center !m-0 flex-1">New Expense</SheetTitle>
+
+                        {/* iOS Submit Button (Right) */}
+                        <button
+                            type="button"
+                            onClick={handleSubmit}
+                            disabled={!isFormValid}
+                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${isFormValid
+                                ? 'bg-[#007AFF] text-white hover:bg-[#0051D5]'
+                                : 'bg-[#E5E5EA] text-[#8E8E93] cursor-not-allowed'
+                                }`}
+                        >
+                            <ChevronRight className="w-4 h-4 rotate-[-90deg] stroke-[3]" />
+                        </button>
+                        <SheetDescription className="sr-only">Track your business expenses</SheetDescription>
+                    </SheetHeader>
                     <AddGeneralExpenseForm
                         categories={categories || []}
+                        onFormStateChange={handleFormStateChange}
+                        submitTriggerRef={submitTriggerRef}
                         onSuccess={() => {
                             setAddExpenseOpen(false);
                             toast({ title: "Expense Added", description: "Expense logged successfully." });
                         }}
                     />
-                </DialogContent>
-            </Dialog>
+                </SheetContent>
+            </Sheet>
         </div>
     );
 }
 
-function FloatingNav() {
-    const navItems = [
-        { icon: Home, href: "/dashboard/mobile", active: true },
-        { icon: Search, href: "/dashboard/jobs" }, // Using Search icon for Jobs per mockup vibe
-        { icon: Plus, href: "/dashboard/jobs/new", isPrimary: true }, // Center Plus
-        { icon: CalendarDays, href: "/dashboard/calendar" },
-        { icon: DollarSign, href: "/dashboard/finance" }, // Dollar for finance
-    ];
 
-    return (
-        <div className="fixed bottom-6 left-6 right-6 h-[72px] bg-[#2C2C2E] rounded-full shadow-2xl flex items-center justify-between px-6 z-50 mb-[env(safe-area-inset-bottom)]">
-            {navItems.map((item, idx) => {
-                if (item.isPrimary) {
-                    return (
-                        <Link key={idx} href={item.href || "#"} className="relative -top-1">
-                            <Plus className="w-8 h-8 text-zinc-400" strokeWidth={1.5} />
-                        </Link>
-                    )
-                }
-                return (
-                    <Link key={idx} href={item.href || "#"} className="flex flex-col items-center justify-center">
-                        <item.icon className="w-6 h-6 text-zinc-400" strokeWidth={1.5} />
-                    </Link>
-                );
-            })}
-            {/* Note: Mockup shows Book icon, using CalendarDays/DollarSign for functional purity initially, can be swapped */}
-        </div>
-    );
-}
 
 // ---------------------------------------------------------------------
 // PAGE
@@ -240,6 +248,13 @@ function FloatingNav() {
 export default function MobileDashboardPage() {
     const { user } = useUser();
     const firestore = useFirestore();
+    const { toast } = useToast();
+
+    // -- Job Modal Logic --
+    const [isAddJobOpen, setAddJobOpen] = React.useState(false);
+    const [isJobFormValid, setIsJobFormValid] = React.useState(false);
+    const jobSubmitTriggerRef = React.useRef<(() => void) | null>(null);
+    const handleJobSubmit = () => { jobSubmitTriggerRef.current?.(); };
 
     // Data Logic
     const allJobsQuery = useMemoFirebase(() => {
@@ -252,12 +267,12 @@ export default function MobileDashboardPage() {
     const targetJob = allJobs?.find(j => j.id === targetJobId);
     const inProgressJobs = allJobs?.filter(job => job.status === "In Progress") || [];
 
-    // Prioritize the target job (for demo/user request), then in-progress, then just the first one.
-    const currentJob = targetJob || inProgressJobs[0] || allJobs?.[0] || null;
+    // Hero Card Logic: Prioritize In Progress jobs, then most recent
+    const currentJob = inProgressJobs[0] || allJobs?.[0] || null;
 
-    // Upcoming Logic (Simple future filter)
+    // Upcoming Logic: Only show "Not Started" jobs
     const upcomingJobs = (allJobs || [])
-        .filter(j => j.startDate && isFuture(new Date(j.startDate)))
+        .filter(j => j.status === "Not Started")
         .map(j => ({ job: j }))
         .slice(0, 5);
 
@@ -317,7 +332,43 @@ export default function MobileDashboardPage() {
             </div>
 
             {/* 5. Floating Nav */}
-            <FloatingNav />
+            {/* 5. Floating Nav */}
+            <FloatingNav onPrimaryClick={() => setAddJobOpen(true)} />
+
+            {/* 6. New Job Sheet */}
+            <Sheet open={isAddJobOpen} onOpenChange={setAddJobOpen}>
+                <SheetContent side="bottom" className="bg-[#F2F2F7]">
+                    <SheetHeader className="flex flex-row items-center justify-between py-2.5 px-1">
+                        {/* iOS Close Button (Left) */}
+                        <SheetClose className="w-8 h-8 rounded-full bg-[#E5E5EA] flex items-center justify-center transition-opacity active:opacity-70">
+                            <X className="w-3.5 h-3.5 text-[#8E8E93] stroke-[3]" />
+                        </SheetClose>
+
+                        <SheetTitle className="text-[17px] font-semibold text-center !m-0 flex-1">New Job</SheetTitle>
+
+                        {/* iOS Submit Button (Right) */}
+                        <button
+                            type="button"
+                            onClick={handleJobSubmit}
+                            disabled={!isJobFormValid}
+                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${isJobFormValid
+                                ? 'bg-[#007AFF] text-white hover:bg-[#0051D5]'
+                                : 'bg-[#E5E5EA] text-[#8E8E93] cursor-not-allowed'
+                                }`}
+                        >
+                            <ChevronRight className="w-4 h-4 rotate-[-90deg] stroke-[3]" />
+                        </button>
+                    </SheetHeader>
+                    <AddJobForm
+                        onSuccess={() => {
+                            setAddJobOpen(false);
+                            toast({ title: "Job Created", description: "New job added successfully." });
+                        }}
+                        onFormStateChange={(isValid) => setIsJobFormValid(isValid)}
+                        submitTriggerRef={jobSubmitTriggerRef}
+                    />
+                </SheetContent>
+            </Sheet>
 
             {/* Overlay Nav from Mockup (Dark Bar) positioned exactly over bottom of content? 
                 Actually the FloatingNav above handles this function. 

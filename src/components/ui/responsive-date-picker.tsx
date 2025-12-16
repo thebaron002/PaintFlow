@@ -6,8 +6,9 @@ import { format } from "date-fns";
 import { Calendar as CalendarIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
+import { SimpleMobileCalendar } from "@/components/ui/simple-mobile-calendar";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -56,20 +57,27 @@ export function ResponsiveDatePicker({
 
   if (isMobile) {
     return (
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogTrigger asChild>{TriggerBtn}</DialogTrigger>
-        <DialogContent className="w-auto p-0">
-          <DialogHeader>
-            <DialogTitle className="sr-only">Pick a date</DialogTitle>
-          </DialogHeader>
-          <Calendar
-            mode="single"
-            selected={value}
-            onSelect={handleSelect}
-            initialFocus
-          />
-        </DialogContent>
-      </Dialog>
+      <div className={cn("w-full", widthClass)}>
+        <label className="text-sm font-medium mb-2 block">
+          {placeholder}
+        </label>
+        <input
+          type="date"
+          value={value ? format(value, "yyyy-MM-dd") : ""}
+          onChange={(e) => {
+            if (e.target.value) {
+              onChange(new Date(e.target.value + "T12:00:00"));
+            } else {
+              onChange(undefined);
+            }
+          }}
+          className={cn(
+            "h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm",
+            "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
+            className
+          )}
+        />
+      </div>
     );
   }
 

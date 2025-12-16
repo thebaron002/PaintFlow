@@ -4,34 +4,57 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Nano Banana Bold Palette */
+    /* Background: #F2F2F2 */
+    --background: 0 0% 95%;
+    --foreground: 187 85% 13%;
+    /* Dark Teal text for high contrast */
+
+    /* Card: White */
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 187 85% 13%;
+
+    /* Popover: White */
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 203 23.3% 26%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --popover-foreground: 187 85% 13%;
+
+    /* Primary: #05363D (Dark Teal) */
+    --primary: 187 85% 13%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary: #F2D022 (Yellow) */
+    --secondary: 50 89% 54%;
+    --secondary-foreground: 187 85% 13%;
+
+    /* Muted: Soft Yellow Tint (lighter version of #F2E085) */
+    --muted: 50 70% 92%;
+    --muted-foreground: 187 85% 13%;
+
+    /* Accent: same soft yellow */
+    --accent: 50 70% 92%;
+    --accent-foreground: 187 85% 13%;
+
+    /* Destructive: #F20F22 (Red) */
+    --destructive: 355 88% 50%;
+    --destructive-foreground: 0 0% 100%;
+
     --border: 214.3 31.8% 91.4%;
+    /* Keep gray for borders */
     --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
-    --sidebar-background: 203 23.3% 13.3%;
+    --ring: 187 85% 13%;
+
+    --radius: 1.5rem;
+    /* Increased radius for the rounded look */
+
+    --sidebar-background: 187 85% 13%;
     --sidebar-foreground: 0 0% 98%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-accent: 240 4.9% 19%;
+    --sidebar-border: 187 85% 20%;
+    --sidebar-accent: 187 85% 20%;
     --sidebar-accent-foreground: 0 0% 98%;
     --sidebar-ring: 240 5.9% 90%;
     --safe-bottom: env(safe-area-inset-bottom, 0px);
   }
+
   .dark {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
@@ -60,15 +83,18 @@
     --sidebar-ring: 240 5.9% 90%;
   }
 }
+
 @layer base {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 }
+
 .app-bg {
   --blob-1: radial-gradient(900px 600px at -10% -10%, #f5f7fa 35%, transparent 60%);
   --blob-2: radial-gradient(900px 600px at 110% -10%, #eef1f4 35%, transparent 60%);
@@ -76,6 +102,7 @@
   --base: linear-gradient(180deg, #f7f7f8 0%, #eef1f4 40%, #e9edf1 100%);
   background: var(--blob-1), var(--blob-2), var(--blob-3), var(--base);
 }
+
 .glass {
   background: rgba(255, 255, 255, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.5);
@@ -83,13 +110,19 @@
   backdrop-filter: saturate(140%) blur(8px);
   -webkit-backdrop-filter: saturate(140%) blur(8px);
 }
+
 body {
   color: #111827;
 }
 
 /* esconder scroll horizontal sem matar acessibilidade */
 .scrollbar-none {
-  -ms-overflow-style: none; /* IE/Edge */
-  scrollbar-width: none;    /* Firefox */
+  -ms-overflow-style: none;
+  /* IE/Edge */
+  scrollbar-width: none;
+  /* Firefox */
 }
-.scrollbar-none::-webkit-scrollbar { display: none; }
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
