@@ -20,19 +20,16 @@ export function FloatingNav({ onPrimaryClick }: { onPrimaryClick?: () => void })
                     return (
                         <button
                             key={idx}
+                            type="button"
                             onClick={(e) => {
-                                if (onPrimaryClick) {
-                                    e.preventDefault();
-                                    onPrimaryClick();
-                                }
+                                e.preventDefault();
+                                onPrimaryClick?.();
                             }}
-                            className="relative -top-1"
+                            className="relative -top-1 w-12 h-12 flex items-center justify-center transition-transform active:scale-95"
                         >
-                            <Link href={item.href || "#"} onClick={(e) => onPrimaryClick && e.preventDefault()}>
-                                <Plus className="w-8 h-8 text-zinc-400" strokeWidth={1.5} />
-                            </Link>
+                            <Plus className="w-8 h-8 text-white" strokeWidth={2} />
                         </button>
-                    )
+                    );
                 }
                 return (
                     <Link key={idx} href={item.href || "#"} className="flex flex-col items-center justify-center hover:opacity-70 transition-opacity">

@@ -6,10 +6,14 @@ import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebas
 import { collection, query, orderBy } from "firebase/firestore";
 import type { Job } from "@/app/lib/types";
 import { cn } from "@/lib/utils";
-import { Search, Menu, ArrowLeft } from "lucide-react";
+import { Search, Menu, ArrowLeft, X, ChevronRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MobileJobCard } from "./components/mobile-job-card";
 import { FloatingNav } from "../components/floating-nav";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
+import { useToast } from "@/hooks/use-toast";
+import { AddJobForm } from "@/app/dashboard/jobs/components/add-job-form";
+import React from "react";
 
 type JobStatus = Job['status'];
 
@@ -28,6 +32,13 @@ export default function MobileJobsListPage() {
     const firestore = useFirestore();
     const [activeFilter, setActiveFilter] = useState<JobStatus | "all">("all");
     const [searchTerm, setSearchTerm] = useState("");
+
+    // -- Job Modal Logic --
+    const [isAddJobOpen, setAddJobOpen] = useState(false);
+    const [isJobFormValid, setIsJobFormValid] = useState(false);
+    const { toast } = useToast();
+    const jobSubmitTriggerRef = React.useRef<(() => void) | null>(null);
+    const handleJobSubmit = () => { jobSubmitTriggerRef.current?.(); };
 
     const jobsQuery = useMemoFirebase(() => {
         if (!firestore || !user) return null;
@@ -150,7 +161,40 @@ export default function MobileJobsListPage() {
                 )}
             </div>
 
-            <FloatingNav />
+            <FloatingNav onPrimaryClick={() => setAddJobOpen(true)} />
+
+            {/* New Job Sheet */}
+            <Sheet open={isAddJobOpen} onOpenChange={setAddJobOpen}>
+                <SheetContent side="bottom" className="bg-[#F2F2F7]">
+                    <SheetHeader className="flex flex-row items-center justify-between py-2.5 px-1">
+                        <SheetClose className="w-8 h-8 rounded-full bg-[#E5E5EA] flex items-center justify-center transition-opacity active:opacity-70">
+                            <X className="w-3.5 h-3.5 text-[#8E8E93] stroke-[3]" />
+                        </SheetClose>
+
+                        <SheetTitle className="text-[17px] font-semibold text-center !m-0 flex-1">New Job</SheetTitle>
+
+                        <button
+                            type="button"
+                            onClick={handleJobSubmit}
+                            disabled={!isJobFormValid}
+                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${isJobFormValid
+                                ? 'bg-[#007AFF] text-white hover:bg-[#0051D5]'
+                                : 'bg-[#E5E5EA] text-[#8E8E93] cursor-not-allowed'
+                                }`}
+                        >
+                            <ChevronRight className="w-4 h-4 rotate-[-90deg] stroke-[3]" />
+                        </button>
+                    </SheetHeader>
+                    <AddJobForm
+                        onSuccess={() => {
+                            setAddJobOpen(false);
+                            toast({ title: "Job Created", description: "New job added successfully." });
+                        }}
+                        onFormStateChange={(isValid) => setIsJobFormValid(isValid)}
+                        submitTriggerRef={jobSubmitTriggerRef}
+                    />
+                </SheetContent>
+            </Sheet>
         </div>
     );
 }

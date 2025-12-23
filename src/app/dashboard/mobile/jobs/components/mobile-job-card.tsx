@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { MapPin, Calendar, ChevronRight } from "lucide-react";
 import type { Job } from "@/app/lib/types";
 import { cn } from "@/lib/utils";
+import { getStatusColor } from "@/app/lib/status-styles";
 
 function NanoGlassCard({ className, children, onClick }: { className?: string, children: React.ReactNode, onClick?: () => void }) {
     return (
@@ -81,8 +82,8 @@ export function MobileJobCard({ job }: { job: Job }) {
                         </div>
 
                         {/* Status Pill */}
-                        <div className="bg-[#F2F4F5] px-4 py-1.5 rounded-full">
-                            <span className="text-xs font-bold text-zinc-600 uppercase tracking-wide">
+                        <div className={cn("px-4 py-1.5 rounded-full", getStatusColor(job.status))}>
+                            <span className="text-xs font-bold uppercase tracking-wide">
                                 {statusLabel}
                             </span>
                         </div>

@@ -6,7 +6,7 @@ import { useDoc, useFirestore, useMemoFirebase, useCollection, useUser, updateDo
 import { doc, collection } from "firebase/firestore";
 import type { Job, CrewMember, GeneralSettings, ProductionDay } from "@/app/lib/types";
 import { format, parseISO, isSameDay } from "date-fns";
-import { MapPin, MoreVertical, PlusCircle, ArrowLeft, Clock, DollarSign, Calendar, CircleDot, CircleDashed, X, PaintBucket, Zap, Trash2, Plus } from "lucide-react";
+import { MapPin, PlusCircle, ArrowLeft, Clock, DollarSign, Calendar, CircleDot, CircleDashed, X, PaintBucket, Zap, Trash2, Plus } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { JobMap } from "@/components/job-map";
 import { cn } from "@/lib/utils";
@@ -21,11 +21,28 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { ChevronRight } from "lucide-react";
+import { AddJobForm } from "@/app/dashboard/jobs/components/add-job-form";
+import { EditJobForm } from "@/app/dashboard/jobs/components/edit-job-form";
+import { useToast } from "@/hooks/use-toast";
 import { FloatingNav } from "../../components/floating-nav";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetClose } from "@/components/ui/sheet";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuSub,
+    DropdownMenuSubTrigger,
+    DropdownMenuSubContent
+} from "@/components/ui/dropdown-menu";
+import { Check, Edit, AlertCircle, MoreVertical } from "lucide-react";
 import { CustomMobileCalendar } from "@/components/ui/custom-mobile-calendar";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { getStatusColor } from "@/app/lib/status-styles";
 
 // Helper components for the cards
 function DetailCard({ title, children, className }: { title?: string, children: React.ReactNode, className?: string }) {
@@ -70,6 +87,25 @@ export default function MobileJobDetailsPage() {
     const [newAdjustmentType, setNewAdjustmentType] = React.useState<'Time' | 'Material' | 'General'>('Time');
     const [newAdjustmentDescription, setNewAdjustmentDescription] = React.useState("");
     const [newAdjustmentAmount, setNewAdjustmentAmount] = React.useState("");
+
+    // -- Job Modal Logic --
+    const [isAddJobOpen, setAddJobOpen] = React.useState(false);
+    const [isJobFormValid, setIsJobFormValid] = React.useState(false);
+    const { toast } = useToast();
+    const jobSubmitTriggerRef = React.useRef<(() => void) | null>(null);
+    const handleJobSubmit = () => { jobSubmitTriggerRef.current?.(); };
+
+    // -- Edit Job Modal Logic --
+    const [isEditJobOpen, setEditJobOpen] = React.useState(false);
+    const [isEditFormValid, setIsEditFormValid] = React.useState(false);
+    const editJobSubmitTriggerRef = React.useRef<(() => void) | null>(null);
+    const handleEditJobSubmit = () => { editJobSubmitTriggerRef.current?.(); };
+
+    const handleUpdateStatus = async (newStatus: Job['status']) => {
+        if (!job) return;
+        await updateDocumentNonBlocking("users", user?.uid || "", "jobs", job.id, { status: newStatus });
+        toast({ title: "Status Updated", description: `Job marked as ${newStatus}` });
+    };
 
     const handleAddAdjustment = async () => {
         if (!job || !newAdjustmentDescription || !newAdjustmentAmount) return;
@@ -192,15 +228,63 @@ export default function MobileJobDetailsPage() {
                         {jobTitle}
                     </h1>
                     {/* Status Pill */}
-                    <div className="bg-[#FFE600] self-start px-3 py-1 rounded-full">
-                        <span className="text-xs font-bold text-black uppercase tracking-wide">
+                    <div className={cn("self-start px-3 py-1 rounded-full", getStatusColor(job.status))}>
+                        <span className="text-xs font-bold uppercase tracking-wide">
                             {job.status === "In Progress" ? "In Progress" : job.status}
                         </span>
                     </div>
                 </div>
-                <button className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm">
-                    <MoreVertical className="w-5 h-5 text-zinc-600" />
-                </button>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <button className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm active:scale-95 transition-transform outline-none">
+                            <MoreVertical className="w-5 h-5 text-zinc-600" />
+                        </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56 rounded-xl p-2 bg-white/95 backdrop-blur-md border-zinc-200/50 shadow-xl">
+                        <DropdownMenuLabel className="px-2 py-1.5 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Job Actions</DropdownMenuLabel>
+
+                        <DropdownMenuItem
+                            onClick={() => setEditJobOpen(true)}
+                            className="flex items-center gap-2 p-2.5 rounded-lg focus:bg-zinc-100 cursor-pointer outline-none"
+                        >
+                            <Edit className="w-4 h-4 text-zinc-700" />
+                            <span className="font-medium text-zinc-700">Edit Job</span>
+                        </DropdownMenuItem>
+
+                        <DropdownMenuSeparator className="my-1 bg-zinc-100" />
+
+                        <DropdownMenuSub>
+                            <DropdownMenuSubTrigger className="flex items-center gap-2 p-2.5 rounded-lg focus:bg-zinc-100 cursor-pointer outline-none data-[state=open]:bg-zinc-100">
+                                <AlertCircle className="w-4 h-4 text-zinc-700" />
+                                <span className="font-medium text-zinc-700">Change Status</span>
+                            </DropdownMenuSubTrigger>
+                            <DropdownMenuSubContent className="p-1 bg-white rounded-xl border-zinc-200/50 shadow-xl ml-1">
+                                {["Not Started", "In Progress", "Complete", "Open Payment", "Finalized"].map((status) => (
+                                    <DropdownMenuItem
+                                        key={status}
+                                        onClick={() => handleUpdateStatus(status as Job['status'])}
+                                        className="flex items-center justify-between gap-3 p-2.5 rounded-lg focus:bg-zinc-50 cursor-pointer outline-none"
+                                    >
+                                        <div className={cn("flex items-center gap-2")}>
+                                            <div className={cn("w-2 h-2 rounded-full",
+                                                status === "Not Started" && "bg-zinc-300",
+                                                status === "In Progress" && "bg-secondary",
+                                                status === "Complete" && "bg-green-500",
+                                                status === "Open Payment" && "bg-destructive",
+                                                status === "Finalized" && "bg-zinc-900"
+                                            )} />
+                                            <span className={cn("font-medium", job.status === status ? "text-zinc-900" : "text-zinc-600")}>
+                                                {status}
+                                            </span>
+                                        </div>
+                                        {job.status === status && <Check className="w-4 h-4 text-zinc-900" />}
+                                    </DropdownMenuItem>
+                                ))}
+                            </DropdownMenuSubContent>
+                        </DropdownMenuSub>
+
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
 
             {/* 1. Basic Info Card */}
@@ -375,7 +459,116 @@ export default function MobileJobDetailsPage() {
                 />
             </div>
 
-            <FloatingNav />
+            <FloatingNav onPrimaryClick={() => setAddJobOpen(true)} />
+
+            {/* New Job Sheet */}
+            <Sheet open={isAddJobOpen} onOpenChange={setAddJobOpen}>
+                <SheetContent side="bottom" className="bg-[#F2F2F7]">
+                    <SheetHeader className="flex flex-row items-center justify-between py-2.5 px-1">
+                        <SheetClose className="w-8 h-8 rounded-full bg-[#E5E5EA] flex items-center justify-center transition-opacity active:opacity-70">
+                            <X className="w-3.5 h-3.5 text-[#8E8E93] stroke-[3]" />
+                        </SheetClose>
+
+                        <SheetTitle className="text-[17px] font-semibold text-center !m-0 flex-1">New Job</SheetTitle>
+
+                        <button
+                            type="button"
+                            onClick={handleJobSubmit}
+                            disabled={!isJobFormValid}
+                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${isJobFormValid
+                                ? 'bg-[#007AFF] text-white hover:bg-[#0051D5]'
+                                : 'bg-[#E5E5EA] text-[#8E8E93] cursor-not-allowed'
+                                }`}
+                        >
+                            <ChevronRight className="w-4 h-4 rotate-[-90deg] stroke-[3]" />
+                        </button>
+                    </SheetHeader>
+                    <AddJobForm
+                        onSuccess={() => {
+                            setAddJobOpen(false);
+                            toast({ title: "Job Created", description: "New job added successfully." });
+                        }}
+                        onFormStateChange={(isValid) => setIsJobFormValid(isValid)}
+                        submitTriggerRef={jobSubmitTriggerRef}
+                    />
+                </SheetContent>
+            </Sheet>
+
+
+
+            {/* Edit Job Sheet */}
+            <Sheet open={isEditJobOpen} onOpenChange={setEditJobOpen}>
+                <SheetContent side="bottom" className="bg-[#F2F2F7] h-[95vh]">
+                    <SheetHeader className="flex flex-row items-center justify-between py-2.5 px-1">
+                        <SheetClose className="w-8 h-8 rounded-full bg-[#E5E5EA] flex items-center justify-center transition-opacity active:opacity-70">
+                            <X className="w-3.5 h-3.5 text-[#8E8E93] stroke-[3]" />
+                        </SheetClose>
+
+                        <SheetTitle className="text-[17px] font-semibold text-center !m-0 flex-1">Edit Job</SheetTitle>
+
+                        <button
+                            type="button"
+                            onClick={handleEditJobSubmit}
+                            disabled={!isEditFormValid}
+                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${isEditFormValid
+                                ? 'bg-[#007AFF] text-white hover:bg-[#0051D5]'
+                                : 'bg-[#E5E5EA] text-[#8E8E93] cursor-not-allowed'
+                                }`}
+                        >
+                            <Check className="w-4 h-4 stroke-[3]" />
+                        </button>
+                    </SheetHeader>
+                    <div className="h-full overflow-y-auto pb-20">
+                        <EditJobForm
+                            job={job}
+                            onSuccess={() => {
+                                setEditJobOpen(false);
+                                toast({ title: "Job Updated", description: "Changes saved successfully." });
+                            }}
+                            onFormStateChange={(isValid) => setIsEditFormValid(isValid)}
+                            submitTriggerRef={editJobSubmitTriggerRef}
+                        />
+                    </div>
+                </SheetContent>
+            </Sheet>
+
+
+
+            {/* Edit Job Sheet */}
+            <Sheet open={isEditJobOpen} onOpenChange={setEditJobOpen}>
+                <SheetContent side="bottom" className="bg-[#F2F2F7] h-[95vh]">
+                    <SheetHeader className="flex flex-row items-center justify-between py-2.5 px-1">
+                        <SheetClose className="w-8 h-8 rounded-full bg-[#E5E5EA] flex items-center justify-center transition-opacity active:opacity-70">
+                            <X className="w-3.5 h-3.5 text-[#8E8E93] stroke-[3]" />
+                        </SheetClose>
+
+                        <SheetTitle className="text-[17px] font-semibold text-center !m-0 flex-1">Edit Job</SheetTitle>
+
+                        <button
+                            type="button"
+                            onClick={handleEditJobSubmit}
+                            disabled={!isEditFormValid}
+                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${isEditFormValid
+                                ? 'bg-[#007AFF] text-white hover:bg-[#0051D5]'
+                                : 'bg-[#E5E5EA] text-[#8E8E93] cursor-not-allowed'
+                                }`}
+                        >
+                            <Check className="w-4 h-4 stroke-[3]" />
+                        </button>
+                    </SheetHeader>
+                    <div className="h-full overflow-y-auto pb-20">
+                        <EditJobForm
+                            job={job}
+                            onSuccess={() => {
+                                setEditJobOpen(false);
+                                toast({ title: "Job Updated", description: "Changes saved successfully." });
+                            }}
+                            onFormStateChange={(isValid) => setIsEditFormValid(isValid)}
+                            submitTriggerRef={editJobSubmitTriggerRef}
+                        />
+                    </div>
+                </SheetContent>
+            </Sheet>
 
             {/* Calendar Sheet */}
             <Sheet open={isCalendarOpen} onOpenChange={setCalendarOpen}>

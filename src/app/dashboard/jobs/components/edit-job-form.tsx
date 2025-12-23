@@ -5,11 +5,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon, MapPin, User, FileText } from "lucide-react";
+import { Calendar as CalendarIcon } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
     Form,
     FormControl,
@@ -19,65 +17,56 @@ import {
     FormMessage,
 } from "@/components/ui/form";
 import { AddressAutocomplete } from "@/components/address-autocomplete";
-import { useUser, useFirestore, useCollection } from "@/firebase";
-import { addDoc, collection } from "firebase/firestore";
+import { useUser, useFirestore } from "@/firebase";
+import { doc, updateDoc } from "firebase/firestore";
+import type { Job } from "@/app/lib/types";
 
 // Schema
-const jobSchema = z.object({
+const editJobSchema = z.object({
     title: z.string().optional(),
     clientName: z.string().min(1, "Client is required"),
     quoteNumber: z.string().optional(),
     address: z.string().min(1, "Address is required"),
     startDate: z.date({ required_error: "Start date is required" }),
+    deadline: z.date().optional(), // End Date
+    finalizationDate: z.date().optional(),
     amount: z.number().min(0, "Amount must be positive"),
 });
 
-type JobFormValues = z.infer<typeof jobSchema>;
+type EditJobFormValues = z.infer<typeof editJobSchema>;
 
-interface AddJobFormProps {
+interface EditJobFormProps {
+    job: Job;
     onSuccess: () => void;
     onFormStateChange?: (isValid: boolean, isDirty: boolean) => void;
     submitTriggerRef?: React.MutableRefObject<(() => void) | null>;
 }
 
-export function AddJobForm({ onSuccess, onFormStateChange, submitTriggerRef }: AddJobFormProps) {
+export function EditJobForm({ job, onSuccess, onFormStateChange, submitTriggerRef }: EditJobFormProps) {
     const firestore = useFirestore();
     const { user } = useUser();
-    const [amountDigits, setAmountDigits] = React.useState('0');
-    const [isTitleManual, setIsTitleManual] = React.useState(false);
 
-    const form = useForm<JobFormValues>({
-        resolver: zodResolver(jobSchema),
+    // Initialize amount digits logic
+    const initialAmount = (job.budget || job.initialValue || 0).toFixed(2).replace('.', '');
+    const [amountDigits, setAmountDigits] = React.useState(job.budget || job.initialValue ? initialAmount : '0');
+
+    const form = useForm<EditJobFormValues>({
+        resolver: zodResolver(editJobSchema),
         mode: "onChange",
         defaultValues: {
-            title: "",
-            clientName: "",
-            quoteNumber: "",
-            address: "",
-            startDate: new Date(),
-            amount: 0,
+            title: job.title || "",
+            clientName: job.clientName || "",
+            quoteNumber: job.quoteNumber || "",
+            address: job.address || "",
+            startDate: job.startDate ? new Date(job.startDate) : new Date(),
+            deadline: job.deadline ? new Date(job.deadline) : undefined,
+            finalizationDate: job.finalizationDate ? new Date(job.finalizationDate) : undefined,
+            amount: job.budget || job.initialValue || 0,
         },
     });
 
-    const { formState, watch, setValue } = form;
+    const { formState, setValue } = form;
     const { isValid, isDirty } = formState;
-
-    const clientName = watch("clientName");
-    const quoteNumber = watch("quoteNumber");
-
-    // Auto-generate title logic
-    React.useEffect(() => {
-        if (isTitleManual) return;
-
-        if (clientName) {
-            const lastName = clientName.trim().split(' ').pop() || "";
-            const quote = quoteNumber ? `#${quoteNumber}` : "";
-            // Only add space if both exist
-            const autoTitle = quote ? `${lastName} ${quote}` : lastName;
-
-            setValue("title", autoTitle, { shouldValidate: true, shouldDirty: true });
-        }
-    }, [clientName, quoteNumber, isTitleManual, setValue]);
 
     // Notify parent of form state changes
     React.useEffect(() => {
@@ -86,36 +75,27 @@ export function AddJobForm({ onSuccess, onFormStateChange, submitTriggerRef }: A
         }
     }, [isValid, isDirty, onFormStateChange]);
 
-    const onSubmit = async (data: JobFormValues) => {
-        if (!firestore || !user) return;
+    const onSubmit = async (data: EditJobFormValues) => {
+        if (!firestore || !user || !job.id) return;
 
         try {
-            const jobsCollection = collection(firestore, 'users', user.uid, 'jobs');
+            const jobRef = doc(firestore, 'users', user.uid, 'jobs', job.id);
 
-            // Ensure title is set (fallback to auto-gen if empty, though useEffect handles it)
-            let finalTitle = data.title;
-            if (!finalTitle && data.clientName) {
-                const lastName = data.clientName.trim().split(' ').pop() || "";
-                finalTitle = data.quoteNumber ? `${lastName} #${data.quoteNumber}` : lastName;
-            }
-
-            await addDoc(jobsCollection, {
-                title: finalTitle,
+            await updateDoc(jobRef, {
+                title: data.title,
                 clientName: data.clientName,
                 quoteNumber: data.quoteNumber || '',
                 address: data.address,
                 startDate: data.startDate.toISOString(),
-                amount: data.amount,
-                createdAt: new Date().toISOString(),
-                status: 'Not Started',
+                deadline: data.deadline ? data.deadline.toISOString() : null,
+                finalizationDate: data.finalizationDate ? data.finalizationDate.toISOString() : null,
+                initialValue: data.amount, // Updating legacy field + budget
+                budget: data.amount,
             });
 
             onSuccess();
-            form.reset();
-            setAmountDigits('0');
-            setIsTitleManual(false);
         } catch (error) {
-            console.error("Error adding job:", error);
+            console.error("Error updating job:", error);
         }
     };
 
@@ -149,7 +129,6 @@ export function AddJobForm({ onSuccess, onFormStateChange, submitTriggerRef }: A
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-4 pb-8">
 
                 {/* Job Title Group */}
-                {/* Job Title Group */}
                 <div className="bg-white rounded-xl overflow-hidden shadow-sm">
                     <FormField
                         control={form.control}
@@ -161,10 +140,6 @@ export function AddJobForm({ onSuccess, onFormStateChange, submitTriggerRef }: A
                                     <Input
                                         placeholder="Job Title"
                                         {...field}
-                                        onChange={(e) => {
-                                            field.onChange(e);
-                                            setIsTitleManual(true);
-                                        }}
                                         className="border-0 p-0 h-auto text-[22px] font-bold text-zinc-900 placeholder:text-zinc-300 focus-visible:ring-0 shadow-none bg-transparent rounded-none"
                                     />
                                 </FormControl>
@@ -174,7 +149,6 @@ export function AddJobForm({ onSuccess, onFormStateChange, submitTriggerRef }: A
                     />
                 </div>
 
-                {/* Client & Quote Group */}
                 {/* Client & Quote Group */}
                 <div className="bg-white rounded-xl overflow-hidden shadow-sm divide-y divide-gray-100">
                     <FormField
@@ -214,7 +188,6 @@ export function AddJobForm({ onSuccess, onFormStateChange, submitTriggerRef }: A
                 </div>
 
                 {/* Address Group (Google Maps) */}
-                {/* Address Group (Google Maps) */}
                 <div className="bg-white rounded-xl shadow-sm relative z-20">
                     <FormField
                         control={form.control}
@@ -223,7 +196,7 @@ export function AddJobForm({ onSuccess, onFormStateChange, submitTriggerRef }: A
                             <FormItem className="px-4 py-3">
                                 <FormLabel className="text-xs font-semibold uppercase text-gray-400 mb-1 block">Job Address</FormLabel>
                                 <FormControl>
-                                    <div className="relative -ml-2"> {/* Offset padding internal to Autocomplete? */}
+                                    <div className="relative -ml-2">
                                         <AddressAutocomplete
                                             value={field.value}
                                             onChange={field.onChange}
@@ -237,9 +210,9 @@ export function AddJobForm({ onSuccess, onFormStateChange, submitTriggerRef }: A
                     />
                 </div>
 
-                {/* Date & Amount Group */}
-                {/* Date & Amount Group */}
+                {/* Dates & Amount Group */}
                 <div className="bg-white rounded-xl overflow-hidden shadow-sm divide-y divide-gray-100">
+
                     {/* Start Date */}
                     <FormField
                         control={form.control}
@@ -247,6 +220,66 @@ export function AddJobForm({ onSuccess, onFormStateChange, submitTriggerRef }: A
                         render={({ field }) => (
                             <FormItem className="px-4 py-3 flex items-center justify-between space-y-0">
                                 <FormLabel className="text-[17px] font-normal text-gray-900 w-full pt-1">Start Date</FormLabel>
+                                <FormControl>
+                                    <div className="relative">
+                                        <div className="bg-gray-100 px-3 py-1.5 rounded-md text-[15px] font-medium text-gray-900 whitespace-nowrap">
+                                            {field.value ? format(field.value, "MMM d, yyyy") : "Select date"}
+                                        </div>
+                                        <input
+                                            type="date"
+                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                            onChange={(e) => {
+                                                const date = new Date(e.target.value);
+                                                const userTimezoneOffset = date.getTimezoneOffset() * 60000;
+                                                const adjustedDate = new Date(date.getTime() + userTimezoneOffset);
+                                                field.onChange(adjustedDate);
+                                            }}
+                                            value={field.value ? format(field.value, "yyyy-MM-dd") : ""}
+                                        />
+                                    </div>
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+
+                    {/* End Date */}
+                    <FormField
+                        control={form.control}
+                        name="deadline"
+                        render={({ field }) => (
+                            <FormItem className="px-4 py-3 flex items-center justify-between space-y-0">
+                                <FormLabel className="text-[17px] font-normal text-gray-900 w-full pt-1">End Date</FormLabel>
+                                <FormControl>
+                                    <div className="relative">
+                                        <div className="bg-gray-100 px-3 py-1.5 rounded-md text-[15px] font-medium text-gray-900 whitespace-nowrap">
+                                            {field.value ? format(field.value, "MMM d, yyyy") : "Select date"}
+                                        </div>
+                                        <input
+                                            type="date"
+                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                            onChange={(e) => {
+                                                const date = new Date(e.target.value);
+                                                const userTimezoneOffset = date.getTimezoneOffset() * 60000;
+                                                const adjustedDate = new Date(date.getTime() + userTimezoneOffset);
+                                                field.onChange(adjustedDate);
+                                            }}
+                                            value={field.value ? format(field.value, "yyyy-MM-dd") : ""}
+                                        />
+                                    </div>
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+
+                    {/* Finalization Date */}
+                    <FormField
+                        control={form.control}
+                        name="finalizationDate"
+                        render={({ field }) => (
+                            <FormItem className="px-4 py-3 flex items-center justify-between space-y-0">
+                                <FormLabel className="text-[17px] font-normal text-gray-900 w-full pt-1">Finalized Date</FormLabel>
                                 <FormControl>
                                     <div className="relative">
                                         <div className="bg-gray-100 px-3 py-1.5 rounded-md text-[15px] font-medium text-gray-900 whitespace-nowrap">
