@@ -43,7 +43,7 @@ import {
     addDocumentNonBlocking,
     deleteDocumentNonBlocking
 } from "@/firebase";
-import { collection, query, orderBy, limit, where, doc, getDocs } from "firebase/firestore";
+import { collection, query, orderBy, limit, where, doc, getDocs, updateDoc, writeBatch } from "firebase/firestore";
 
 // Shared Logic
 import { calculateJobPayout } from "@/app/lib/job-financials";
@@ -86,14 +86,26 @@ export default function MobilePayrollPage() {
     }, [firestore]);
     const { data: settings } = useDoc<GeneralSettings>(settingsRef);
 
-    const jobsQuery = useMemoFirebase(() => {
+    const [selectedJobIds, setSelectedJobIds] = React.useState<Set<string>>(new Set());
+    const [isMovingJobs, setIsMovingJobs] = React.useState(false);
+
+    const openPaymentJobsQuery = useMemoFirebase(() => {
         if (!firestore || !user) return null;
         return query(
             collection(firestore, "users", user.uid, "jobs"),
             where("status", "==", "Open Payment")
         );
     }, [firestore, user]);
-    const { data: jobsToPay, isLoading: isLoadingJobs } = useCollection<Job>(jobsQuery);
+    const { data: jobsToPay, isLoading: isLoadingOpenPayment } = useCollection<Job>(openPaymentJobsQuery);
+
+    const completeJobsQuery = useMemoFirebase(() => {
+        if (!firestore || !user) return null;
+        return query(
+            collection(firestore, "users", user.uid, "jobs"),
+            where("status", "==", "Complete")
+        );
+    }, [firestore, user]);
+    const { data: completeJobs, isLoading: isLoadingCompleteJobs } = useCollection<Job>(completeJobsQuery);
 
     const reportsQuery = useMemoFirebase(() => {
         if (!firestore || !user) return null;
@@ -106,23 +118,56 @@ export default function MobilePayrollPage() {
     const { data: pastReports, isLoading: isLoadingReports } = useCollection<PayrollReport>(reportsQuery);
 
     // -- Derived State --
-    const sortedJobs = React.useMemo(() => {
+    const sortedOpenJobs = React.useMemo(() => {
         if (!jobsToPay) return [];
         return [...jobsToPay].sort((a, b) => parseISO(a.deadline).getTime() - parseISO(b.deadline).getTime());
     }, [jobsToPay]);
 
+    const sortedCompleteJobs = React.useMemo(() => {
+        if (!completeJobs) return [];
+        return [...completeJobs].sort((a, b) => parseISO(a.deadline).getTime() - parseISO(b.deadline).getTime());
+    }, [completeJobs]);
+
     const totalPayout = React.useMemo(() => {
-        if (!sortedJobs || !settings) return 0;
-        return sortedJobs.reduce((acc, job) => acc + calculateJobPayout(job, settings), 0);
-    }, [sortedJobs, settings]);
+        if (!sortedOpenJobs || !settings) return 0;
+        return sortedOpenJobs.reduce((acc, job) => acc + calculateJobPayout(job, settings), 0);
+    }, [sortedOpenJobs, settings]);
 
     // -- Handlers --
+    const handleToggleSelection = (jobId: string) => {
+        const newSet = new Set(selectedJobIds);
+        if (newSet.has(jobId)) newSet.delete(jobId);
+        else newSet.add(jobId);
+        setSelectedJobIds(newSet);
+    };
+
+    const handleMoveToOpenPayment = async () => {
+        if (selectedJobIds.size === 0 || !firestore || !user) return;
+
+        setIsMovingJobs(true);
+        try {
+            const batch = writeBatch(firestore);
+            selectedJobIds.forEach((jobId) => {
+                const jobRef = doc(firestore, "users", user.uid, "jobs", jobId);
+                batch.update(jobRef, { status: "Open Payment" });
+            });
+            await batch.commit();
+            setSelectedJobIds(new Set());
+            toast({ title: "Updated! 💸", description: `${selectedJobIds.size} jobs moved to payroll.` });
+        } catch (err) {
+            console.error(err);
+            toast({ variant: "destructive", title: "Error", description: "Failed to update jobs." });
+        } finally {
+            setIsMovingJobs(false);
+        }
+    };
+
     const handleGenerateReport = async () => {
-        if (!sortedJobs.length || !firestore || !user) {
+        if (!sortedOpenJobs.length || !firestore || !user) {
             toast({
                 variant: "destructive",
                 title: "No Jobs Ready",
-                description: "Complete jobs and set to 'Open Payment' first.",
+                description: "Complete jobs and move them to payroll first.",
             });
             return;
         }
@@ -152,8 +197,8 @@ export default function MobilePayrollPage() {
                 sentDate: now.toISOString(),
                 recipientCount: 0,
                 totalPayout,
-                jobCount: sortedJobs.length,
-                jobIds: sortedJobs.map(j => j.id),
+                jobCount: sortedOpenJobs.length,
+                jobIds: sortedOpenJobs.map(j => j.id),
             };
 
             await addDocumentNonBlocking(reportsCollection, newReport);
@@ -185,7 +230,78 @@ export default function MobilePayrollPage() {
                     </h1>
                 </div>
 
-                {/* 2. Main Summary Card */}
+                {/* 2. Completed Jobs Selection */}
+                <div className="mb-8">
+                    <div className="flex justify-between items-center mb-4 px-1">
+                        <h2 className="text-lg font-extrabold text-zinc-900">Completed Jobs</h2>
+                        <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">{sortedCompleteJobs.length} To Approve</span>
+                    </div>
+
+                    <NanoGlassCard className="p-1 pb-4 bg-white border border-zinc-100 shadow-sm">
+                        <div className="flex flex-col">
+                            {isLoadingCompleteJobs ? (
+                                <div className="p-4 space-y-3">
+                                    <Skeleton className="h-12 w-full rounded-xl" />
+                                    <Skeleton className="h-12 w-full rounded-xl" />
+                                </div>
+                            ) : sortedCompleteJobs.length > 0 ? (
+                                <>
+                                    <div className="flex flex-col max-h-[300px] overflow-y-auto px-1">
+                                        {sortedCompleteJobs.map((job) => (
+                                            <div
+                                                key={job.id}
+                                                onClick={() => handleToggleSelection(job.id)}
+                                                className={cn(
+                                                    "flex items-center gap-4 p-4 rounded-2xl transition-all active:scale-[0.98]",
+                                                    selectedJobIds.has(job.id) ? "bg-zinc-50" : "bg-transparent hover:bg-zinc-50/50"
+                                                )}
+                                            >
+                                                <div className={cn(
+                                                    "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all",
+                                                    selectedJobIds.has(job.id) ? "bg-emerald-500 border-emerald-500" : "border-zinc-200"
+                                                )}>
+                                                    {selectedJobIds.has(job.id) && <Check className="w-4 h-4 text-white" />}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <h4 className="text-zinc-900 font-bold text-sm truncate">
+                                                        {job.title || job.clientName.split(' ')[0]} #{job.quoteNumber || "000"}
+                                                    </h4>
+                                                    <p className="text-zinc-400 text-[10px] font-bold tracking-widest uppercase">
+                                                        $ {calculateJobPayout(job, settings).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="px-4 mt-4">
+                                        <button
+                                            onClick={handleMoveToOpenPayment}
+                                            disabled={selectedJobIds.size === 0 || isMovingJobs}
+                                            className={cn(
+                                                "w-full h-12 rounded-xl flex items-center justify-center gap-2 font-bold transition-all shadow-md active:scale-[0.95]",
+                                                selectedJobIds.size > 0
+                                                    ? "bg-[#FF5A5F] text-white shadow-rose-100"
+                                                    : "bg-zinc-100 text-zinc-400 cursor-not-allowed shadow-none"
+                                            )}
+                                        >
+                                            {isMovingJobs ? <LoaderCircle className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                                            <span>Move to Payroll ({selectedJobIds.size})</span>
+                                        </button>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="py-10 text-center text-zinc-400">
+                                    <Briefcase className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                                    <p className="text-[10px] font-bold uppercase tracking-widest px-4 leading-relaxed">
+                                        No new completed jobs found
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    </NanoGlassCard>
+                </div>
+
+                {/* 3. Main Summary Card */}
                 <NanoGlassCard className="p-6 mb-8 bg-white border border-zinc-100 shadow-sm">
                     <div className="flex flex-col gap-1 mb-6">
                         <span className="text-zinc-400 text-xs font-bold uppercase tracking-widest">Total Ready for Payout</span>
@@ -196,19 +312,19 @@ export default function MobilePayrollPage() {
                         </div>
                         <div className="flex items-center gap-1.5 mt-2">
                             <div className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-bold">
-                                {sortedJobs.length} PENDING JOBS
+                                {sortedOpenJobs.length} PENDING IN REPORT
                             </div>
                         </div>
                     </div>
 
                     <button
                         onClick={handleGenerateReport}
-                        disabled={isGenerating || sortedJobs.length === 0}
+                        disabled={isGenerating || sortedOpenJobs.length === 0}
                         className={cn(
                             "w-full h-14 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-[0.98]",
-                            isGenerating || sortedJobs.length === 0
+                            isGenerating || sortedOpenJobs.length === 0
                                 ? "bg-zinc-100 text-zinc-400 grayscale cursor-not-allowed"
-                                : "bg-[#FF5A5F] text-white shadow-lg shadow-rose-100 font-bold"
+                                : "bg-zinc-950 text-white font-bold"
                         )}
                     >
                         {isGenerating ? (
@@ -220,41 +336,40 @@ export default function MobilePayrollPage() {
                     </button>
                 </NanoGlassCard>
 
-                {/* 3. Pending Jobs List */}
+                {/* 4. Ready for Payout List */}
                 <div className="mb-8">
                     <div className="flex justify-between items-center mb-4 px-1">
-                        <h2 className="text-lg font-extrabold text-zinc-900">Awaiting Payout</h2>
-                        <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">{sortedJobs.length} Total</span>
+                        <h2 className="text-lg font-extrabold text-zinc-900">Ready for Payout</h2>
+                        <span className="text-xs font-bold text-emerald-500 uppercase tracking-widest">Included</span>
                     </div>
 
                     <div className="flex flex-col gap-3">
-                        {isLoadingJobs ? (
-                            [...Array(2)].map((_, i) => <Skeleton key={i} className="h-24 w-full rounded-[24px]" />)
-                        ) : sortedJobs.length > 0 ? (
-                            sortedJobs.map((job) => (
+                        {isLoadingOpenPayment ? (
+                            [...Array(2)].map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-[24px]" />)
+                        ) : sortedOpenJobs.length > 0 ? (
+                            sortedOpenJobs.map((job) => (
                                 <NanoGlassCard key={job.id} className="p-4" onClick={() => router.push(`/dashboard/mobile/jobs/${job.id}`)}>
-                                    <div className="flex justify-between items-start">
-                                        <div className="flex-1 min-w-0">
-                                            <h4 className="text-zinc-900 font-bold text-base truncate">
+                                    <div className="flex justify-between items-center">
+                                        <div className="flex-1 min-w-0 pr-4">
+                                            <h4 className="text-zinc-900 font-bold text-sm truncate">
                                                 {job.title || job.clientName.split(' ')[0]} #{job.quoteNumber || "000"}
                                             </h4>
-                                            <div className="flex items-center gap-2 mt-1 text-zinc-500 text-xs">
-                                                <Calendar className="w-3 h-3" />
-                                                <span>Comp. {job.deadline ? format(new Date(job.deadline), "MMM dd") : "TBD"}</span>
-                                            </div>
+                                            <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-tighter mt-1">
+                                                {format(parseISO(job.deadline), "MMM dd")} • {job.address.split(',')[0]}
+                                            </p>
                                         </div>
-                                        <div className="text-right">
-                                            <div className="text-zinc-950 font-extrabold text-lg tracking-tight">
+                                        <div className="text-right shrink-0">
+                                            <div className="text-zinc-950 font-extrabold text-sm tracking-tight">
                                                 $ {calculateJobPayout(job, settings).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                                             </div>
                                         </div>
+                                        <ChevronRight className="w-4 h-4 text-zinc-300 ml-2" />
                                     </div>
                                 </NanoGlassCard>
                             ))
                         ) : (
-                            <div className="py-8 text-center text-zinc-400 bg-white/50 rounded-[24px] border border-dashed border-zinc-200">
-                                <Plus className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                                <p className="text-xs font-medium uppercase tracking-widest">No jobs ready for payment</p>
+                            <div className="py-6 text-center text-zinc-400 bg-white/30 rounded-[24px] border border-dashed border-zinc-200">
+                                <p className="text-[10px] font-bold uppercase tracking-widest">Payroll is empty</p>
                             </div>
                         )}
                     </div>

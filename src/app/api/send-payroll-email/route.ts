@@ -15,25 +15,30 @@ export async function POST(request: NextRequest) {
       jobCount,
       businessName,
       customSubject,
-      customHtml
+      customHtml,
+      additionalCc
     } = body;
 
-    // Validate required fields
-    if (!contractorEmail || !userEmail) {
+    console.log('Sending email with body:', body);
+
+    // Verify environment variables are present
+    if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+      console.error('SERVER ERROR: Missing GMAIL_USER or GMAIL_APP_PASSWORD in .env');
       return NextResponse.json(
-        { error: 'Missing required email addresses' },
-        { status: 400 }
+        { error: 'Email configuration missing on server (.env)' },
+        { status: 500 }
       );
     }
 
     // Gmail SMTP Configuration
-    // IMPORTANT: Requires GMAIL_USER and GMAIL_APP_PASSWORD (not regular password)
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
         user: process.env.GMAIL_USER,
         pass: process.env.GMAIL_APP_PASSWORD,
       },
+      debug: true,
+      logger: true
     });
 
     const subject = customSubject || `Payroll Report - Week ${weekNumber}, ${year}`;
@@ -68,11 +73,18 @@ export async function POST(request: NextRequest) {
         </html>
     `;
 
+    // Prepare CC array
+    const ccList = [userEmail];
+    if (additionalCc) {
+      ccList.push(additionalCc);
+    }
+
     // Send email using Nodemailer
     const info = await transporter.sendMail({
       from: `"${businessName || 'PaintFlow'}" <${process.env.GMAIL_USER}>`,
+      replyTo: userEmail,
       to: contractorEmail,
-      cc: userEmail,
+      cc: ccList,
       subject: subject,
       html: htmlContent,
     });

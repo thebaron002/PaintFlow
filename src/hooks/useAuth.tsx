@@ -2,7 +2,7 @@
 'use client';
 import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { auth } from "../firebase/clean-firebase";
-import { onAuthStateChanged, type User, type Auth } from "firebase/auth";
+import { onAuthStateChanged, type User, type Auth, setPersistence, browserLocalPersistence } from "firebase/auth";
 import { createUserProfileIfNotExists } from "@/firebase/auth-helpers";
 
 type AuthContextValue = {
@@ -19,8 +19,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log("AuthProvider: Initializing Auth State Observer");
+
+    // Force local persistence to bypass Safari cookie restrictions on local IPs
+    setPersistence(auth, browserLocalPersistence).catch((err: any) => {
+      console.error("AuthProvider: Persistence Error:", err);
+    });
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      console.log("AuthProvider: Auth State Changed. User:", user?.email || "null");
       if (user) {
+        console.log("AuthProvider: User detected, creating profile if not exists...");
         await createUserProfileIfNotExists(user);
         setUser(user);
       } else {

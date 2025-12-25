@@ -102,8 +102,9 @@ export default function MobileJobDetailsPage() {
     const handleEditJobSubmit = () => { editJobSubmitTriggerRef.current?.(); };
 
     const handleUpdateStatus = async (newStatus: Job['status']) => {
-        if (!job) return;
-        await updateDocumentNonBlocking("users", user?.uid || "", "jobs", job.id, { status: newStatus });
+        if (!job || !firestore || !user) return;
+        const jobRef = doc(firestore, "users", user.uid, "jobs", job.id);
+        updateDocumentNonBlocking(jobRef, { status: newStatus });
         toast({ title: "Status Updated", description: `Job marked as ${newStatus}` });
     };
 
@@ -470,6 +471,7 @@ export default function MobileJobDetailsPage() {
                         </SheetClose>
 
                         <SheetTitle className="text-[17px] font-semibold text-center !m-0 flex-1">New Job</SheetTitle>
+                        <SheetDescription className="sr-only">Create a new job record</SheetDescription>
 
                         <button
                             type="button"
@@ -505,6 +507,7 @@ export default function MobileJobDetailsPage() {
                         </SheetClose>
 
                         <SheetTitle className="text-[17px] font-semibold text-center !m-0 flex-1">Edit Job</SheetTitle>
+                        <SheetDescription className="sr-only">Modify job details</SheetDescription>
 
                         <button
                             type="button"
@@ -533,42 +536,6 @@ export default function MobileJobDetailsPage() {
             </Sheet>
 
 
-
-            {/* Edit Job Sheet */}
-            <Sheet open={isEditJobOpen} onOpenChange={setEditJobOpen}>
-                <SheetContent side="bottom" className="bg-[#F2F2F7] h-[95vh]">
-                    <SheetHeader className="flex flex-row items-center justify-between py-2.5 px-1">
-                        <SheetClose className="w-8 h-8 rounded-full bg-[#E5E5EA] flex items-center justify-center transition-opacity active:opacity-70">
-                            <X className="w-3.5 h-3.5 text-[#8E8E93] stroke-[3]" />
-                        </SheetClose>
-
-                        <SheetTitle className="text-[17px] font-semibold text-center !m-0 flex-1">Edit Job</SheetTitle>
-
-                        <button
-                            type="button"
-                            onClick={handleEditJobSubmit}
-                            disabled={!isEditFormValid}
-                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${isEditFormValid
-                                ? 'bg-[#007AFF] text-white hover:bg-[#0051D5]'
-                                : 'bg-[#E5E5EA] text-[#8E8E93] cursor-not-allowed'
-                                }`}
-                        >
-                            <Check className="w-4 h-4 stroke-[3]" />
-                        </button>
-                    </SheetHeader>
-                    <div className="h-full overflow-y-auto pb-20">
-                        <EditJobForm
-                            job={job}
-                            onSuccess={() => {
-                                setEditJobOpen(false);
-                                toast({ title: "Job Updated", description: "Changes saved successfully." });
-                            }}
-                            onFormStateChange={(isValid) => setIsEditFormValid(isValid)}
-                            submitTriggerRef={editJobSubmitTriggerRef}
-                        />
-                    </div>
-                </SheetContent>
-            </Sheet>
 
             {/* Calendar Sheet */}
             <Sheet open={isCalendarOpen} onOpenChange={setCalendarOpen}>
@@ -576,8 +543,9 @@ export default function MobileJobDetailsPage() {
                     <SheetHeader className="p-4 border-b flex flex-row items-center justify-between space-y-0">
                         <div className="w-8"></div> {/* Spacer */}
                         <SheetTitle className="text-lg font-bold">Production Days</SheetTitle>
+                        <SheetDescription className="sr-only">Select production days for this job</SheetDescription>
                         <SheetClose asChild>
-                            <button className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center">
+                            <button className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center transition-opacity active:opacity-70">
                                 <X className="w-4 h-4 text-zinc-500" />
                             </button>
                         </SheetClose>
@@ -650,6 +618,7 @@ export default function MobileJobDetailsPage() {
                             </button>
                         </SheetClose>
                         <SheetTitle className="text-lg font-bold">Adjustments</SheetTitle>
+                        <SheetDescription className="sr-only">Add financial adjustments to the job</SheetDescription>
                         <div className="w-8"></div>
                     </SheetHeader>
 

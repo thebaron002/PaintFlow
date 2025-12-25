@@ -15,6 +15,7 @@ import {
     ChevronRight,
     Wallet,
     AlertCircle,
+    Check,
     RefreshCw
 } from "lucide-react";
 
@@ -96,6 +97,15 @@ export default function MobileReportDetailsPage() {
     const { data: settings } = useDoc<GeneralSettings>(settingsRef);
 
     const [isSending, setIsSending] = React.useState(false);
+    const [recipientEmail, setRecipientEmail] = React.useState("");
+    const [sendCopyToCarra, setSendCopyToCarra] = React.useState(true);
+
+    // Update recipientEmail when user data is available
+    React.useEffect(() => {
+        if (user?.email && !recipientEmail) {
+            setRecipientEmail(user.email);
+        }
+    }, [user, recipientEmail]);
 
     // -- AI Email Generation --
     React.useEffect(() => {
@@ -143,8 +153,8 @@ export default function MobileReportDetailsPage() {
     }, [report, jobs, userProfile, settings]);
 
     const handleSendEmail = async () => {
-        if (!generatedEmail || !report || !user?.email) {
-            toast({ variant: "destructive", title: "Cannot Send", description: "Missing email content or user data." });
+        if (!generatedEmail || !report || !user?.email || !recipientEmail) {
+            toast({ variant: "destructive", title: "Cannot Send", description: "Missing email content, user data or recipient email." });
             return;
         }
 
@@ -154,7 +164,7 @@ export default function MobileReportDetailsPage() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    contractorEmail: user.email, // Sending to themselves per request
+                    contractorEmail: recipientEmail,
                     userEmail: user.email,
                     weekNumber: report.weekNumber,
                     year: report.year,
@@ -162,20 +172,23 @@ export default function MobileReportDetailsPage() {
                     endDate: format(new Date(report.endDate), "MM/dd/yyyy"),
                     totalPayout: report.totalPayout,
                     jobCount: report.jobCount,
+                    customName: userProfile?.name || "PaintFlow",
                     businessName: userProfile?.businessName || "PaintFlow",
                     customSubject: generatedEmail.subject,
-                    customHtml: generatedEmail.body
+                    customHtml: generatedEmail.body,
+                    additionalCc: sendCopyToCarra ? "carra.stinnett@fivestarpainting.com" : null
                 }),
             });
 
             if (response.ok) {
                 toast({ title: "Email Sent! 📧", description: `Report sent to ${user.email}` });
             } else {
-                throw new Error("Failed to send");
+                const errorData = await response.json();
+                throw new Error(errorData.error || errorData.details || "Failed to send");
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            toast({ variant: "destructive", title: "Error", description: "Could not send email." });
+            toast({ variant: "destructive", title: "Error", description: error.message || "Could not send email." });
         } finally {
             setIsSending(false);
         }
@@ -258,6 +271,49 @@ export default function MobileReportDetailsPage() {
                         </div>
                     </NanoGlassCard>
                 )}
+
+                {/* 2.5 Recipient Input */}
+                <div className="mb-4">
+                    <h2 className="text-lg font-extrabold text-zinc-900 mb-4 px-1">Recipient</h2>
+                    <NanoGlassCard className="p-4 bg-white border border-zinc-100 shadow-sm">
+                        <div className="flex flex-col gap-1">
+                            <label className="text-zinc-400 text-[10px] font-bold uppercase tracking-widest px-1">Send to</label>
+                            <input
+                                type="email"
+                                value={recipientEmail}
+                                onChange={(e) => setRecipientEmail(e.target.value)}
+                                placeholder="Enter recipient email"
+                                className="w-full bg-transparent border-none focus:ring-0 text-sm font-bold text-zinc-950 p-1 placeholder:text-zinc-300"
+                            />
+                        </div>
+                    </NanoGlassCard>
+                </div>
+
+                {/* 2.6 Additional CC */}
+                <div className="mb-8">
+                    <NanoGlassCard
+                        className={cn(
+                            "p-4 border transition-all",
+                            sendCopyToCarra ? "bg-emerald-50/50 border-emerald-100" : "bg-white border-zinc-100 shadow-sm"
+                        )}
+                        onClick={() => setSendCopyToCarra(!sendCopyToCarra)}
+                    >
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className={cn(
+                                    "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all",
+                                    sendCopyToCarra ? "bg-emerald-500 border-emerald-500" : "border-zinc-200"
+                                )}>
+                                    {sendCopyToCarra && <Check className="w-4 h-4 text-white" />}
+                                </div>
+                                <div>
+                                    <h4 className="text-zinc-900 font-bold text-xs">Copy Carra Stinnett</h4>
+                                    <p className="text-zinc-400 text-[10px] font-medium tracking-tight">carra.stinnett@fivestarpainting.com</p>
+                                </div>
+                            </div>
+                        </div>
+                    </NanoGlassCard>
+                </div>
 
                 {/* 3. AI Email Preview */}
                 <div className="mb-8">

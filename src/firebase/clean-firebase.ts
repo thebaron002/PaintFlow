@@ -5,12 +5,12 @@ import {
   getAuth,
   type Auth,
 } from "firebase/auth";
-import { 
-  getFirestore, 
-  type Firestore, 
-  initializeFirestore, 
-  persistentLocalCache, 
-  persistentMultipleTabManager 
+import {
+  getFirestore,
+  type Firestore,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager
 } from "firebase/firestore";
 import { firebaseConfig } from "./config";
 
@@ -25,7 +25,7 @@ const db: Firestore = initializeFirestore(app, {
 });
 
 
-// Corrige o problema de domínio de autenticação no ambiente dev
+// Corrige o problema de domínio de autenticação no ambiente Cloud Workstations
 if (typeof window !== 'undefined' && window.location.hostname.includes("cloudworkstations.dev")) {
   auth.useDeviceLanguage();
   auth.config.authDomain = window.location.hostname;
