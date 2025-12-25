@@ -2,15 +2,15 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Plus, Home, Search, CalendarDays, DollarSign } from "lucide-react";
+import { Plus, Home, Search, Banknote, Wallet } from "lucide-react";
 
 export function FloatingNav({ onPrimaryClick }: { onPrimaryClick?: () => void }) {
     const navItems = [
         { icon: Home, href: "/dashboard/mobile", active: true },
         { icon: Search, href: "/dashboard/mobile/jobs" }, // Using Search icon for Jobs per mockup vibe
         { icon: Plus, href: "/dashboard/jobs/new", isPrimary: true }, // Center Plus
-        { icon: CalendarDays, href: "/dashboard/calendar" },
-        { icon: DollarSign, href: "/dashboard/finance" }, // Dollar for finance
+        { icon: Banknote, href: "/dashboard/finance" },
+        { icon: Wallet, href: "/dashboard/mobile/payroll" },
     ];
 
     return (
