@@ -48,6 +48,7 @@ import { collection, query, orderBy, limit, where, doc, getDocs, updateDoc, writ
 // Shared Logic
 import { calculateJobPayout } from "@/app/lib/job-financials";
 import { FloatingNav } from "../components/floating-nav";
+import { NanoHeader } from "../components/nano-header";
 
 // ---------------------------------------------------------------------
 // NANO-UI COMPONENTS (v4)
@@ -221,14 +222,10 @@ export default function MobilePayrollPage() {
     return (
         <div className="min-h-screen bg-[#F2F1EF] pb-32 font-sans relative overflow-x-hidden">
             <div className="px-5 pt-16 max-w-md mx-auto">
-
-                {/* 1. Header */}
-                <div className="mb-8">
-                    <h3 className="text-zinc-500 font-semibold text-xl mb-1">Weekly Summary,</h3>
-                    <h1 className="text-4xl font-extrabold text-black leading-[1.1] tracking-tight">
-                        Payroll &<br />Payouts
-                    </h1>
-                </div>
+                <NanoHeader
+                    subtitle="Weekly Summary,"
+                    title={"Payroll &\nPayouts"}
+                />
 
                 {/* 2. Completed Jobs Selection */}
                 <div className="mb-8">

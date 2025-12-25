@@ -13,6 +13,7 @@ import { FloatingNav } from "../components/floating-nav";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
 import { AddJobForm } from "@/app/dashboard/jobs/components/add-job-form";
+import { NanoHeader } from "../components/nano-header";
 import React from "react";
 
 type JobStatus = Job['status'];
@@ -83,19 +84,8 @@ export default function MobileJobsListPage() {
     }, [jobs, activeFilter, searchTerm]);
 
     return (
-        <div className="min-h-screen bg-[#F2F1EF] px-5 pt-8 pb-32 font-sans">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-                <Menu className="w-6 h-6 text-zinc-800" />
-                <div className="w-8 h-8 rounded-full bg-zinc-200 overflow-hidden">
-                    {/* Abstract Avatar if needed, or user image */}
-                    {user?.photoURL && <img src={user.photoURL} alt="User" className="w-full h-full object-cover" />}
-                </div>
-            </div>
-
-            <h1 className="text-[34px] font-extrabold text-black leading-none tracking-tight mb-6">
-                My Jobs
-            </h1>
+        <div className="min-h-screen bg-[#F2F1EF] px-5 pt-16 pb-32 font-sans">
+            <NanoHeader title="My Jobs" />
 
             {/* Search Bar */}
             <div className="mb-6 relative">

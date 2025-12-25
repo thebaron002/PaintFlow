@@ -9,7 +9,7 @@ export function FloatingNav({ onPrimaryClick }: { onPrimaryClick?: () => void })
         { icon: Home, href: "/dashboard/mobile", active: true },
         { icon: Search, href: "/dashboard/mobile/jobs" }, // Using Search icon for Jobs per mockup vibe
         { icon: Plus, href: "/dashboard/jobs/new", isPrimary: true }, // Center Plus
-        { icon: Banknote, href: "/dashboard/finance" },
+        { icon: Banknote, href: "/dashboard/mobile/finance" },
         { icon: Wallet, href: "/dashboard/mobile/payroll" },
     ];
 

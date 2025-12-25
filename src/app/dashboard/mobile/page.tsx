@@ -40,6 +40,9 @@ import { RevenueChart } from "../components/revenue-chart";
 import { AddGeneralExpenseForm } from "../finance/components/add-general-expense-form";
 import { AddJobForm } from "../jobs/components/add-job-form";
 import { FloatingNav } from "./components/floating-nav";
+import { NanoHeader } from "./components/nano-header";
+import { JobMap } from "@/components/job-map";
+import { useETA } from "@/hooks/use-eta";
 
 // ---------------------------------------------------------------------
 // NANO-UI COMPONENTS (v4)
@@ -65,6 +68,8 @@ function NanoGlassCard({ className, children, onClick }: { className?: string, c
 // ---------------------------------------------------------------------
 
 function HeroJobCard({ job }: { job: JobType }) {
+    const { duration, distance, loading, error } = useETA(job?.address);
+
     if (!job) return (
         <NanoGlassCard className="p-6 flex flex-col items-center justify-center h-[180px] text-zinc-400 bg-white">
             <p>No active jobs</p>
@@ -80,7 +85,6 @@ function HeroJobCard({ job }: { job: JobType }) {
 
     return (
         <NanoGlassCard className="p-5 flex flex-col gap-4 bg-white shadow-sm border border-zinc-50">
-            {/* Top Row: Title & Chevron */}
             {/* Top Row: Title & Chevron */}
             <Link href={`/dashboard/mobile/jobs/${job.id}`} className="flex justify-between items-start group">
                 <div className="flex-1 min-w-0 pr-2">
@@ -115,20 +119,52 @@ function HeroJobCard({ job }: { job: JobType }) {
                     </div>
                 </div>
 
-                {/* Right: ETA Card (Replaces Map) */}
-                <a href={mapLink} target="_blank" rel="noreferrer" className="w-[120px] shrink-0">
-                    <div className="w-full h-full rounded-[24px] overflow-hidden shadow-sm bg-blue-600 text-white relative flex flex-col items-center justify-center gap-1 active:scale-95 transition-transform">
-                        {/* Background Pattern */}
-                        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white via-transparent to-transparent" />
-
-                        <div className="p-1.5 bg-white/20 rounded-full mb-0.5 backdrop-blur-sm">
-                            <Navigation className="w-5 h-5 text-white fill-current" />
+                {/* Right: Map Thumbnail / Navigation */}
+                <a href={mapLink} target="_blank" rel="noreferrer" className="w-[124px] shrink-0 relative group">
+                    <div className="w-full h-full rounded-[24px] overflow-hidden shadow-sm bg-zinc-100 relative active:scale-95 transition-transform border border-zinc-50">
+                        {/* Interactive Map (Small) */}
+                        <div className="absolute inset-0 pointer-events-none scale-[1.35] origin-center translate-y-[-10%] opacity-80">
+                            <JobMap address={job.address} />
                         </div>
+                        {/* Gradient Overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
 
-                        <div className="flex flex-col items-center justify-center gap-0 z-10">
-                            <span className="block text-3xl font-bold leading-none tracking-tight">--</span>
-                            <span className="text-[9px] font-bold opacity-80 uppercase tracking-widest mb-0.5">min</span>
-                            <span className="text-[9px] opacity-75 font-medium">-- mi</span>
+                        {/* Center Icon Overlay / Navigation Trigger */}
+                        <div className={cn(
+                            "absolute inset-0 flex flex-col items-center justify-center gap-0.5 text-white backdrop-blur-[1px] transition-colors",
+                            (error || !duration || duration === '-- min') ? "bg-blue-600/80 active:bg-blue-700" : "bg-blue-600/90 active:bg-blue-700"
+                        )}>
+                            {loading ? (
+                                <div className="flex flex-col items-center">
+                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mb-1" />
+                                    <span className="text-[8px] font-bold uppercase tracking-widest leading-none">Updating...</span>
+                                </div>
+                            ) : (error || !duration || duration === '-- min') ? (
+                                <div className="flex flex-col items-center px-1 text-center">
+                                    <div className="p-1.5 bg-white/20 rounded-full mb-0.5 backdrop-blur-sm shadow-sm ring-1 ring-white/30">
+                                        <Navigation className="w-5 h-5 text-white fill-current" />
+                                    </div>
+                                    <span className="text-[10px] font-bold uppercase tracking-widest drop-shadow-sm">Go</span>
+                                    {error && (
+                                        <span className="text-[7px] font-medium opacity-80 leading-none mt-1 line-clamp-1">
+                                            {error}
+                                        </span>
+                                    )}
+                                </div>
+                            ) : (
+                                <>
+                                    <span className="text-3xl font-black leading-none tracking-tighter">
+                                        {duration.split(' ')[0]}
+                                    </span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest leading-none mb-1 opacity-90">
+                                        {duration.split(' ')[1] || 'min'}
+                                    </span>
+                                    <div className="h-[1px] w-8 bg-white/30 mb-1" />
+                                    <span className="text-[10px] font-bold leading-none opacity-80">
+                                        {distance}
+                                    </span>
+                                </>
+                            )}
                         </div>
                     </div>
                 </a>
@@ -282,14 +318,10 @@ export default function MobileDashboardPage() {
 
             <div className="px-5 pt-16 relative z-10 max-w-md mx-auto">
                 {/* 1. Header */}
-                <div className="mb-8">
-                    <h3 className="text-zinc-500 font-semibold text-xl mb-1">
-                        Hello {user?.displayName?.split(' ')[0] || 'User'},
-                    </h3>
-                    <h1 className="text-4xl font-extrabold text-black leading-[1.1] tracking-tight">
-                        What we gonna<br />do today?
-                    </h1>
-                </div>
+                <NanoHeader
+                    subtitle={`Hello ${user?.displayName?.split(' ')[0] || 'User'},`}
+                    title={"What we gonna\ndo today?"}
+                />
 
                 {/* 2. Hero Job Card */}
                 <div className="mb-6">

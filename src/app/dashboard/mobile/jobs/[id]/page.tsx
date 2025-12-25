@@ -63,6 +63,51 @@ function SectionRow({ label, value, valueClass }: { label: string, value: string
     );
 }
 
+function JobStatusCard({ currentStatus, onUpdate }: { currentStatus: Job['status'], onUpdate: (s: Job['status']) => void }) {
+    const statuses: Job['status'][] = ["Not Started", "In Progress", "Complete", "Open Payment", "Finalized"];
+    const currentIndex = statuses.indexOf(currentStatus);
+
+    return (
+        <DetailCard className="p-6">
+            <h3 className="text-xl font-extrabold text-[#00343D] mb-6">Job Status</h3>
+            <div className="flex justify-between items-start relative px-1">
+                {statuses.map((status, index) => {
+                    const isCompleted = index < currentIndex;
+                    const isActive = index === currentIndex;
+                    const isFuture = index > currentIndex;
+
+                    return (
+                        <div
+                            key={status}
+                            onClick={() => onUpdate(status)}
+                            className="flex flex-col items-center gap-2 flex-1 cursor-pointer group"
+                        >
+                            <div className={cn(
+                                "w-10 h-10 rounded-full flex items-center justify-center transition-all relative z-10",
+                                isCompleted && "bg-[#00343D] text-white",
+                                isActive && "bg-[#00343D] text-white shadow-lg ring-4 ring-zinc-100",
+                                isFuture && "bg-[#FDF9F0] text-[#00343D] border border-transparent"
+                            )}>
+                                {isCompleted ? (
+                                    <Check className="w-5 h-5 stroke-[3]" />
+                                ) : (
+                                    <span className="text-sm font-bold">{index + 1}</span>
+                                )}
+                            </div>
+                            <span className={cn(
+                                "text-[10px] font-bold text-center leading-tight transition-colors",
+                                (isCompleted || isActive) ? "text-[#00343D]" : "text-zinc-400"
+                            )}>
+                                {status === "Open Payment" ? "Open\nPayment" : status}
+                            </span>
+                        </div>
+                    );
+                })}
+            </div>
+        </DetailCard>
+    );
+}
+
 export default function MobileJobDetailsPage() {
     const params = useParams();
     const router = useRouter();
@@ -252,41 +297,12 @@ export default function MobileJobDetailsPage() {
                             <span className="font-medium text-zinc-700">Edit Job</span>
                         </DropdownMenuItem>
 
-                        <DropdownMenuSeparator className="my-1 bg-zinc-100" />
-
-                        <DropdownMenuSub>
-                            <DropdownMenuSubTrigger className="flex items-center gap-2 p-2.5 rounded-lg focus:bg-zinc-100 cursor-pointer outline-none data-[state=open]:bg-zinc-100">
-                                <AlertCircle className="w-4 h-4 text-zinc-700" />
-                                <span className="font-medium text-zinc-700">Change Status</span>
-                            </DropdownMenuSubTrigger>
-                            <DropdownMenuSubContent className="p-1 bg-white rounded-xl border-zinc-200/50 shadow-xl ml-1">
-                                {["Not Started", "In Progress", "Complete", "Open Payment", "Finalized"].map((status) => (
-                                    <DropdownMenuItem
-                                        key={status}
-                                        onClick={() => handleUpdateStatus(status as Job['status'])}
-                                        className="flex items-center justify-between gap-3 p-2.5 rounded-lg focus:bg-zinc-50 cursor-pointer outline-none"
-                                    >
-                                        <div className={cn("flex items-center gap-2")}>
-                                            <div className={cn("w-2 h-2 rounded-full",
-                                                status === "Not Started" && "bg-zinc-300",
-                                                status === "In Progress" && "bg-secondary",
-                                                status === "Complete" && "bg-green-500",
-                                                status === "Open Payment" && "bg-destructive",
-                                                status === "Finalized" && "bg-zinc-900"
-                                            )} />
-                                            <span className={cn("font-medium", job.status === status ? "text-zinc-900" : "text-zinc-600")}>
-                                                {status}
-                                            </span>
-                                        </div>
-                                        {job.status === status && <Check className="w-4 h-4 text-zinc-900" />}
-                                    </DropdownMenuItem>
-                                ))}
-                            </DropdownMenuSubContent>
-                        </DropdownMenuSub>
-
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
+
+            {/* Job Status Card */}
+            <JobStatusCard currentStatus={job.status} onUpdate={handleUpdateStatus} />
 
             {/* 1. Basic Info Card */}
             <DetailCard>

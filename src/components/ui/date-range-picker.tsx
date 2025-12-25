@@ -8,6 +8,7 @@ import { DateRange } from "react-day-picker"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
+import { useIsMobile } from "@/hooks/use-mobile"
 import {
     Popover,
     PopoverContent,
@@ -31,6 +32,7 @@ export function DatePickerWithRange({
     date,
     setDate,
 }: DatePickerWithRangeProps) {
+    const isMobile = useIsMobile();
 
     // Preset handlers
     const applyPreset = (daysToCheck: number | 'thisMonth' | 'lastMonth' | 'thisYear') => {
@@ -91,7 +93,7 @@ export function DatePickerWithRange({
                             defaultMonth={date?.from}
                             selected={date}
                             onSelect={setDate}
-                            numberOfMonths={2}
+                            numberOfMonths={isMobile ? 1 : 2}
                         />
                     </div>
                 </PopoverContent>
