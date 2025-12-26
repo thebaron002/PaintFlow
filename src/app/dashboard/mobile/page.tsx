@@ -132,7 +132,7 @@ function HeroJobCard({ job }: { job: JobType }) {
                         {/* Center Icon Overlay / Navigation Trigger */}
                         <div className={cn(
                             "absolute inset-0 flex flex-col items-center justify-center gap-0.5 text-white backdrop-blur-[1px] transition-colors",
-                            (error || !duration || duration === '-- min') ? "bg-blue-600/80 active:bg-blue-700" : "bg-blue-600/90 active:bg-blue-700"
+                            (error || !duration || duration === '-- min') ? "bg-zinc-900/60 active:bg-zinc-800" : "bg-blue-600/90 active:bg-blue-700"
                         )}>
                             {loading ? (
                                 <div className="flex flex-col items-center">
@@ -141,13 +141,17 @@ function HeroJobCard({ job }: { job: JobType }) {
                                 </div>
                             ) : (error || !duration || duration === '-- min') ? (
                                 <div className="flex flex-col items-center px-1 text-center">
-                                    <div className="p-1.5 bg-white/20 rounded-full mb-0.5 backdrop-blur-sm shadow-sm ring-1 ring-white/30">
+                                    <div className="p-2 bg-white/20 rounded-full mb-1 backdrop-blur-sm shadow-sm ring-1 ring-white/30">
                                         <Navigation className="w-5 h-5 text-white fill-current" />
                                     </div>
-                                    <span className="text-[10px] font-bold uppercase tracking-widest drop-shadow-sm">Go</span>
-                                    {error && (
-                                        <span className="text-[7px] font-medium opacity-80 leading-none mt-1 line-clamp-1">
-                                            {error}
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] drop-shadow-sm">Navigate</span>
+                                    {error === 'HTTPS required for GPS' ? (
+                                        <span className="text-[7px] font-black uppercase tracking-widest text-amber-300 mt-1">
+                                            Enable GPS
+                                        </span>
+                                    ) : (
+                                        <span className="text-[7px] font-black uppercase tracking-widest opacity-60 mt-1">
+                                            ETA N/A
                                         </span>
                                     )}
                                 </div>
