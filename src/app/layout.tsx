@@ -4,6 +4,14 @@
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { ReactNode } from "react";
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: '#F2F1EF',
+};
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/hooks/useAuth";
 import { FirebaseClientProvider } from "@/firebase";
