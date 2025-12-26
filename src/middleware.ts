@@ -3,7 +3,15 @@ import type { NextRequest } from 'next/server'
 
 export function middleware(request: NextRequest) {
     const { device } = userAgent(request)
-    const isMobile = device.type === 'mobile' || device.type === 'tablet'
+    const ua = request.headers.get('user-agent') || ''
+
+    // Detecção mais robusta: device.type do Next, cabeçalho de mobile do Chrome, ou strings comuns de UA
+    const isMobile =
+        device.type === 'mobile' ||
+        device.type === 'tablet' ||
+        request.headers.get('sec-ch-ua-mobile') === '?1' ||
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+
     const url = request.nextUrl.clone()
     const { pathname } = url
 
