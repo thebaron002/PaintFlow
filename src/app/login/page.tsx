@@ -145,106 +145,112 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen items-center justify-center bg-[#F2F1EF] p-4">
-      <div className="w-full max-w-sm">
-        <div className="flex flex-col items-center text-center mb-8">
-          <Logo />
-          <h1 className="text-3xl font-extrabold mt-6 text-black tracking-tight">Bem-vindo</h1>
-          <p className="text-zinc-500 font-medium mt-1">Gerencie seu negócio com facilidade.</p>
+    <div className="flex flex-col min-h-screen items-center justify-center bg-[#F2F1EF] p-6 relative overflow-hidden">
+      {/* Decorative background elements */}
+      <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-rose-200/30 blur-[100px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-200/20 blur-[100px] rounded-full pointer-events-none" />
+
+      <div className="w-full max-w-sm z-10">
+        <div className="flex flex-col items-center text-center mb-10">
+          <div className="bg-white p-3 rounded-2xl shadow-sm mb-6 border border-zinc-100">
+            <Logo />
+          </div>
+          <h1 className="text-4xl font-black text-zinc-900 tracking-tighter">PaintFlow</h1>
+          <p className="text-zinc-500 font-medium mt-2">Profissionalize sua gestão de pintura.</p>
         </div>
 
-        <div className="bg-white rounded-[24px] p-6 shadow-sm border border-zinc-100">
-          <form onSubmit={handleLogin} className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="email" className="text-xs font-bold uppercase tracking-widest text-zinc-400">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="m@example.com"
-                required
-                className="rounded-xl border-zinc-100 focus:ring-rose-500 h-11"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <div className="grid gap-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-xs font-bold uppercase tracking-widest text-zinc-400">Senha</Label>
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="link" className="px-0 h-auto text-[10px] font-bold uppercase tracking-widest text-rose-500">
-                      Esqueceu?
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="rounded-[24px]">
-                    <DialogHeader>
-                      <DialogTitle className="text-xl font-bold">Resetar Senha</DialogTitle>
-                      <DialogDescription className="text-zinc-500">
-                        Enviaremos um link para o seu e-mail.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                      <div className="grid gap-2">
-                        <Label htmlFor="reset-email" className="text-xs font-bold uppercase tracking-widest text-zinc-400">Seu Email</Label>
+        <div className="bg-white/80 backdrop-blur-xl rounded-[32px] p-8 shadow-[0_8px_32px_rgba(0,0,0,0.04)] border border-white">
+          <form onSubmit={handleLogin} className="grid gap-6">
+            <div className="space-y-4">
+              <div className="grid gap-2">
+                <Label htmlFor="email" className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 ml-1">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="seu@email.com"
+                  required
+                  className="rounded-2xl border-zinc-100 focus:border-rose-500 focus:ring-rose-500/20 h-12 bg-white/50"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <div className="flex items-center justify-between ml-1">
+                  <Label htmlFor="password" className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Senha</Label>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="link" className="px-0 h-auto text-[10px] font-bold uppercase tracking-widest text-rose-500 transition-all hover:scale-105">
+                        Esqueceu?
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="rounded-[32px] border-none shadow-2xl">
+                      <DialogHeader>
+                        <DialogTitle className="text-2xl font-black tracking-tight">Recuperar Senha</DialogTitle>
+                        <DialogDescription className="text-zinc-500 font-medium">
+                          Enviaremos um link seguro para o seu e-mail.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="py-6">
+                        <Label htmlFor="reset-email" className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Seu Email</Label>
                         <Input
                           id="reset-email"
                           type="email"
                           placeholder="m@example.com"
-                          className="rounded-xl border-zinc-100 h-11"
+                          className="rounded-2xl border-zinc-100 h-12 mt-2"
                           value={resetEmail}
                           onChange={(e) => setResetEmail(e.target.value)}
                         />
                       </div>
-                    </div>
-                    <DialogFooter>
-                      <DialogClose asChild>
-                        <Button type="button" variant="secondary" className="rounded-xl font-bold h-11">
-                          Cancelar
+                      <DialogFooter className="gap-2 sm:gap-0">
+                        <DialogClose asChild>
+                          <Button type="button" variant="ghost" className="rounded-2xl font-bold h-12">
+                            Cancelar
+                          </Button>
+                        </DialogClose>
+                        <Button onClick={handlePasswordReset} disabled={isResetting} className="bg-zinc-950 text-white rounded-2xl font-bold h-12 px-8">
+                          {isResetting ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : null}
+                          Enviar Link
                         </Button>
-                      </DialogClose>
-                      <Button onClick={handlePasswordReset} disabled={isResetting} className="bg-zinc-950 rounded-xl font-bold h-11 text-white">
-                        {isResetting ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : null}
-                        Enviar Link
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  required
+                  className="rounded-2xl border-zinc-100 focus:border-rose-500 focus:ring-rose-500/20 h-12 bg-white/50"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
               </div>
-              <Input
-                id="password"
-                type="password"
-                required
-                className="rounded-xl border-zinc-100 focus:ring-rose-500 h-11"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
             </div>
 
             {status === "error" && (
-              <div className="rounded-xl border border-rose-100 bg-rose-50 p-3 text-xs font-bold text-rose-600">
+              <div className="rounded-2xl border border-rose-100 bg-rose-50 p-4 text-xs font-bold text-rose-600 animate-in fade-in slide-in-from-top-2">
                 {message}
               </div>
             )}
 
-            <Button type="submit" className="w-full bg-rose-500 rounded-xl font-bold h-11 text-white hover:bg-rose-600 transition-colors shadow-sm" disabled={status === "authenticating"}>
-              {status === "authenticating" ? <LoaderCircle className="h-4 w-4 animate-spin" /> : "Login"}
+            <Button type="submit" className="w-full bg-rose-500 rounded-2xl font-black h-14 text-white hover:bg-rose-600 transition-all shadow-[0_8px_20px_rgba(244,63,94,0.2)] active:scale-[0.98]" disabled={status === "authenticating"}>
+              {status === "authenticating" ? <LoaderCircle className="h-5 w-5 animate-spin" /> : "Entrar Agora"}
             </Button>
           </form>
 
-          <div className="relative my-6 text-center">
+          <div className="relative my-8">
             <div className="absolute inset-0 flex items-center">
               <span className="w-full border-t border-zinc-100"></span>
             </div>
-            <span className="relative bg-white px-3 text-[10px] font-bold uppercase tracking-widest text-zinc-400">Ou continuar com</span>
+            <span className="relative bg-[#fafafa] px-4 mx-auto block w-fit text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Ou use sua rede social</span>
           </div>
 
           <Button
             onClick={handleGoogleLogin}
             variant="outline"
-            className="w-full rounded-xl font-bold h-11 border-zinc-100 hover:bg-zinc-50 transition-colors flex items-center justify-center gap-3 active:scale-95"
+            className="w-full rounded-2xl font-bold h-14 border-zinc-100 bg-white hover:bg-zinc-50 transition-all flex items-center justify-center gap-3 active:scale-[0.98] shadow-sm"
             disabled={status === "authenticating"}
           >
-            <svg className="h-4 w-4" viewBox="0 0 24 24">
+            <svg className="h-5 w-5" viewBox="0 0 24 24">
               <path
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                 fill="#4285F4"
@@ -266,24 +272,21 @@ export default function LoginPage() {
           </Button>
         </div>
 
-        <p className="mt-4 text-center text-sm text-muted-foreground">
-          Não tem uma conta?{' '}
-          <Link href="/signup" className="underline hover:text-primary">
-            Crie uma
+        <p className="mt-8 text-center text-sm font-medium text-zinc-500">
+          Novo por aqui?{' '}
+          <Link href="/signup" className="text-zinc-900 font-bold underline decoration-rose-500/30 underline-offset-4 hover:decoration-rose-500 transition-all">
+            Crie sua conta
           </Link>
         </p>
 
-        <p className="px-8 text-center text-sm text-muted-foreground mt-6">
-          Ao clicar em continuar, você concorda com nossos{" "}
-          <a href="#" className="underline underline-offset-4 hover:text-primary">
-            Termos de Serviço
-          </a>{" "}
-          e{" "}
-          <a href="#" className="underline underline-offset-4 hover:text-primary">
-            Política de Privacidade
-          </a>
-          .
-        </p>
+        <div className="mt-10 pt-6 border-t border-zinc-200/50">
+          <p className="text-[10px] text-center text-zinc-400 font-bold leading-relaxed uppercase tracking-widest px-4">
+            Ao continuar, você aceita nossos{" "}
+            <a href="#" className="text-zinc-600 hover:text-black transition-colors">Termos</a>{" "}
+            e{" "}
+            <a href="#" className="text-zinc-600 hover:text-black transition-colors">Privacidade</a>.
+          </p>
+        </div>
       </div>
     </div>
   );
