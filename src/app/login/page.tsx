@@ -132,12 +132,19 @@ export default function LoginPage() {
     } catch (error: any) {
       console.error("Google Auth Error:", error);
       setStatus("error");
+
+      const currentDomain = typeof window !== 'undefined' ? window.location.hostname : 'este domínio';
+
       if (error.code === 'auth/unauthorized-domain') {
-        setMessage("Erro: Domínio não autorizado. Adicione seu IP (192.168.1.183) no Console do Firebase > Autenticação > Configurações > Domínios autorizados.");
+        setMessage(`Erro: Domínio não autorizado. Adicione "${currentDomain}" no Console do Firebase > Autenticação > Configurações > Domínios autorizados.`);
       } else if (error.code === 'auth/account-exists-with-different-credential') {
         setMessage("Já existe uma conta com este e-mail. Por favor, faça login com e-mail e senha.");
       } else if (error.code === 'auth/popup-blocked') {
-        setMessage("O popup foi bloqueado pelo Safari. Por favor, permita popups para este site.");
+        setMessage("O popup foi bloqueado pelo seu navegador. Por favor, permita popups para este site.");
+      } else if (error.code === 'auth/popup-closed-by-user') {
+        setMessage("A janela de login foi fechada antes de concluir. Por favor, tente novamente sem fechar a janela.");
+      } else if (error.code === 'auth/cancelled-popup-request') {
+        setMessage("A solicitação de login foi cancelada. Tente novamente.");
       } else {
         setMessage(error.message || "Falha ao entrar com Google.");
       }
