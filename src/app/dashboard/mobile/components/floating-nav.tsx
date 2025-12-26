@@ -2,15 +2,15 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Plus, Home, Search, Banknote, Wallet } from "lucide-react";
+import { LayoutDashboard, Files, CirclePlus, WalletMinimal, Mails } from "lucide-react";
 
 export function FloatingNav({ onPrimaryClick }: { onPrimaryClick?: () => void }) {
     const navItems = [
-        { icon: Home, href: "/dashboard/mobile", active: true },
-        { icon: Search, href: "/dashboard/mobile/jobs" }, // Using Search icon for Jobs per mockup vibe
-        { icon: Plus, href: "/dashboard/jobs/new", isPrimary: true }, // Center Plus
-        { icon: Banknote, href: "/dashboard/mobile/finance" },
-        { icon: Wallet, href: "/dashboard/mobile/payroll" },
+        { icon: LayoutDashboard, href: "/dashboard/mobile", active: true },
+        { icon: Files, href: "/dashboard/mobile/jobs" },
+        { icon: CirclePlus, href: "/dashboard/jobs/new", isPrimary: true }, // Center Plus
+        { icon: WalletMinimal, href: "/dashboard/mobile/finance" },
+        { icon: Mails, href: "/dashboard/mobile/payroll" },
     ];
 
     return (
@@ -27,7 +27,7 @@ export function FloatingNav({ onPrimaryClick }: { onPrimaryClick?: () => void })
                             }}
                             className="relative -top-1 w-12 h-12 flex items-center justify-center transition-transform active:scale-95"
                         >
-                            <Plus className="w-8 h-8 text-white" strokeWidth={2} />
+                            <CirclePlus className="w-8 h-8 text-white" strokeWidth={2} />
                         </button>
                     );
                 }
