@@ -3,17 +3,12 @@ import type { NextRequest } from 'next/server'
 
 export function middleware(request: NextRequest) {
     const { device } = userAgent(request)
-    const ua = request.headers.get('user-agent') || ''
-
-    // Detecção mais robusta: device.type do Next, cabeçalho de mobile do Chrome, ou strings comuns de UA
-    const isMobile =
-        device.type === 'mobile' ||
-        device.type === 'tablet' ||
-        request.headers.get('sec-ch-ua-mobile') === '?1' ||
-        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
-
     const url = request.nextUrl.clone()
     const { pathname } = url
+
+    // Check for manual mobile preference (cookie)
+    const forceMobile = request.cookies.get('pf-force-mobile')?.value === 'true'
+    const isMobile = device.type === 'mobile' || device.type === 'tablet' || forceMobile
 
     // 1. Logic for Mobile users
     if (isMobile) {
@@ -49,10 +44,16 @@ export function middleware(request: NextRequest) {
             url.pathname = pathname.replace('/dashboard/payroll/', '/dashboard/mobile/payroll/')
             return NextResponse.redirect(url)
         }
+
+        // Map finance routes
+        if (pathname === '/dashboard/finance') {
+            url.pathname = '/dashboard/mobile/finance'
+            return NextResponse.redirect(url)
+        }
     }
 
-    // 2. Logic for Desktop users
-    else {
+    // 2. Logic for Desktop users (only if NOT forcing mobile)
+    else if (!forceMobile) {
         // If on a mobile route but NO mobile device detected, redirect back to normal version
         if (pathname === '/dashboard/mobile') {
             url.pathname = '/dashboard'
@@ -66,6 +67,11 @@ export function middleware(request: NextRequest) {
 
         if (pathname.startsWith('/dashboard/mobile/payroll')) {
             url.pathname = pathname.replace('/dashboard/mobile/payroll', '/dashboard/payroll')
+            return NextResponse.redirect(url)
+        }
+
+        if (pathname.startsWith('/dashboard/mobile/finance')) {
+            url.pathname = pathname.replace('/dashboard/mobile/finance', '/dashboard/finance')
             return NextResponse.redirect(url)
         }
     }

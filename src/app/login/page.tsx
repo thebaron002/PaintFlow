@@ -58,6 +58,19 @@ export default function LoginPage() {
     checkRedirectResult();
   }, [auth]);
 
+  // Detect PWA mode and force mobile layout
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const isPWA = window.matchMedia('(display-mode: standalone)').matches ||
+        (window.navigator as any).standalone === true;
+
+      if (isPWA) {
+        // Set cookie to force mobile mode
+        document.cookie = 'pf-force-mobile=true; path=/; max-age=31536000';
+      }
+    }
+  }, []);
+
 
   if (loading || user) {
     return (

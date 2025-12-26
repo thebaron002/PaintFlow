@@ -23,7 +23,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { RevenueChart } from "./components/revenue-chart";
 import { cn } from "@/lib/utils";
 import { calculateJobPayout, calculateMaterialCost } from "@/app/lib/job-financials";
-import { useRouter } from "next/navigation";
 
 // Types (ajuste se necessário)
 type Invoice = { amount: number; date?: string; isPayoutDiscount?: boolean; source?: string };
@@ -299,21 +298,13 @@ function CurrentJobFallback() {
 export default function DashboardPage() {
   const { user } = useUser();
   const firestore = useFirestore();
-  const router = useRouter();
   const [timeOfDay, setTimeOfDay] = React.useState('');
 
   React.useEffect(() => {
-    // Redirecionamento forçado para Mobile se detectado via tela ou UA
-    const isMobile = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    if (isMobile) {
-      router.replace("/dashboard/mobile");
-      return;
-    }
-
     // This now runs only on the client, avoiding hydration mismatches.
     const hour = new Date().getHours();
     setTimeOfDay(hour < 12 ? "morning" : "afternoon");
-  }, [router]);
+  }, []);
 
   const settingsRef = useMemoFirebase(() => {
     if (!firestore) return null;
