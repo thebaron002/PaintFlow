@@ -20,9 +20,9 @@ export function Logo({ className }: { className?: string }) {
           {/* Paint Tray/Base Accent */}
           <rect x="35" y="60" width="30" height="20" rx="2" fill="#F59E0B" />
           {/* Bristle Accents */}
-          <path d="M40 80V85" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" />
-          <path d="M50 80V85" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" />
-          <path d="M60 80V85" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" />
+          <path d="M40 80V85" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" />
+          <path d="M50 80V85" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" />
+          <path d="M60 80V85" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" />
         </svg>
       </div>
       <h1 className="text-xl font-black font-headline tracking-tighter text-zinc-900 leading-none">
