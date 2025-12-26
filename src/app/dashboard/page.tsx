@@ -23,6 +23,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { RevenueChart } from "./components/revenue-chart";
 import { cn } from "@/lib/utils";
 import { calculateJobPayout, calculateMaterialCost } from "@/app/lib/job-financials";
+import { useRouter } from "next/navigation";
 
 // Types (ajuste se necessário)
 type Invoice = { amount: number; date?: string; isPayoutDiscount?: boolean; source?: string };
@@ -97,123 +98,123 @@ function currency(n: number) {
 // Quick Actions (os 3 botões grandes)
 // ---------------------------------------------------------------------
 function QuickActions({ inProgressJobs }: { inProgressJobs: Job[] }) {
-    const { toast } = useToast();
-    const [isJobSelectionOpen, setJobSelectionOpen] = React.useState(false);
-    const [isSingleJobInvoiceOpen, setSingleJobInvoiceOpen] = React.useState(false);
-    
-    // This is needed to get all possible invoice origins for the combobox inside AddInvoiceForm
-    const { user } = useUser();
-    const firestore = useFirestore();
-    const allJobsQuery = useMemoFirebase(() => {
-        if (!firestore || !user) return null;
-        return collection(firestore, 'users', user.uid, 'jobs');
-    }, [firestore, user]);
-    const { data: allJobs } = useCollection<Job>(allJobsQuery);
-    const invoiceOrigins = [...new Set(allJobs?.flatMap(j => j.invoices?.map(i => i.origin)).filter(Boolean) ?? [])];
+  const { toast } = useToast();
+  const [isJobSelectionOpen, setJobSelectionOpen] = React.useState(false);
+  const [isSingleJobInvoiceOpen, setSingleJobInvoiceOpen] = React.useState(false);
+
+  // This is needed to get all possible invoice origins for the combobox inside AddInvoiceForm
+  const { user } = useUser();
+  const firestore = useFirestore();
+  const allJobsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return collection(firestore, 'users', user.uid, 'jobs');
+  }, [firestore, user]);
+  const { data: allJobs } = useCollection<Job>(allJobsQuery);
+  const invoiceOrigins = [...new Set(allJobs?.flatMap(j => j.invoices?.map(i => i.origin)).filter(Boolean) ?? [])];
 
 
-    const handleAddInvoiceClick = () => {
-        if (!inProgressJobs || inProgressJobs.length === 0) {
-            toast({
-                variant: "destructive",
-                title: "No Active Jobs",
-                description: "You must have at least one job 'In Progress' to add an invoice.",
-            });
-            return;
-        }
-
-        if (inProgressJobs.length > 1) {
-            setJobSelectionOpen(true);
-        } else {
-            setSingleJobInvoiceOpen(true);
-        }
-    };
-
-    const handleInvoiceFormSuccess = () => {
-        toast({
-          title: "Invoice Added!",
-          description: "The new invoice has been added successfully.",
-        });
-        setSingleJobInvoiceOpen(false);
+  const handleAddInvoiceClick = () => {
+    if (!inProgressJobs || inProgressJobs.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "No Active Jobs",
+        description: "You must have at least one job 'In Progress' to add an invoice.",
+      });
+      return;
     }
 
-    const singleJob = inProgressJobs?.[0];
+    if (inProgressJobs.length > 1) {
+      setJobSelectionOpen(true);
+    } else {
+      setSingleJobInvoiceOpen(true);
+    }
+  };
 
-    return (
+  const handleInvoiceFormSuccess = () => {
+    toast({
+      title: "Invoice Added!",
+      description: "The new invoice has been added successfully.",
+    });
+    setSingleJobInvoiceOpen(false);
+  }
+
+  const singleJob = inProgressJobs?.[0];
+
+  return (
     <>
-        <GlassSection className="p-4">
+      <GlassSection className="p-4">
         <SectionHeader
-            title="Quick Actions"
-            subtitle="Faça o que mais importa em 1 clique."
+          title="Quick Actions"
+          subtitle="Faça o que mais importa em 1 clique."
         />
         <Separator className="my-4" />
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Card 
-                className="group cursor-pointer rounded-xl bg-white/50 p-4 shadow-sm backdrop-blur transition hover:bg-white/80 dark:bg-zinc-900/50 dark:hover:bg-zinc-900/70"
-                onClick={handleAddInvoiceClick}
-            >
-                <CardContent className="p-0">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900">
-                        <Receipt className="h-5 w-5" />
-                    </div>
-                    <div>
-                        <div className="font-semibold">Add Invoice</div>
-                        <div className="text-xs text-zinc-600 dark:text-zinc-400">Lançar no job atual</div>
-                    </div>
-                    </div>
-                    <ArrowRight className="h-4 w-4 text-zinc-400 transition group-hover:translate-x-0.5" />
+          <Card
+            className="group cursor-pointer rounded-xl bg-white/50 p-4 shadow-sm backdrop-blur transition hover:bg-white/80 dark:bg-zinc-900/50 dark:hover:bg-zinc-900/70"
+            onClick={handleAddInvoiceClick}
+          >
+            <CardContent className="p-0">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900">
+                    <Receipt className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="font-semibold">Add Invoice</div>
+                    <div className="text-xs text-zinc-600 dark:text-zinc-400">Lançar no job atual</div>
+                  </div>
                 </div>
-                </CardContent>
-            </Card>
+                <ArrowRight className="h-4 w-4 text-zinc-400 transition group-hover:translate-x-0.5" />
+              </div>
+            </CardContent>
+          </Card>
 
-            <Link href="/dashboard/jobs/new">
+          <Link href="/dashboard/jobs/new">
             <Card className="group cursor-pointer rounded-xl bg-white/50 p-4 shadow-sm backdrop-blur transition hover:bg-white/80 dark:bg-zinc-900/50 dark:hover:bg-zinc-900/70">
-                <CardContent className="p-0">
+              <CardContent className="p-0">
                 <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900">
-                        <PlusCircle className="h-5 w-5" />
+                      <PlusCircle className="h-5 w-5" />
                     </div>
                     <div>
-                        <div className="font-semibold">New Job</div>
-                        <div className="text-xs text-zinc-600 dark:text-zinc-400">Criar projeto</div>
+                      <div className="font-semibold">New Job</div>
+                      <div className="text-xs text-zinc-600 dark:text-zinc-400">Criar projeto</div>
                     </div>
-                    </div>
-                    <ArrowRight className="h-4 w-4 text-zinc-400 transition group-hover:translate-x-0.5" />
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-zinc-400 transition group-hover:translate-x-0.5" />
                 </div>
-                </CardContent>
+              </CardContent>
             </Card>
-            </Link>
+          </Link>
         </div>
-        </GlassSection>
-        
-        {/* Modal for multiple jobs */}
-        <JobSelectionModal 
-            jobs={inProgressJobs}
-            isOpen={isJobSelectionOpen}
-            onOpenChange={setJobSelectionOpen}
-        />
+      </GlassSection>
 
-        {/* Modal for single job */}
-        {singleJob && (
-            <Dialog open={isSingleJobInvoiceOpen} onOpenChange={setSingleJobInvoiceOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle className="text-2xl font-bold">{singleJob.title}</DialogTitle>
-                    </DialogHeader>
-                    <AddInvoiceForm 
-                        jobId={singleJob.id}
-                        existingInvoices={singleJob.invoices || []}
-                        origins={invoiceOrigins}
-                        onSuccess={handleInvoiceFormSuccess}
-                    />
-                </DialogContent>
-            </Dialog>
-        )}
+      {/* Modal for multiple jobs */}
+      <JobSelectionModal
+        jobs={inProgressJobs}
+        isOpen={isJobSelectionOpen}
+        onOpenChange={setJobSelectionOpen}
+      />
+
+      {/* Modal for single job */}
+      {singleJob && (
+        <Dialog open={isSingleJobInvoiceOpen} onOpenChange={setSingleJobInvoiceOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold">{singleJob.title}</DialogTitle>
+            </DialogHeader>
+            <AddInvoiceForm
+              jobId={singleJob.id}
+              existingInvoices={singleJob.invoices || []}
+              origins={invoiceOrigins}
+              onSuccess={handleInvoiceFormSuccess}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
     </>
-    );
+  );
 }
 
 // ---------------------------------------------------------------------
@@ -222,7 +223,7 @@ function QuickActions({ inProgressJobs }: { inProgressJobs: Job[] }) {
 function CurrentJobCard({ job, settings }: { job: Job; settings: GeneralSettings | null }) {
   const payout = calculateJobPayout(job, settings);
   const materialCost = calculateMaterialCost(job.invoices);
-  
+
   const sub = job.title || `${(job.clientName || "").split(" ").pop() || "Client"} #${job.quoteNumber}`;
 
   return (
@@ -243,9 +244,9 @@ function CurrentJobCard({ job, settings }: { job: Job; settings: GeneralSettings
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 flex-1">
           <div className="flex flex-col gap-2">
             <div className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">{sub}</div>
-            <a 
-              href={`https://maps.apple.com/?q=${encodeURIComponent(job.address)}`} 
-              target="_blank" 
+            <a
+              href={`https://maps.apple.com/?q=${encodeURIComponent(job.address)}`}
+              target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400 hover:underline"
             >
@@ -298,13 +299,21 @@ function CurrentJobFallback() {
 export default function DashboardPage() {
   const { user } = useUser();
   const firestore = useFirestore();
+  const router = useRouter();
   const [timeOfDay, setTimeOfDay] = React.useState('');
 
   React.useEffect(() => {
+    // Redirecionamento forçado para Mobile se detectado via tela ou UA
+    const isMobile = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobile) {
+      router.replace("/dashboard/mobile");
+      return;
+    }
+
     // This now runs only on the client, avoiding hydration mismatches.
     const hour = new Date().getHours();
     setTimeOfDay(hour < 12 ? "morning" : "afternoon");
-  }, []);
+  }, [router]);
 
   const settingsRef = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -333,38 +342,38 @@ export default function DashboardPage() {
     if (!allJobs) return [];
     const today = startOfToday();
     return allJobs?.filter(job => {
-        const startDate = parseISO(job.startDate);
-        return job.status === "Not Started" && (isSameDay(startDate, today) || isFuture(startDate));
+      const startDate = parseISO(job.startDate);
+      return job.status === "Not Started" && (isSameDay(startDate, today) || isFuture(startDate));
     })
-    .sort((a,b) => parseISO(a.startDate).getTime() - parseISO(b.startDate).getTime()) || [];
+      .sort((a, b) => parseISO(a.startDate).getTime() - parseISO(b.startDate).getTime()) || [];
   }, [allJobs]);
-  
+
   // Upcoming Jobs for the next 7 days
   const upcomingJobs = React.useMemo(() => {
     if (!allJobs) return [];
-    
+
     const today = startOfToday();
     const nextWeek = addDays(today, 7);
-    
+
     const upcoming = allJobs.map(job => {
       const allDates = [job.startDate, ...(job.productionDays?.map(pd => pd.date) || [])];
       const nextActivityDate = allDates
         .filter(d => !!d) // ensure date is not null/undefined
         .map(d => parseISO(d))
         .filter(d => isWithinInterval(d, { start: today, end: nextWeek }))
-        .sort((a,b) => a.getTime() - b.getTime())[0];
-        
+        .sort((a, b) => a.getTime() - b.getTime())[0];
+
       return nextActivityDate ? { job, nextActivityDate } : null;
     }).filter((item): item is { job: Job, nextActivityDate: Date } => item !== null);
-    
+
     return upcoming.sort((a, b) => a!.nextActivityDate.getTime() - b!.nextActivityDate.getTime());
-    
+
   }, [allJobs]);
-  
+
   const getLatestInProgressJob = (jobs: Job[] | null) => {
     if (!jobs || jobs.length === 0) return null;
     // sort by start date descending for in progress jobs
-    return [...jobs].sort((a,b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())[0];
+    return [...jobs].sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())[0];
   }
 
   const currentJob = getLatestInProgressJob(inProgressJobs) || notStartedJobs[0];
@@ -414,7 +423,7 @@ export default function DashboardPage() {
         {/* Side Column */}
         <div className="flex flex-col gap-4">
           <RevenueChart />
-          
+
           <GlassSection className="p-4">
             <SectionHeader
               title="Upcoming"
@@ -429,7 +438,7 @@ export default function DashboardPage() {
             />
             <Separator className="my-4" />
             <div className="grid grid-cols-1 gap-3">
-             {isLoading ? (
+              {isLoading ? (
                 <>
                   <Skeleton className="h-14 w-full" />
                   <Skeleton className="h-14 w-full" />
@@ -438,13 +447,13 @@ export default function DashboardPage() {
               ) : upcomingJobs && upcomingJobs.length > 0 ? (
                 upcomingJobs.map(({ job, nextActivityDate }) => (
                   <Link href={`/dashboard/jobs/${job!.id}`} key={job!.id + nextActivityDate.toISOString()} className="block rounded-lg border border-zinc-200/60 bg-white/60 p-3 text-sm backdrop-blur dark:border-white/10 dark:bg-zinc-900/50 hover:bg-white/80 transition-colors">
-                     <div className="flex justify-between items-center">
-                        <span className="font-semibold truncate pr-2">{job!.title || `${job!.clientName} #${job!.quoteNumber}`}</span>
-                         <Badge variant="secondary" className={cn(isSameDay(nextActivityDate, new Date()) && "bg-primary/10 text-primary border-primary/20")}>
-                           <CalendarCheck className="h-3 w-3 mr-1.5" />
-                           {formatDistanceToNow(nextActivityDate, { addSuffix: true })}
-                        </Badge>
-                     </div>
+                    <div className="flex justify-between items-center">
+                      <span className="font-semibold truncate pr-2">{job!.title || `${job!.clientName} #${job!.quoteNumber}`}</span>
+                      <Badge variant="secondary" className={cn(isSameDay(nextActivityDate, new Date()) && "bg-primary/10 text-primary border-primary/20")}>
+                        <CalendarCheck className="h-3 w-3 mr-1.5" />
+                        {formatDistanceToNow(nextActivityDate, { addSuffix: true })}
+                      </Badge>
+                    </div>
                   </Link>
                 ))
               ) : (
