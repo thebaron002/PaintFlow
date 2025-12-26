@@ -21,14 +21,17 @@ export async function GET(request: Request) {
         const data = await response.json();
 
         if (data.status !== 'OK') {
-            return NextResponse.json({ error: `Google API Error: ${data.status}` }, { status: 500 });
+            console.error('[Distance API] Google Error:', data.status, data.error_message);
+            return NextResponse.json({
+                error: `Service error (${data.status}). Check if Distance Matrix API is enabled in Google Console.`
+            }, { status: 500 });
         }
 
         const element = data.rows[0]?.elements[0];
-        console.log('[Distance API] Element data:', element);
 
         if (element?.status !== 'OK') {
-            return NextResponse.json({ error: `No route found: ${element?.status}` }, { status: 404 });
+            console.warn('[Distance API] Route status:', element?.status);
+            return NextResponse.json({ error: `Route not found (${element?.status})` }, { status: 404 });
         }
 
         return NextResponse.json({
