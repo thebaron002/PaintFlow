@@ -40,6 +40,7 @@ import {
     SheetClose
 } from "@/components/ui/sheet";
 import { AddGeneralExpenseForm } from "../../finance/components/add-general-expense-form";
+import { FinalizeJobsSheet } from "./components/finalize-jobs-sheet";
 
 // Firebase
 import {
@@ -191,14 +192,17 @@ export default function MobileFinancePage() {
                 </NanoGlassCard>
 
                 {/* Quick Actions */}
-                <div className="flex gap-3 mb-8">
+                <div className="grid grid-cols-3 gap-3 mb-8">
                     <Sheet open={isExpenseSheetOpen} onOpenChange={setIsExpenseSheetOpen}>
                         <SheetTrigger asChild>
-                            <button className="flex-1 bg-white p-4 rounded-[24px] shadow-sm border border-zinc-100 flex flex-col items-center gap-2 active:scale-95 transition-all">
-                                <div className="w-10 h-10 rounded-2xl bg-rose-50 flex items-center justify-center">
+                            <button className="flex-1 bg-white p-3 rounded-[24px] shadow-sm border border-zinc-100 flex flex-col items-center gap-2 active:scale-95 transition-all h-full justify-center">
+                                <div className="w-10 h-10 rounded-2xl bg-rose-50 flex items-center justify-center relative">
                                     <ReceiptText className="w-5 h-5 text-rose-500" />
+                                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-white rounded-full flex items-center justify-center border border-zinc-100 shadow-sm">
+                                        <Plus className="w-2.5 h-2.5 text-zinc-400" />
+                                    </div>
                                 </div>
-                                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-900">New Expense</span>
+                                <span className="text-[9px] font-black uppercase tracking-tight text-center text-zinc-900 leading-none mt-1">New<br />Expense</span>
                             </button>
                         </SheetTrigger>
                         <SheetContent side="bottom" className="h-[92%] rounded-t-[32px] p-0 overflow-hidden border-none">
@@ -234,9 +238,14 @@ export default function MobileFinancePage() {
                         </SheetContent>
                     </Sheet>
 
+                    <FinalizeJobsSheet
+                        jobs={jobs || []}
+                        settings={settings}
+                    />
+
                     <button
                         onClick={() => router.push('/dashboard/mobile/payroll')}
-                        className="flex-1 bg-white p-4 rounded-[24px] shadow-sm border border-zinc-100 flex flex-col items-center gap-2 active:scale-95 transition-all"
+                        className="bg-white p-3 rounded-[24px] shadow-sm border border-zinc-100 flex flex-col items-center gap-2 active:scale-95 transition-all h-full justify-center"
                     >
                         <div className="w-10 h-10 rounded-2xl bg-emerald-50 flex items-center justify-center">
                             <PayIcon className="w-5 h-5 text-emerald-500" />
