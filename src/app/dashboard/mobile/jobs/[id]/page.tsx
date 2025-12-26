@@ -43,6 +43,8 @@ import { CustomMobileCalendar } from "@/components/ui/custom-mobile-calendar";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { getStatusColor } from "@/app/lib/status-styles";
+import { IdealDaysCalculator } from "./components/ideal-days-calculator";
+import { DailyProfitCalculator } from "./components/daily-profit-calculator";
 
 // Helper components for the cards
 function DetailCard({ title, children, className }: { title?: string, children: React.ReactNode, className?: string }) {
@@ -376,9 +378,7 @@ export default function MobileJobDetailsPage() {
                 <div className="grid grid-cols-2 divide-x divide-gray-100">
                     <div className="pr-4">
                         <p className="text-[15px] font-bold text-zinc-900 leading-tight mb-3">Ideal Number<br />of Days</p>
-                        <div className="bg-[#F2F4F5] h-10 w-24 rounded-[12px] flex items-center justify-center">
-                            <span className="text-xl font-extrabold text-zinc-900">{job.idealNumberOfDays || "-"}</span>
-                        </div>
+                        <IdealDaysCalculator initialValue={job.initialValue || 0} />
                     </div>
                     <div className="pl-4 flex flex-col justify-between">
                         <div className="flex items-center justify-between">
@@ -409,7 +409,10 @@ export default function MobileJobDetailsPage() {
                     <SectionRow label="Payout" value={`$ ${price.toLocaleString('en-US', { minimumFractionDigits: 2 })}`} valueClass="text-zinc-900" />
                     <SectionRow label="Profit" value={`$ ${price.toLocaleString('en-US', { minimumFractionDigits: 2 })}`} valueClass="text-green-500" />
                     {/* Daily Profit Mock - Assuming profit / days */}
-                    <SectionRow label="Daily Profit" value={`$ ${price.toLocaleString('en-US', { minimumFractionDigits: 2 })}`} valueClass="text-green-500" />
+                    <div className="flex justify-between items-center py-1">
+                        <span className="text-[15px] font-medium text-zinc-500">Daily Profit</span>
+                        <DailyProfitCalculator job={job} />
+                    </div>
                 </div>
             </DetailCard>
 

@@ -95,7 +95,12 @@ export function useETA(destinationAddress: string | undefined): ETAData {
 
         if ("geolocation" in navigator) {
             // Check for secure context (Safari requirement)
-            if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+            // Allow localhost, 127.0.0.1, or dev server port 9002
+            const isDev = window.location.hostname === 'localhost' ||
+                window.location.hostname === '127.0.0.1' ||
+                window.location.port === '9002';
+
+            if (window.location.protocol !== 'https:' && !isDev) {
                 console.warn('[useETA] Non-secure origin detected. Geolocation might be blocked.');
                 setData({
                     duration: '-- min',
@@ -107,9 +112,9 @@ export function useETA(destinationAddress: string | undefined): ETAData {
             }
 
             navigator.geolocation.getCurrentPosition(handleLocation, handleError, {
-                enableHighAccuracy: true,
-                timeout: 10000,
-                maximumAge: 60000,
+                enableHighAccuracy: false,  // Changed from true - Safari performs better with this
+                timeout: 20000,              // Increased from 10000 - give more time for Safari
+                maximumAge: 120000,          // Increased from 60000 - allow slightly older cache
             });
         } else {
             setData({

@@ -120,7 +120,23 @@ function HeroJobCard({ job }: { job: JobType }) {
                 </div>
 
                 {/* Right: Map Thumbnail / Navigation */}
-                <a href={mapLink} target="_blank" rel="noreferrer" className="w-[124px] shrink-0 relative group">
+                <a
+                    href={error === 'Location access denied' ? '#' : mapLink}
+                    onClick={(e) => {
+                        if (error === 'Location access denied') {
+                            e.preventDefault();
+                            // Force browser to re-request location permission
+                            navigator.geolocation.getCurrentPosition(
+                                () => window.location.reload(),
+                                () => alert('Por favor, permita o acesso à localização quando solicitado.'),
+                                { enableHighAccuracy: false }
+                            );
+                        }
+                    }}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-[124px] shrink-0 relative group"
+                >
                     <div className="w-full h-full rounded-[24px] overflow-hidden shadow-sm bg-zinc-100 relative active:scale-95 transition-transform border border-zinc-50">
                         {/* Interactive Map (Small) */}
                         <div className="absolute inset-0 pointer-events-none scale-[1.35] origin-center translate-y-[-10%] opacity-80">
