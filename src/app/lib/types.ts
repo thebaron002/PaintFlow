@@ -45,12 +45,13 @@ export type Job = {
   productionDays: ProductionDay[];
   isFixedPay: boolean;
   invoices: { id: string; origin: string; amount: number; date: string; notes?: string; isPayoutDiscount?: boolean; paidByContractor?: boolean; isPayoutAddition?: boolean; }[];
-  adjustments: { 
-    id: string; 
+  adjustments: {
+    id: string;
     type: AdjustmentType;
-    description: string; 
-    value: number; 
+    description: string;
+    value: number;
     hourlyRate?: number; // The hourly rate at the time of adjustment for 'Time' type
+    isPayoutAddition?: boolean; // If true, this value is added to the job payout. If false, it's just for tracking.
   }[];
   crew: {
     crewMemberId: string;
@@ -72,7 +73,7 @@ export type GeneralExpense = {
 
 export type Expense = {
   id: string;
-  jobId: string; 
+  jobId: string;
   category: 'Materials' | 'Labor' | 'Transportation' | 'Other';
   description: string;
   amount: number;
@@ -80,8 +81,8 @@ export type Expense = {
 };
 
 export type Income = {
-  id:string;
-  jobId: string; 
+  id: string;
+  jobId: string;
   description: string;
   amount: number;
   date: string; // ISO date string
@@ -98,13 +99,13 @@ export type GeneralSettings = {
 };
 
 export type UserProfile = {
-    id: string;
-    name: string;
-    email: string;
-    phone?: string;
-    avatarUrl?: string;
-    businessName?: string;
-    businessLogoUrl?: string;
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  avatarUrl?: string;
+  businessName?: string;
+  businessLogoUrl?: string;
 };
 
 export type PayrollReport = {
@@ -121,12 +122,11 @@ export type PayrollReport = {
 };
 
 export type Ticket = {
-    id: string;
-    title: string;
-    description: string;
-    status: 'Open' | 'In Progress' | 'Done';
-    priority: 'Low' | 'Medium' | 'High';
-    createdAt: string; // ISO date string
+  id: string;
+  title: string;
+  description: string;
+  status: 'Open' | 'In Progress' | 'Done';
+  priority: 'Low' | 'Medium' | 'High';
+  createdAt: string; // ISO date string
 }
 
-    

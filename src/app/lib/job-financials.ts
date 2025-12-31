@@ -13,6 +13,12 @@ export function calculateTotalAdjustments(
 ): number {
   return (
     adjustments?.reduce((sum, adj) => {
+      // If isPayoutAddition is explicitly false, skip this adjustment for the final payout sum.
+      // Default (undefined) should be treated as true for backwards compatibility.
+      if (adj.isPayoutAddition === false) {
+        return sum;
+      }
+
       if (adj.type === "Time") {
         const rate = adj.hourlyRate ?? hourlyRate;
         return sum + adj.value * rate;
@@ -71,7 +77,7 @@ export function calculateJobPayout(job: Job, settings: GeneralSettings | null): 
  * @returns The total material cost.
  */
 export function calculateMaterialCost(invoices: Job['invoices']): number {
-    return invoices?.reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
+  return invoices?.reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
 }
 
 
@@ -82,9 +88,9 @@ export function calculateMaterialCost(invoices: Job['invoices']): number {
  * @returns The total cost borne by the contractor.
  */
 export function calculateContractorCost(invoices: Job['invoices']): number {
-    return invoices
-        ?.filter(inv => inv.paidByContractor)
-        .reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
+  return invoices
+    ?.filter(inv => inv.paidByContractor)
+    .reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
 }
 
 
@@ -96,11 +102,11 @@ export function calculateContractorCost(invoices: Job['invoices']): number {
  * @returns The calculated final profit.
  */
 export function calculateJobProfit(job: Job, settings: GeneralSettings | null): number {
-    const totalAdjustments = calculateTotalAdjustments(job.adjustments, settings?.hourlyRate);
-    
-    const nonContractorCosts = job.invoices
-        ?.filter(inv => !inv.paidByContractor)
-        .reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
+  const totalAdjustments = calculateTotalAdjustments(job.adjustments, settings?.hourlyRate);
 
-    return (job.initialValue || 0) + totalAdjustments - nonContractorCosts;
+  const nonContractorCosts = job.invoices
+    ?.filter(inv => !inv.paidByContractor)
+    .reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
+
+  return (job.initialValue || 0) + totalAdjustments - nonContractorCosts;
 }

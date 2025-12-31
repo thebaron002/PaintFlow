@@ -142,6 +142,7 @@ export default function MobileJobDetailsPage() {
     const [newAdjustmentType, setNewAdjustmentType] = React.useState<'Time' | 'Material' | 'General'>('Time');
     const [newAdjustmentDescription, setNewAdjustmentDescription] = React.useState("");
     const [newAdjustmentAmount, setNewAdjustmentAmount] = React.useState("");
+    const [newAdjustmentIsPayoutAddition, setNewAdjustmentIsPayoutAddition] = React.useState(true);
 
     // -- Job Modal Logic --
     const [isAddJobOpen, setAddJobOpen] = React.useState(false);
@@ -174,6 +175,7 @@ export default function MobileJobDetailsPage() {
             type: newAdjustmentType,
             description: newAdjustmentDescription,
             value: amount,
+            isPayoutAddition: newAdjustmentIsPayoutAddition,
         };
 
         if (newAdjustmentType === 'Time') {
@@ -189,6 +191,7 @@ export default function MobileJobDetailsPage() {
         setNewAdjustmentDescription("");
         setNewAdjustmentAmount("");
         setNewAdjustmentType('Time');
+        setNewAdjustmentIsPayoutAddition(true);
         setAdjustmentSheetOpen(false);
     }
 
@@ -483,14 +486,19 @@ export default function MobileJobDetailsPage() {
                                                     {adj.value} hrs × ${adj.hourlyRate}/hr
                                                 </p>
                                             )}
+                                            {adj.isPayoutAddition === false && (
+                                                <p className="text-[10px] text-red-500 bg-red-50 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tighter">
+                                                    Not in Payout
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
                                     <div className="flex flex-col items-end gap-1">
                                         <span className={cn(
                                             "text-[15px] font-bold",
-                                            displayValue >= 0 ? "text-green-600" : "text-red-600"
+                                            adj.isPayoutAddition === false ? "text-zinc-400" : (displayValue >= 0 ? "text-green-600" : "text-red-600")
                                         )}>
-                                            {displayValue >= 0 ? '+' : '-'} $ {Math.abs(displayValue).toLocaleString('en-US', { minimumFractionDigits: 0 })}
+                                            {adj.isPayoutAddition === false ? '' : (displayValue >= 0 ? '+' : '-')} $ {Math.abs(displayValue).toLocaleString('en-US', { minimumFractionDigits: 0 })}
                                         </span>
                                         <button onClick={() => handleDeleteAdjustment(adj.id)} className="text-zinc-300 hover:text-red-500 active:text-red-600 transition-colors">
                                             <Trash2 className="w-4 h-4" />
@@ -768,6 +776,26 @@ export default function MobileJobDetailsPage() {
                                     </p>
                                 );
                             })()}
+                        </div>
+
+                        {/* Payout Toggle */}
+                        <div className="bg-zinc-50 rounded-2xl p-4 flex items-center justify-between">
+                            <div>
+                                <Label className="text-[15px] font-bold text-zinc-900">Include in Payout?</Label>
+                                <p className="text-[11px] text-zinc-400 font-medium">Adds this value to your earnings.</p>
+                            </div>
+                            <button
+                                onClick={() => setNewAdjustmentIsPayoutAddition(!newAdjustmentIsPayoutAddition)}
+                                className={cn(
+                                    "w-12 h-6 rounded-full transition-all relative p-1",
+                                    newAdjustmentIsPayoutAddition ? "bg-[#00343D]" : "bg-zinc-200"
+                                )}
+                            >
+                                <div className={cn(
+                                    "w-4 h-4 bg-white rounded-full transition-all shadow-sm",
+                                    newAdjustmentIsPayoutAddition ? "translate-x-6" : "translate-x-0"
+                                )} />
+                            </button>
                         </div>
 
                         {/* Submit Button */}
