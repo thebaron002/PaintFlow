@@ -68,7 +68,7 @@ function NanoGlassCard({ className, children, onClick }: { className?: string, c
 // ---------------------------------------------------------------------
 
 function HeroJobCard({ job }: { job: JobType }) {
-    const { duration, distance, loading, error } = useETA(job?.address);
+    const { duration, distance, loading, error, refresh } = useETA(job?.address);
 
     if (!job) return (
         <NanoGlassCard className="p-6 flex flex-col items-center justify-center h-[180px] text-zinc-400 bg-white">
@@ -161,15 +161,21 @@ function HeroJobCard({ job }: { job: JobType }) {
                                         <Navigation className="w-5 h-5 text-white fill-current" />
                                     </div>
                                     <span className="text-[10px] font-black uppercase tracking-[0.2em] drop-shadow-sm">Navigate</span>
-                                    {error === 'HTTPS required for GPS' ? (
-                                        <span className="text-[7px] font-black uppercase tracking-widest text-amber-300 mt-1">
-                                            Enable GPS
+                                    <div className="flex flex-col items-center mt-1">
+                                        <span className="text-[7px] font-black uppercase tracking-widest text-amber-300">
+                                            {error || 'ETA N/A'}
                                         </span>
-                                    ) : (
-                                        <span className="text-[7px] font-black uppercase tracking-widest opacity-60 mt-1">
-                                            ETA N/A
-                                        </span>
-                                    )}
+                                        <button
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                refresh();
+                                            }}
+                                            className="mt-1 px-2 py-0.5 bg-white/20 rounded-full text-[6px] font-bold uppercase tracking-tighter hover:bg-white/30 transition-colors"
+                                        >
+                                            Retry
+                                        </button>
+                                    </div>
                                 </div>
                             ) : (
                                 <>

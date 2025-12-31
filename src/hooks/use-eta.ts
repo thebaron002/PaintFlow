@@ -9,13 +9,16 @@ interface ETAData {
     error: string | null;
 }
 
-export function useETA(destinationAddress: string | undefined): ETAData {
+export function useETA(destinationAddress: string | undefined): ETAData & { refresh: () => void } {
     const [data, setData] = useState<ETAData>({
         duration: '-- min',
         distance: '-- mi',
         loading: false,
         error: null,
     });
+    const [refreshKey, setRefreshKey] = useState(0);
+
+    const refresh = () => setRefreshKey(prev => prev + 1);
 
     useEffect(() => {
         if (!destinationAddress) return;
@@ -56,7 +59,7 @@ export function useETA(destinationAddress: string | undefined): ETAData {
                     duration: '-- min',
                     distance: '-- mi',
                     loading: false,
-                    error: 'Failed to calculate ETA',
+                    error: 'API Connection failed',
                 });
             }
         };
@@ -68,22 +71,18 @@ export function useETA(destinationAddress: string | undefined): ETAData {
         const handleError = (error: GeolocationPositionError) => {
             if (!isMounted) return;
 
-            // Retrying with lower accuracy if it timed out or was unavailable
-            if (error.code === error.TIMEOUT || error.code === error.POSITION_UNAVAILABLE) {
-                navigator.geolocation.getCurrentPosition(handleLocation, (err) => {
-                    setData({
-                        duration: '-- min',
-                        distance: '-- mi',
-                        loading: false,
-                        error: 'Location unavailable',
-                    });
-                }, { enableHighAccuracy: false, timeout: 15000 });
-                return;
+            let errorMsg = 'GPS Error';
+            switch (error.code) {
+                case error.PERMISSION_DENIED:
+                    errorMsg = 'Location access denied';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    errorMsg = 'Location unavailable';
+                    break;
+                case error.TIMEOUT:
+                    errorMsg = 'GPS Timed out';
+                    break;
             }
-
-            let errorMsg = 'Location access denied';
-            if (error.code === error.TIMEOUT) errorMsg = 'Location request timed out';
-            if (error.code === error.POSITION_UNAVAILABLE) errorMsg = 'Location unavailable';
 
             setData({
                 duration: '-- min',
@@ -94,14 +93,11 @@ export function useETA(destinationAddress: string | undefined): ETAData {
         };
 
         if ("geolocation" in navigator) {
-            // Check for secure context (Safari requirement)
-            // Allow localhost, 127.0.0.1, or dev server port 9002
             const isDev = window.location.hostname === 'localhost' ||
                 window.location.hostname === '127.0.0.1' ||
                 window.location.port === '9002';
 
             if (window.location.protocol !== 'https:' && !isDev) {
-                console.warn('[useETA] Non-secure origin detected. Geolocation might be blocked.');
                 setData({
                     duration: '-- min',
                     distance: '-- mi',
@@ -111,17 +107,15 @@ export function useETA(destinationAddress: string | undefined): ETAData {
                 return;
             }
 
-            // Safari iOS works better with watchPosition than getCurrentPosition
             let watchId: number | null = null;
             let gotPosition = false;
 
-            console.log('[useETA] Starting watchPosition for Safari iOS compatibility');
+            setData(prev => ({ ...prev, loading: true, error: null }));
 
             watchId = navigator.geolocation.watchPosition(
                 (position) => {
                     if (!gotPosition && isMounted) {
                         gotPosition = true;
-                        console.log('[useETA] Got position from watchPosition');
                         if (watchId !== null) {
                             navigator.geolocation.clearWatch(watchId);
                         }
@@ -129,24 +123,21 @@ export function useETA(destinationAddress: string | undefined): ETAData {
                     }
                 },
                 (error) => {
-                    console.warn('[useETA] watchPosition error:', error.message);
                     if (watchId !== null) {
                         navigator.geolocation.clearWatch(watchId);
                     }
-                    // Fallback to getCurrentPosition
                     if (!gotPosition && isMounted) {
-                        console.log('[useETA] Falling back to getCurrentPosition');
                         navigator.geolocation.getCurrentPosition(handleLocation, handleError, {
                             enableHighAccuracy: false,
-                            timeout: 30000,
-                            maximumAge: 300000,
+                            timeout: 20000,
+                            maximumAge: 120000,
                         });
                     }
                 },
                 {
                     enableHighAccuracy: false,
-                    timeout: 15000,
-                    maximumAge: 300000,
+                    timeout: 10000,
+                    maximumAge: 120000,
                 }
             );
 
@@ -164,7 +155,7 @@ export function useETA(destinationAddress: string | undefined): ETAData {
                 error: 'Geolocation not supported',
             });
         }
-    }, [destinationAddress]);
+    }, [destinationAddress, refreshKey]);
 
-    return data;
+    return { ...data, refresh };
 }
