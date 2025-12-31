@@ -247,14 +247,18 @@ function ActionGrid({ upcomingJobs }: { upcomingJobs: { job: JobType }[] }) {
                 <div className="flex flex-col gap-3 overflow-y-auto">
                     {upcomingJobs.length > 0 ? (
                         upcomingJobs.slice(0, 2).map((item, idx) => (
-                            <div key={idx}>
-                                <div className="text-zinc-900 font-bold text-xs">
+                            <Link
+                                href={`/dashboard/mobile/jobs/${item.job.id}`}
+                                key={idx}
+                                className="block active:opacity-60 transition-opacity group"
+                            >
+                                <div className="text-zinc-900 font-bold text-xs group-active:text-blue-600 transition-colors">
                                     {item.job.title || "Job"} #{item.job.quoteNumber || "000"}
                                 </div>
                                 <div className="text-zinc-500 text-[10px] font-medium">
                                     {format(new Date(item.job.startDate), "MMM dd, yyyy")}
                                 </div>
-                            </div>
+                            </Link>
                         ))
                     ) : (
                         <p className="text-zinc-400 text-xs">No upcoming jobs.</p>
