@@ -45,6 +45,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { getStatusColor } from "@/app/lib/status-styles";
 import { IdealDaysCalculator } from "./components/ideal-days-calculator";
 import { DailyProfitCalculator } from "./components/daily-profit-calculator";
+import { calculateJobPayout, calculateJobProfit } from "@/app/lib/job-financials";
 
 // Helper components for the cards
 function DetailCard({ title, children, className }: { title?: string, children: React.ReactNode, className?: string }) {
@@ -268,7 +269,8 @@ export default function MobileJobDetailsPage() {
         );
     }
 
-    const price = job.initialValue || 0;
+    const payout = calculateJobPayout(job, settings || null);
+    const profit = calculateJobProfit(job, settings || null);
     const clientLastName = (job.clientName || "").split(" ").pop() || "Client";
     const jobTitle = job.title || `${clientLastName} #${job.quoteNumber || '0001'}`;
 
@@ -371,16 +373,10 @@ export default function MobileJobDetailsPage() {
             </DetailCard>
 
             {/* 3. Financials Card */}
-            <DetailCard>
-                <div className="flex items-center justify-between mb-4">
-                    <span className="text-[17px] font-bold text-zinc-900">Payout</span>
-                    <div className="bg-[#F2F4F5] px-4 py-2 rounded-[14px]">
-                        <span className="text-[20px] font-extrabold text-zinc-950 tracking-tight">
-                            $ {price.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                        </span>
-                    </div>
-                </div>
-                <SectionRow label="Initial Value" value={`$ ${(job.initialValue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`} />
+            <DetailCard title="Financials">
+                <SectionRow label="Payout" value={`$ ${payout.toLocaleString()}`} valueClass="text-zinc-900" />
+                <SectionRow label="Initial Value" value={`$ ${(job.initialValue || 0).toLocaleString()}`} />
+                <SectionRow label="Fixed Pay" value={job.isFixedPay ? 'Yes' : 'No'} />
             </DetailCard>
 
             {/* 4. Production Card */}
@@ -414,10 +410,20 @@ export default function MobileJobDetailsPage() {
             </DetailCard>
 
             {/* 5. Analysis Card */}
-            <DetailCard title="Job Analysis">
-                <div className="space-y-2">
-                    <SectionRow label="Payout" value={`$ ${price.toLocaleString('en-US', { minimumFractionDigits: 2 })}`} valueClass="text-zinc-900" />
-                    <SectionRow label="Profit" value={`$ ${price.toLocaleString('en-US', { minimumFractionDigits: 2 })}`} valueClass="text-green-500" />
+            <DetailCard title="Analysis">
+                <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <p className="text-[15px] font-medium text-zinc-500">Ideal Days</p>
+                            <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-tighter">Target: ${settings?.dailyPayTarget || 0}/day</p>
+                        </div>
+                        <IdealDaysCalculator initialValue={payout} />
+                    </div>
+
+                    <div className="flex justify-between items-center">
+                        <p className="text-[15px] font-medium text-zinc-500">Profit</p>
+                        <span className="text-[15px] font-bold text-green-600">$ {profit.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                    </div>
                     {/* Daily Profit Mock - Assuming profit / days */}
                     <div className="flex justify-between items-center py-1">
                         <span className="text-[15px] font-medium text-zinc-500">Daily Profit</span>
