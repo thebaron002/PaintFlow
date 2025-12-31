@@ -129,6 +129,13 @@ export default function MobileJobDetailsPage() {
     const [selectedDates, setSelectedDates] = React.useState<Date[]>([]);
     const [isCalendarOpen, setCalendarOpen] = React.useState(false);
 
+    // -- Settings Fetching --
+    const settingsRef = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return doc(firestore, "settings", "global");
+    }, [firestore]);
+    const { data: settings } = useDoc<GeneralSettings>(settingsRef);
+
     // -- Adjustments State --
     const [isAdjustmentSheetOpen, setAdjustmentSheetOpen] = React.useState(false);
     const [newAdjustmentType, setNewAdjustmentType] = React.useState<'Time' | 'Material' | 'General'>('Time');
@@ -156,22 +163,25 @@ export default function MobileJobDetailsPage() {
     };
 
     const handleAddAdjustment = async () => {
-        if (!job || !newAdjustmentDescription || !newAdjustmentAmount) return;
+        if (!job || !newAdjustmentDescription || !newAdjustmentAmount || !firestore || !user) return;
 
         const amount = parseFloat(newAdjustmentAmount);
         if (isNaN(amount)) return;
 
-        const newAdjustment = {
+        const newAdjustment: Job['adjustments'][0] = {
             id: Math.random().toString(36).substr(2, 9),
             type: newAdjustmentType,
             description: newAdjustmentDescription,
             value: amount,
-            date: new Date().toISOString()
         };
+
+        if (newAdjustmentType === 'Time') {
+            newAdjustment.hourlyRate = settings?.hourlyRate || 0;
+        }
 
         const updatedAdjustments = [...(job.adjustments || []), newAdjustment];
 
-        const jobDocRef = doc(firestore!, 'users', user!.uid, 'jobs', job.id);
+        const jobDocRef = doc(firestore, 'users', user.uid, 'jobs', job.id);
         await updateDocumentNonBlocking(jobDocRef, { adjustments: updatedAdjustments });
 
         // Reset and close
@@ -441,27 +451,40 @@ export default function MobileJobDetailsPage() {
 
                 <div className="space-y-4">
                     {job.adjustments && job.adjustments.length > 0 ? (
-                        job.adjustments.map((adj) => (
-                            <div key={adj.id} className="flex items-start gap-3 pb-3 border-b border-gray-50 last:border-0 last:pb-0">
-                                <div className="mt-1">
-                                    {adj.type === 'Time' && <Clock className="w-5 h-5 text-zinc-400" />}
-                                    {adj.type === 'Material' && <PaintBucket className="w-5 h-5 text-zinc-400" />}
-                                    {adj.type === 'General' && <Zap className="w-5 h-5 text-zinc-400" />}
+                        job.adjustments.map((adj) => {
+                            const displayValue = adj.type === 'Time'
+                                ? (adj.value * (adj.hourlyRate || 0))
+                                : adj.value;
+
+                            return (
+                                <div key={adj.id} className="flex items-start gap-3 pb-3 border-b border-gray-50 last:border-0 last:pb-0">
+                                    <div className="mt-1">
+                                        {adj.type === 'Time' && <Clock className="w-5 h-5 text-zinc-400" />}
+                                        {adj.type === 'Material' && <PaintBucket className="w-5 h-5 text-zinc-400" />}
+                                        {adj.type === 'General' && <Zap className="w-5 h-5 text-zinc-400" />}
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-[15px] font-medium text-zinc-900 leading-snug">{adj.description}</p>
+                                        <div className="flex items-center gap-2 mt-0.5">
+                                            <p className="text-xs text-zinc-400">{adj.type}</p>
+                                            {adj.type === 'Time' && (
+                                                <p className="text-[10px] text-zinc-400 px-1.5 py-0.5 bg-zinc-100 rounded-full font-medium">
+                                                    {adj.value} hrs × ${adj.hourlyRate}/hr
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col items-end gap-1">
+                                        <span className="text-[15px] font-bold text-green-600">
+                                            + $ {displayValue.toLocaleString('en-US', { minimumFractionDigits: 0 })}
+                                        </span>
+                                        <button onClick={() => handleDeleteAdjustment(adj.id)} className="text-zinc-300 hover:text-red-500 active:text-red-600 transition-colors">
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
                                 </div>
-                                <div className="flex-1">
-                                    <p className="text-[15px] font-medium text-zinc-900 leading-snug">{adj.description}</p>
-                                    <p className="text-xs text-zinc-400 mt-0.5">{adj.type}</p>
-                                </div>
-                                <div className="flex flex-col items-end gap-1">
-                                    <span className="text-[15px] font-bold text-green-600">
-                                        + $ {adj.value.toLocaleString('en-US', { minimumFractionDigits: 0 })}
-                                    </span>
-                                    <button onClick={() => handleDeleteAdjustment(adj.id)} className="text-zinc-300 hover:text-red-500">
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            </div>
-                        ))
+                            );
+                        })
                     ) : (
                         <p className="text-zinc-400 text-sm italic">No adjustments added.</p>
                     )}
@@ -690,19 +713,41 @@ export default function MobileJobDetailsPage() {
                             />
                         </div>
 
-                        {/* Amount */}
+                        {/* Amount / Hours */}
                         <div className="space-y-2">
-                            <Label className="text-sm font-semibold text-zinc-900">Amount</Label>
+                            <div className="flex justify-between items-end">
+                                <Label className="text-sm font-semibold text-zinc-900">
+                                    {newAdjustmentType === 'Time' ? 'Hours' : 'Amount'}
+                                </Label>
+                                {newAdjustmentType === 'Time' && (
+                                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter">
+                                        Rate: ${settings?.hourlyRate || 0}/hr
+                                    </span>
+                                )}
+                            </div>
                             <div className="relative">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 font-bold">$</span>
+                                {newAdjustmentType !== 'Time' && (
+                                    <span className="absolute left-0 top-1/2 -translate-y-1/2 text-zinc-500 font-bold">$</span>
+                                )}
                                 <Input
                                     type="number"
                                     placeholder="0"
-                                    className="pl-7 bg-transparent border-0 border-b border-zinc-200 rounded-none px-0 shadow-none h-12 text-lg font-bold focus-visible:ring-0 focus-visible:border-zinc-900"
+                                    className={cn(
+                                        "bg-transparent border-0 border-b border-zinc-200 rounded-none px-0 shadow-none h-12 text-lg font-bold focus-visible:ring-0 focus-visible:border-zinc-900",
+                                        newAdjustmentType !== 'Time' && "pl-4"
+                                    )}
                                     value={newAdjustmentAmount}
                                     onChange={(e) => setNewAdjustmentAmount(e.target.value)}
                                 />
+                                {newAdjustmentType === 'Time' && (
+                                    <span className="absolute right-0 top-1/2 -translate-y-1/2 text-zinc-400 font-bold text-sm">hrs</span>
+                                )}
                             </div>
+                            {newAdjustmentType === 'Time' && newAdjustmentAmount && (
+                                <p className="text-xs font-bold text-green-600 mt-1">
+                                    Total Value: ${(parseFloat(newAdjustmentAmount || '0') * (settings?.hourlyRate || 0)).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                </p>
+                            )}
                         </div>
 
                         {/* Submit Button */}
