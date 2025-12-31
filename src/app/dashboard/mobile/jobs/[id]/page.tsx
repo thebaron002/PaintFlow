@@ -422,7 +422,12 @@ export default function MobileJobDetailsPage() {
 
                     <div className="flex justify-between items-center">
                         <p className="text-[15px] font-medium text-zinc-500">Profit</p>
-                        <span className="text-[15px] font-bold text-green-600">$ {profit.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                        <span className={cn(
+                            "text-[15px] font-bold",
+                            profit >= 0 ? "text-green-600" : "text-red-600"
+                        )}>
+                            $ {profit.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </span>
                     </div>
                     {/* Daily Profit Mock - Assuming profit / days */}
                     <div className="flex justify-between items-center py-1">
@@ -481,8 +486,11 @@ export default function MobileJobDetailsPage() {
                                         </div>
                                     </div>
                                     <div className="flex flex-col items-end gap-1">
-                                        <span className="text-[15px] font-bold text-green-600">
-                                            + $ {displayValue.toLocaleString('en-US', { minimumFractionDigits: 0 })}
+                                        <span className={cn(
+                                            "text-[15px] font-bold",
+                                            displayValue >= 0 ? "text-green-600" : "text-red-600"
+                                        )}>
+                                            {displayValue >= 0 ? '+' : '-'} $ {Math.abs(displayValue).toLocaleString('en-US', { minimumFractionDigits: 0 })}
                                         </span>
                                         <button onClick={() => handleDeleteAdjustment(adj.id)} className="text-zinc-300 hover:text-red-500 active:text-red-600 transition-colors">
                                             <Trash2 className="w-4 h-4" />
@@ -749,11 +757,17 @@ export default function MobileJobDetailsPage() {
                                     <span className="absolute right-0 top-1/2 -translate-y-1/2 text-zinc-400 font-bold text-sm">hrs</span>
                                 )}
                             </div>
-                            {newAdjustmentType === 'Time' && newAdjustmentAmount && (
-                                <p className="text-xs font-bold text-green-600 mt-1">
-                                    Total Value: ${(parseFloat(newAdjustmentAmount || '0') * (settings?.hourlyRate || 0)).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                                </p>
-                            )}
+                            {newAdjustmentType === 'Time' && newAdjustmentAmount && (() => {
+                                const total = parseFloat(newAdjustmentAmount || '0') * (settings?.hourlyRate || 0);
+                                return (
+                                    <p className={cn(
+                                        "text-xs font-bold mt-1",
+                                        total >= 0 ? "text-green-600" : "text-red-600"
+                                    )}>
+                                        Total Value: {total >= 0 ? '' : '-'}${Math.abs(total).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                    </p>
+                                );
+                            })()}
                         </div>
 
                         {/* Submit Button */}
