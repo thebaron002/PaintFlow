@@ -417,7 +417,7 @@ export default function MobileJobDetailsPage() {
                             <p className="text-[15px] font-medium text-zinc-500">Ideal Days</p>
                             <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-tighter">Target: ${settings?.dailyPayTarget || 0}/day</p>
                         </div>
-                        <IdealDaysCalculator initialValue={payout} />
+                        <IdealDaysCalculator initialValue={job.initialValue || 0} />
                     </div>
 
                     <div className="flex justify-between items-center">
