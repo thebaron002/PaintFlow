@@ -253,7 +253,7 @@ function ActionGrid({ upcomingJobs }: { upcomingJobs: { job: JobType }[] }) {
                                 className="block active:opacity-60 transition-opacity group"
                             >
                                 <div className="text-zinc-900 font-bold text-xs group-active:text-blue-600 transition-colors">
-                                    {item.job.title || "Job"} #{item.job.quoteNumber || "000"}
+                                    {item.job.title?.trim() || "Job"} #{item.job.quoteNumber || "000"}
                                 </div>
                                 <div className="text-zinc-500 text-[10px] font-medium">
                                     {format(new Date(item.job.startDate), "MMM dd, yyyy")}

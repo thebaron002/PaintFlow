@@ -6,7 +6,7 @@ import { useDoc, useFirestore, useMemoFirebase, useCollection, useUser, updateDo
 import { doc, collection } from "firebase/firestore";
 import type { Job, CrewMember, GeneralSettings, ProductionDay } from "@/app/lib/types";
 import { format, parseISO, isSameDay } from "date-fns";
-import { MapPin, PlusCircle, ArrowLeft, Clock, DollarSign, Calendar, CircleDot, CircleDashed, X, PaintBucket, Zap, Trash2, Plus } from "lucide-react";
+import { MapPin, PlusCircle, ArrowLeft, Clock, DollarSign, Calendar, CircleDot, CircleDashed, X, PaintBucket, Zap, Trash2, Plus, Receipt, Wallet, TrendingDown, TrendingUp, ShoppingBag, Users } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { JobMap } from "@/components/job-map";
 import { cn } from "@/lib/utils";
@@ -38,6 +38,7 @@ import {
     DropdownMenuSubTrigger,
     DropdownMenuSubContent
 } from "@/components/ui/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Check, Edit, AlertCircle, MoreVertical } from "lucide-react";
 import { CustomMobileCalendar } from "@/components/ui/custom-mobile-calendar";
 import { Button } from "@/components/ui/button";
@@ -144,6 +145,20 @@ export default function MobileJobDetailsPage() {
     const [newAdjustmentAmount, setNewAdjustmentAmount] = React.useState("");
     const [newAdjustmentIsPayoutAddition, setNewAdjustmentIsPayoutAddition] = React.useState(true);
 
+    // -- Invoices State --
+    const [isInvoiceSheetOpen, setInvoiceSheetOpen] = React.useState(false);
+    const [newInvoiceOrigin, setNewInvoiceOrigin] = React.useState("");
+    const [newInvoiceAmount, setNewInvoiceAmount] = React.useState("");
+    const [newInvoiceDate, setNewInvoiceDate] = React.useState(new Date());
+    const [newInvoiceNotes, setNewInvoiceNotes] = React.useState("");
+    const [newInvoicePaidByContractor, setNewInvoicePaidByContractor] = React.useState(false);
+    const [newInvoiceIsPayoutDiscount, setNewInvoiceIsPayoutDiscount] = React.useState(false);
+    const [newInvoiceIsPayoutAddition, setNewInvoiceIsPayoutAddition] = React.useState(false);
+
+    // -- Invoice Sheet Refinement State --
+    const [isCustomOrigin, setIsCustomOrigin] = React.useState(false);
+    const [invoiceAmountDigits, setInvoiceAmountDigits] = React.useState("0");
+
     // -- Job Modal Logic --
     const [isAddJobOpen, setAddJobOpen] = React.useState(false);
     const [isJobFormValid, setIsJobFormValid] = React.useState(false);
@@ -208,6 +223,73 @@ export default function MobileJobDetailsPage() {
         const jobDocRef = doc(firestore!, 'users', user.uid, 'jobs', job.id);
         await updateDocumentNonBlocking(jobDocRef, { specialRequirements: newNotes });
     }
+
+    const handleAddInvoice = async () => {
+        if (!job || !newInvoiceOrigin || !newInvoiceAmount || !firestore || !user) return;
+
+        const amount = parseFloat(newInvoiceAmount);
+        if (isNaN(amount)) return;
+
+        const newInvoice = {
+            id: Math.random().toString(36).substr(2, 9),
+            origin: newInvoiceOrigin,
+            amount: amount,
+            date: newInvoiceDate.toISOString(),
+            notes: newInvoiceNotes,
+            paidByContractor: newInvoicePaidByContractor,
+            isPayoutDiscount: newInvoiceIsPayoutDiscount,
+            isPayoutAddition: newInvoiceIsPayoutAddition,
+        };
+
+        const updatedInvoices = [...(job.invoices || []), newInvoice];
+        const jobDocRef = doc(firestore, 'users', user.uid, 'jobs', job.id);
+        await updateDocumentNonBlocking(jobDocRef, { invoices: updatedInvoices });
+
+        // Reset and close
+        setNewInvoiceOrigin("");
+        setNewInvoiceAmount("");
+        setNewInvoiceDate(new Date());
+        setNewInvoiceNotes("");
+        setNewInvoicePaidByContractor(false);
+        setNewInvoiceIsPayoutDiscount(false);
+        setNewInvoiceIsPayoutAddition(false);
+        setInvoiceSheetOpen(false);
+        setInvoiceAmountDigits("0");
+        setIsCustomOrigin(false);
+    }
+
+    // Reverse Currency Formatting Logic
+    const formatInvoiceDisplay = (digits: string) => {
+        const cents = parseInt(digits || '0', 10);
+        const value = cents / 100;
+        return value.toFixed(2).replace('.', ',');
+    };
+
+    const handleInvoiceAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const input = e.target.value;
+        const newDigits = input.replace(/\D/g, '');
+        const limited = newDigits.slice(0, 10);
+        setInvoiceAmountDigits(limited);
+
+        const cents = parseInt(limited || '0', 10);
+        const decimalValue = cents / 100;
+        setNewInvoiceAmount(decimalValue.toString());
+    };
+
+    const handleDeleteInvoice = async (invId: string) => {
+        if (!job || !firestore || !user) return;
+        const updatedInvoices = (job.invoices || []).filter(inv => inv.id !== invId);
+        const jobDocRef = doc(firestore, 'users', user.uid, 'jobs', job.id);
+        await updateDocumentNonBlocking(jobDocRef, { invoices: updatedInvoices });
+    }
+
+    // Auto-toggle for Sherwin-Williams
+    React.useEffect(() => {
+        if (newInvoiceOrigin === 'Sherwin-Williams') {
+            setNewInvoicePaidByContractor(true);
+            setNewInvoiceIsPayoutDiscount(false);
+        }
+    }, [newInvoiceOrigin]);
 
     React.useEffect(() => {
         if (job?.productionDays) {
@@ -276,6 +358,11 @@ export default function MobileJobDetailsPage() {
     const profit = calculateJobProfit(job, settings || null);
     const clientLastName = (job.clientName || "").split(" ").pop() || "Client";
     const jobTitle = job.title || `${clientLastName} #${job.quoteNumber || '0001'}`;
+
+    // Get unique invoice origins from current job as suggestions (or hardcoded common ones)
+    const commonOrigins = ["Sherwin-Williams", "Home Depot", "Lowe's", "Benjamin Moore"];
+    const jobInvoiceOrigins = (job.invoices || []).map(i => i.origin);
+    const allUniqueOrigins = Array.from(new Set([...commonOrigins, ...jobInvoiceOrigins]));
 
     return (
         <div className="min-h-screen bg-[#F2F1EF] px-5 pt-6 pb-32 font-sans">
@@ -376,10 +463,23 @@ export default function MobileJobDetailsPage() {
             </DetailCard>
 
             {/* 3. Financials Card */}
-            <DetailCard title="Financials">
-                <SectionRow label="Payout" value={`$ ${payout.toLocaleString()}`} valueClass="text-zinc-900" />
-                <SectionRow label="Initial Value" value={`$ ${(job.initialValue || 0).toLocaleString()}`} />
-                <SectionRow label="Fixed Pay" value={job.isFixedPay ? 'Yes' : 'No'} />
+            <DetailCard>
+                <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                        <span className="text-[17px] font-bold text-zinc-900">Payout</span>
+                        <div className="bg-zinc-100 px-4 py-2 rounded-2xl">
+                            <span className="text-[17px] font-bold text-zinc-900">
+                                $ {payout.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            </span>
+                        </div>
+                    </div>
+                    <div className="flex items-center justify-between px-1">
+                        <span className="text-[14px] font-medium text-zinc-400">Initial Value</span>
+                        <span className="text-[14px] font-bold text-zinc-400">
+                            $ {(job.initialValue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </span>
+                    </div>
+                </div>
             </DetailCard>
 
             {/* 4. Production Card */}
@@ -440,21 +540,51 @@ export default function MobileJobDetailsPage() {
                 </div>
             </DetailCard>
 
-            {/* 6. Expandables */}
-            <Accordion type="multiple" className="w-full space-y-4 mb-4">
-                <AccordionItem value="crew" className="bg-white rounded-[24px] px-5 shadow-sm border-none">
-                    <AccordionTrigger className="hover:no-underline py-5 text-[17px] font-bold text-zinc-900">
-                        Crew
-                    </AccordionTrigger>
-                    <AccordionContent>
-                        <p className="text-zinc-500">No crew assigned.</p>
-                    </AccordionContent>
-                </AccordionItem>
+            {/* 6. Invoices Card [NEW] */}
+            <DetailCard>
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold text-zinc-900">Invoices</h3>
+                    <button onClick={() => setInvoiceSheetOpen(true)}>
+                        <PlusCircle className="w-6 h-6 text-zinc-900" />
+                    </button>
+                </div>
 
+                <div className="space-y-4">
+                    {job.invoices && job.invoices.length > 0 ? (
+                        job.invoices.map((inv) => (
+                            <div key={inv.id} className="flex items-start gap-3 pb-3 border-b border-gray-50 last:border-0 last:pb-0">
+                                <div className="mt-1">
+                                    <Receipt className="w-5 h-5 text-zinc-400" />
+                                </div>
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-1.5">
+                                        <p className="text-[15px] font-medium text-zinc-900 leading-snug">{inv.origin}</p>
+                                        <div className="flex gap-1">
+                                            {inv.paidByContractor && <Wallet className="w-3 h-3 text-blue-500" />}
+                                            {inv.isPayoutDiscount && <TrendingDown className="w-3 h-3 text-red-500" />}
+                                            {inv.isPayoutAddition && <TrendingUp className="w-3 h-3 text-green-500" />}
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-zinc-400">{format(new Date(inv.date), "MMM dd, yyyy")}</p>
+                                    {inv.notes && <p className="text-[11px] text-zinc-400 italic mt-0.5 line-clamp-1">{inv.notes}</p>}
+                                </div>
+                                <div className="flex flex-col items-end gap-1">
+                                    <span className="text-[15px] font-bold text-zinc-900">
+                                        $ {inv.amount.toLocaleString()}
+                                    </span>
+                                    <button onClick={() => handleDeleteInvoice(inv.id)} className="text-zinc-300 hover:text-red-500 active:text-red-600 transition-colors">
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                        <p className="text-zinc-400 text-sm italic">No invoices added.</p>
+                    )}
+                </div>
+            </DetailCard>
 
-            </Accordion>
-
-            {/* Adjustments Card (Replacing Accordion) */}
+            {/* 7. Adjustments Card */}
             <DetailCard>
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-bold text-zinc-900">Adjustments</h3>
@@ -513,7 +643,34 @@ export default function MobileJobDetailsPage() {
                 </div>
             </DetailCard>
 
-            {/* 7. Notes Card */}
+            {/* 8. Crew Card */}
+            <DetailCard>
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold text-zinc-900">Crew</h3>
+                    <div className="flex items-center gap-1 opacity-50">
+                        <Users className="w-4 h-4" />
+                    </div>
+                </div>
+                <div className="space-y-4">
+                    {job.crew && job.crew.length > 0 ? (
+                        job.crew.map(member => (
+                            <div key={member.crewMemberId} className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center">
+                                    <span className="text-xs font-bold text-zinc-500">{member.name.charAt(0)}</span>
+                                </div>
+                                <div className="flex-1">
+                                    <p className="text-sm font-bold text-zinc-900">{member.name}</p>
+                                    <p className="text-[10px] text-zinc-400 font-medium uppercase tracking-tight">{member.type}</p>
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                        <p className="text-zinc-400 text-sm italic">No crew assigned.</p>
+                    )}
+                </div>
+            </DetailCard>
+
+            {/* 9. Notes Card */}
             <div className="bg-white rounded-[24px] p-5 shadow-sm mt-4">
                 <h3 className="text-lg font-bold text-zinc-900 mb-2">Notes</h3>
                 <Textarea
@@ -806,6 +963,192 @@ export default function MobileJobDetailsPage() {
                             Add Adjustment
                         </Button>
                         <div className="h-4" /> {/* Spacer for safety */}
+                    </div>
+                </SheetContent>
+            </Sheet>
+
+            {/* -- Add Invoice Sheet -- */}
+            <Sheet open={isInvoiceSheetOpen} onOpenChange={setInvoiceSheetOpen}>
+                <SheetContent side="bottom" className="h-[92vh] rounded-t-[32px] bg-[#F2F1EF] p-0 border-none outline-none flex flex-col">
+                    <SheetHeader className="flex flex-row items-center justify-between py-2.5 px-6 border-b bg-white/50 backdrop-blur-md rounded-t-[32px]">
+                        <SheetClose className="w-8 h-8 rounded-full bg-[#E5E5EA] flex items-center justify-center transition-opacity active:opacity-70">
+                            <X className="w-3.5 h-3.5 text-[#8E8E93] stroke-[3]" />
+                        </SheetClose>
+
+                        <SheetTitle className="text-[17px] font-semibold text-center !m-0 flex-1">Add Invoice</SheetTitle>
+                        <SheetDescription className="sr-only">Add a new invoice to this job</SheetDescription>
+
+                        <button
+                            type="button"
+                            onClick={handleAddInvoice}
+                            disabled={!newInvoiceOrigin || !newInvoiceAmount || parseFloat(newInvoiceAmount) === 0}
+                            className={cn(
+                                "w-8 h-8 rounded-full flex items-center justify-center transition-all",
+                                (newInvoiceOrigin && newInvoiceAmount && parseFloat(newInvoiceAmount) > 0)
+                                    ? 'bg-[#007AFF] text-white hover:bg-[#0051D5]'
+                                    : 'bg-[#E5E5EA] text-[#8E8E93] cursor-not-allowed'
+                            )}
+                        >
+                            <ChevronRight className="w-4 h-4 rotate-[-90deg] stroke-[3]" />
+                        </button>
+                    </SheetHeader>
+
+                    <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+                        {/* iOS Grouped Fields Style */}
+                        <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100">
+                            {/* Origin Selector */}
+                            <div className="px-4 py-4 border-b border-gray-50">
+                                <Label className="text-[13px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5 block">Origin</Label>
+                                {isCustomOrigin ? (
+                                    <div className="flex items-center gap-2">
+                                        <Input
+                                            placeholder="Enter new origin..."
+                                            className="bg-white border-0 p-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0 text-[16px] font-medium placeholder:text-zinc-300"
+                                            value={newInvoiceOrigin}
+                                            onChange={(e) => setNewInvoiceOrigin(e.target.value)}
+                                            autoFocus
+                                        />
+                                        <button
+                                            onClick={() => {
+                                                setIsCustomOrigin(false);
+                                                setNewInvoiceOrigin("");
+                                            }}
+                                            className="p-1 hover:bg-zinc-100 rounded-full"
+                                        >
+                                            <X className="w-3.5 h-3.5 text-zinc-400" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <Select
+                                        onValueChange={(val) => {
+                                            if (val === "create_custom_opt") {
+                                                setIsCustomOrigin(true);
+                                                setNewInvoiceOrigin("");
+                                            } else {
+                                                setNewInvoiceOrigin(val);
+                                            }
+                                        }}
+                                        value={newInvoiceOrigin && allUniqueOrigins.includes(newInvoiceOrigin) ? newInvoiceOrigin : undefined}
+                                    >
+                                        <SelectTrigger className="border-0 p-0 h-auto focus:ring-0 focus:ring-offset-0 bg-transparent text-left shadow-none text-[16px] font-medium h-6">
+                                            <SelectValue placeholder="Choose origin..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {allUniqueOrigins.map((origin) => (
+                                                <SelectItem key={origin} value={origin}>
+                                                    {origin}
+                                                </SelectItem>
+                                            ))}
+                                            <SelectItem value="create_custom_opt" className="text-blue-600 font-bold">
+                                                + Create new origin
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                )}
+                            </div>
+
+                            {/* Amount Field (Reverse Input) */}
+                            <div className="px-4 py-4 border-b border-gray-50">
+                                <Label className="text-[13px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5 block">Amount</Label>
+                                <div className="flex items-center gap-1">
+                                    <span className="text-zinc-900 font-bold text-[16px]">$</span>
+                                    <Input
+                                        type="text"
+                                        inputMode="decimal"
+                                        value={formatInvoiceDisplay(invoiceAmountDigits)}
+                                        onChange={handleInvoiceAmountChange}
+                                        placeholder="0,00"
+                                        className="border-0 p-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0 font-bold flex-1 shadow-none bg-transparent text-[16px]"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Date Field (Native iOS Style) */}
+                            <div className="px-4 py-4 border-b border-gray-50">
+                                <Label className="text-[13px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5 block">Date</Label>
+                                <input
+                                    type="date"
+                                    value={newInvoiceDate ? format(newInvoiceDate, "yyyy-MM-dd") : ""}
+                                    onChange={(e) => {
+                                        if (e.target.value) {
+                                            setNewInvoiceDate(new Date(e.target.value + "T12:00:00"));
+                                        }
+                                    }}
+                                    className="w-full border-0 p-0 h-auto focus:outline-none focus:ring-0 bg-transparent text-[16px] font-medium"
+                                />
+                            </div>
+
+                            {/* Notes Field */}
+                            <div className="px-4 py-4">
+                                <Label className="text-[13px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5 block">Notes (Optional)</Label>
+                                <Textarea
+                                    placeholder="e.g., Materials for exterior paint"
+                                    className="bg-transparent border-none p-0 text-[16px] font-medium shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[80px] resize-none placeholder:text-zinc-300"
+                                    value={newInvoiceNotes}
+                                    onChange={(e) => setNewInvoiceNotes(e.target.value)}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Financial Toggles */}
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                            <div className="p-4 flex items-center justify-between border-b border-gray-50">
+                                <div>
+                                    <Label className="text-[15px] font-bold text-zinc-900 leading-none">Paid by you?</Label>
+                                    <p className="text-[11px] text-zinc-400 font-medium mt-1">Out of pocket expense</p>
+                                </div>
+                                <button
+                                    onClick={() => setNewInvoicePaidByContractor(!newInvoicePaidByContractor)}
+                                    className={cn(
+                                        "w-12 h-6 rounded-full transition-all relative p-1",
+                                        newInvoicePaidByContractor ? "bg-blue-500" : "bg-zinc-100"
+                                    )}
+                                >
+                                    <div className={cn(
+                                        "w-4 h-4 bg-white rounded-full transition-all shadow-sm",
+                                        newInvoicePaidByContractor ? "translate-x-6" : "translate-x-0"
+                                    )} />
+                                </button>
+                            </div>
+
+                            <div className="p-4 flex items-center justify-between border-b border-gray-50">
+                                <div>
+                                    <Label className="text-[15px] font-bold text-zinc-900 leading-none">Discount from Payout?</Label>
+                                    <p className="text-[11px] text-zinc-400 font-medium mt-1">Subtract from earnings</p>
+                                </div>
+                                <button
+                                    onClick={() => setNewInvoiceIsPayoutDiscount(!newInvoiceIsPayoutDiscount)}
+                                    className={cn(
+                                        "w-12 h-6 rounded-full transition-all relative p-1",
+                                        newInvoiceIsPayoutDiscount ? "bg-red-500" : "bg-zinc-100"
+                                    )}
+                                >
+                                    <div className={cn(
+                                        "w-4 h-4 bg-white rounded-full transition-all shadow-sm",
+                                        newInvoiceIsPayoutDiscount ? "translate-x-6" : "translate-x-0"
+                                    )} />
+                                </button>
+                            </div>
+
+                            <div className="p-4 flex items-center justify-between">
+                                <div>
+                                    <Label className="text-[15px] font-bold text-zinc-900 leading-none">Add to Payout?</Label>
+                                    <p className="text-[11px] text-zinc-400 font-medium mt-1">Reimbursement</p>
+                                </div>
+                                <button
+                                    onClick={() => setNewInvoiceIsPayoutAddition(!newInvoiceIsPayoutAddition)}
+                                    className={cn(
+                                        "w-12 h-6 rounded-full transition-all relative p-1",
+                                        newInvoiceIsPayoutAddition ? "bg-green-500" : "bg-zinc-100"
+                                    )}
+                                >
+                                    <div className={cn(
+                                        "w-4 h-4 bg-white rounded-full transition-all shadow-sm",
+                                        newInvoiceIsPayoutAddition ? "translate-x-6" : "translate-x-0"
+                                    )} />
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </SheetContent>
             </Sheet>

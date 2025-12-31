@@ -23,7 +23,7 @@ export async function GET(request: Request) {
         if (data.status !== 'OK') {
             console.error('[Distance API] Google Error:', data.status, data.error_message);
             return NextResponse.json({
-                error: `Service error (${data.status}): ${data.error_message || 'Check if Distance Matrix API is enabled and billing is active.'}`
+                error: `ETA unavailable (${data.status}). Please check your connection or try again.`
             }, { status: 500 });
         }
 
