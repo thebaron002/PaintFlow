@@ -111,11 +111,51 @@ export function useETA(destinationAddress: string | undefined): ETAData {
                 return;
             }
 
-            navigator.geolocation.getCurrentPosition(handleLocation, handleError, {
-                enableHighAccuracy: false,  // Changed from true - Safari performs better with this
-                timeout: 20000,              // Increased from 10000 - give more time for Safari
-                maximumAge: 120000,          // Increased from 60000 - allow slightly older cache
-            });
+            // Safari iOS works better with watchPosition than getCurrentPosition
+            let watchId: number | null = null;
+            let gotPosition = false;
+
+            console.log('[useETA] Starting watchPosition for Safari iOS compatibility');
+
+            watchId = navigator.geolocation.watchPosition(
+                (position) => {
+                    if (!gotPosition && isMounted) {
+                        gotPosition = true;
+                        console.log('[useETA] Got position from watchPosition');
+                        if (watchId !== null) {
+                            navigator.geolocation.clearWatch(watchId);
+                        }
+                        fetchETA(position.coords.latitude, position.coords.longitude);
+                    }
+                },
+                (error) => {
+                    console.warn('[useETA] watchPosition error:', error.message);
+                    if (watchId !== null) {
+                        navigator.geolocation.clearWatch(watchId);
+                    }
+                    // Fallback to getCurrentPosition
+                    if (!gotPosition && isMounted) {
+                        console.log('[useETA] Falling back to getCurrentPosition');
+                        navigator.geolocation.getCurrentPosition(handleLocation, handleError, {
+                            enableHighAccuracy: false,
+                            timeout: 30000,
+                            maximumAge: 300000,
+                        });
+                    }
+                },
+                {
+                    enableHighAccuracy: false,
+                    timeout: 15000,
+                    maximumAge: 300000,
+                }
+            );
+
+            return () => {
+                isMounted = false;
+                if (watchId !== null) {
+                    navigator.geolocation.clearWatch(watchId);
+                }
+            };
         } else {
             setData({
                 duration: '-- min',
@@ -124,10 +164,6 @@ export function useETA(destinationAddress: string | undefined): ETAData {
                 error: 'Geolocation not supported',
             });
         }
-
-        return () => {
-            isMounted = false;
-        };
     }, [destinationAddress]);
 
     return data;
