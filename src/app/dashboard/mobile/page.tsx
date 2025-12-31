@@ -89,7 +89,7 @@ function HeroJobCard({ job }: { job: JobType }) {
             <Link href={`/dashboard/mobile/jobs/${job.id}`} className="flex justify-between items-start group">
                 <div className="flex-1 min-w-0 pr-2">
                     <h3 className="text-zinc-900 font-extrabold text-[22px] leading-none tracking-tight truncate mb-1">
-                        {job.clientName ? job.clientName.split(' ')[0] : "Job"} #{job.quoteNumber || "0001"}
+                        {job.title || `${job.clientName?.split(' ')[0] || "Job"} #${job.quoteNumber || "0001"}`}
                     </h3>
                     <p className="text-zinc-500 font-normal text-sm truncate">
                         {job.clientName || "Client Name"}

@@ -27,10 +27,10 @@ const jobSchema = z.object({
   quoteNumber: z.string().min(1, "Quote number is required"),
   address: z.string().min(1, "Address is required"),
   startDate: z.string().min(1, 'Start date is required').refine((val) => {
-       return !Number.isNaN(Date.parse(val));
-     }, {
-       message: 'Invalid date',
-     }),
+    return !Number.isNaN(Date.parse(val));
+  }, {
+    message: 'Invalid date',
+  }),
   initialValue: z.coerce.number().min(0, "Initial value must be a positive number"),
   isFixedPay: z.boolean().default(false),
 });
@@ -65,7 +65,7 @@ export function NewJobForm({ onSuccess }: NewJobFormProps) {
       const clientLastName = data.clientName.split(" ").pop() || "";
       finalTitle = `${clientLastName} #${data.quoteNumber}`;
     }
-    
+
     // Fetch settings to calculate ideal values
     const settingsRef = doc(firestore, "settings", "global");
     const settingsSnap = await getDoc(settingsRef);
@@ -78,7 +78,7 @@ export function NewJobForm({ onSuccess }: NewJobFormProps) {
     const profitTarget = data.initialValue - idealMaterialCost;
     // Calculation based on a single worker (the user)
     const idealNumberOfDays = profitTarget > 0 && dailyPayTarget > 0 ? parseFloat((profitTarget / dailyPayTarget).toFixed(2)) : 0;
-    
+
     const newJob: Omit<Job, 'id'> = {
       title: finalTitle,
       quoteNumber: data.quoteNumber,
@@ -101,7 +101,7 @@ export function NewJobForm({ onSuccess }: NewJobFormProps) {
 
     const jobsCollection = collection(firestore, 'users', user.uid, 'jobs');
     addDocumentNonBlocking(jobsCollection, newJob);
-    
+
     form.reset();
     onSuccess();
   };
@@ -123,7 +123,7 @@ export function NewJobForm({ onSuccess }: NewJobFormProps) {
           )}
         />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-           <FormField
+          <FormField
             control={form.control}
             name="clientName"
             render={({ field }) => (
@@ -158,8 +158,8 @@ export function NewJobForm({ onSuccess }: NewJobFormProps) {
               <FormLabel>Job Address</FormLabel>
               <FormControl>
                 <AddressAutocomplete
-                    value={field.value}
-                    onChange={field.onChange}
+                  value={field.value}
+                  onChange={field.onChange}
                 />
               </FormControl>
               <FormMessage />
@@ -168,40 +168,48 @@ export function NewJobForm({ onSuccess }: NewJobFormProps) {
         />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-             <FormField
-                control={form.control}
-                name="startDate"
-                render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                    <FormLabel>Start Date</FormLabel>
-                    <input
-                        type="date"
-                        className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                        value={field.value ?? ''}
-                        onChange={(e) => field.onChange(e.target.value)}
-                    />
-                    <FormMessage />
-                    </FormItem>
-                )}
+          <FormField
+            control={form.control}
+            name="startDate"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Start Date</FormLabel>
+                <input
+                  type="date"
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={field.value ?? ''}
+                  onChange={(e) => field.onChange(e.target.value)}
                 />
-            <FormField
-              control={form.control}
-              name="initialValue"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Initial Value</FormLabel>
-                  <FormControl>
-                      <div className="relative">
-                          <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">$</span>
-                          <Input type="number" placeholder="2500" className="pl-7" {...field} />
-                      </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="initialValue"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Initial Value</FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">$</span>
+                    <Input
+                      type="number"
+                      placeholder="2500"
+                      className="pl-7"
+                      value={field.value || ''}
+                      onChange={(e) => field.onChange(e.target.value === '' ? 0 : Number(e.target.value))}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                    />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
-        
+
         <FormField
           control={form.control}
           name="isFixedPay"
@@ -219,7 +227,7 @@ export function NewJobForm({ onSuccess }: NewJobFormProps) {
             </FormItem>
           )}
         />
-        
+
         <Button type="submit" className="w-full">Create Job</Button>
       </form>
     </Form>
