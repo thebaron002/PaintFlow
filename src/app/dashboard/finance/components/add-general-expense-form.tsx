@@ -30,7 +30,7 @@ const expenseSchema = z.object({
   category: z.string().min(1, "Category is required."),
   date: z.date({ required_error: "Date is required." }),
   amount: z.coerce.number().min(0.01, "Amount must be greater than 0."),
-  description: z.string().min(1, "Description is required."),
+  description: z.string().optional(),
 });
 
 type ExpenseFormValues = z.infer<typeof expenseSchema>;
@@ -75,6 +75,7 @@ export function AddGeneralExpenseForm({ categories, onSuccess, onFormStateChange
 
     const newExpense: Omit<GeneralExpense, 'id'> = {
       ...data,
+      description: data.description?.trim() || data.category,
       date: data.date.toISOString(),
     };
 
