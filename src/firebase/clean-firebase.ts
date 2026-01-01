@@ -19,7 +19,7 @@ let app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const auth: Auth = getAuth(app);
 const db: Firestore = initializeFirestore(app, {
   experimentalAutoDetectLongPolling: true,
-  // persistence disabled to avoid lease issues in development/multi-tab
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 
 
