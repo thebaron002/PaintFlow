@@ -5,8 +5,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar as CalendarIcon, Loader2 } from "lucide-react";
 
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import {
     Form,
@@ -19,7 +20,7 @@ import {
 import { AddressAutocomplete } from "@/components/address-autocomplete";
 import { useUser, useFirestore } from "@/firebase";
 import { doc, updateDoc } from "firebase/firestore";
-import type { Job } from "@/app/lib/types";
+import type { Job, GeneralSettings } from "@/app/lib/types";
 
 // Schema
 const editJobSchema = z.object({
@@ -31,24 +32,27 @@ const editJobSchema = z.object({
     deadline: z.date().optional(), // End Date
     finalizationDate: z.date().optional(),
     amount: z.number().min(0, "Amount must be positive"),
+    managementType: z.enum(["Fixed", "Self", "Company"]).default("Fixed"),
 });
 
 type EditJobFormValues = z.infer<typeof editJobSchema>;
 
 interface EditJobFormProps {
     job: Job;
+    settings: GeneralSettings | null;
     onSuccess: () => void;
     onFormStateChange?: (isValid: boolean, isDirty: boolean) => void;
     submitTriggerRef?: React.MutableRefObject<(() => void) | null>;
 }
 
-export function EditJobForm({ job, onSuccess, onFormStateChange, submitTriggerRef }: EditJobFormProps) {
+export function EditJobForm({ job, settings, onSuccess, onFormStateChange, submitTriggerRef }: EditJobFormProps) {
     const firestore = useFirestore();
     const { user } = useUser();
 
     // Initialize amount digits logic
-    const initialAmount = (job.budget || job.initialValue || 0).toFixed(2).replace('.', '');
-    const [amountDigits, setAmountDigits] = React.useState(job.budget || job.initialValue ? initialAmount : '0');
+    const startVal = job.managementType === 'Self' ? (job.contractTotal || 0) : (job.initialValue || 0);
+    const initialAmount = startVal.toFixed(2).replace('.', '');
+    const [amountDigits, setAmountDigits] = React.useState(startVal ? initialAmount : '0');
 
     const form = useForm<EditJobFormValues>({
         resolver: zodResolver(editJobSchema),
@@ -61,7 +65,8 @@ export function EditJobForm({ job, onSuccess, onFormStateChange, submitTriggerRe
             startDate: job.startDate ? new Date(job.startDate) : new Date(),
             deadline: job.deadline ? new Date(job.deadline) : undefined,
             finalizationDate: job.finalizationDate ? new Date(job.finalizationDate) : undefined,
-            amount: job.budget || job.initialValue || 0,
+            amount: job.managementType === 'Self' ? (job.contractTotal || 0) : (job.initialValue || 0),
+            managementType: job.managementType || "Fixed",
         },
     });
 
@@ -81,6 +86,20 @@ export function EditJobForm({ job, onSuccess, onFormStateChange, submitTriggerRe
         try {
             const jobRef = doc(firestore, 'users', user.uid, 'jobs', job.id);
 
+            const selfShare = (settings?.selfShare ?? 52) / 100;
+            // Company share not needed for calculation if input is direct payout
+
+            let calculatedInitialValue = data.amount;
+            let finalContractTotal = 0;
+
+            if (data.managementType === 'Self') {
+                finalContractTotal = data.amount;
+                calculatedInitialValue = data.amount * selfShare;
+            } else {
+                finalContractTotal = 0;
+                calculatedInitialValue = data.amount;
+            }
+
             await updateDoc(jobRef, {
                 title: data.title,
                 clientName: data.clientName,
@@ -89,8 +108,10 @@ export function EditJobForm({ job, onSuccess, onFormStateChange, submitTriggerRe
                 startDate: data.startDate.toISOString(),
                 deadline: data.deadline ? data.deadline.toISOString() : null,
                 finalizationDate: data.finalizationDate ? data.finalizationDate.toISOString() : null,
-                initialValue: data.amount, // Updating legacy field + budget
-                budget: data.amount,
+                initialValue: calculatedInitialValue,
+                budget: calculatedInitialValue,
+                contractTotal: finalContractTotal,
+                managementType: data.managementType,
             });
 
             onSuccess();
@@ -124,9 +145,73 @@ export function EditJobForm({ job, onSuccess, onFormStateChange, submitTriggerRe
         onChange(cents / 100);
     };
 
+    const managementType = form.watch("managementType");
+    const prevManagementType = React.useRef(managementType);
+
+    // Auto-convert amount when switching between types
+    React.useEffect(() => {
+        const currentType = managementType;
+        const previousType = prevManagementType.current;
+        // Don't convert on initial mount (when previous is same as current)
+        if (currentType === previousType) return;
+
+        const currentAmount = form.getValues("amount");
+
+        if (currentAmount > 0) {
+            // Case 1: Switching TO Self Managed (Payout -> Contract)
+            if (currentType === 'Self' && (previousType === 'Company' || previousType === 'Fixed')) {
+                const estimatedContract = currentAmount / 0.35;
+                const digits = (estimatedContract * 100).toFixed(0);
+                setAmountDigits(digits);
+                setValue("amount", estimatedContract);
+            }
+            // Case 2: Switching FROM Self Managed (Contract -> Payout)
+            else if ((currentType === 'Company' || currentType === 'Fixed') && previousType === 'Self') {
+                const estimatedPayout = currentAmount * 0.35;
+                const digits = (estimatedPayout * 100).toFixed(0);
+                setAmountDigits(digits);
+                setValue("amount", estimatedPayout);
+            }
+        }
+
+        prevManagementType.current = currentType;
+    }, [managementType, setValue, form]);
+
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pt-4 pb-8">
+
+                {/* Management Type Selection */}
+                <div className="bg-white rounded-xl overflow-hidden shadow-sm p-4">
+                    <FormField
+                        control={form.control}
+                        name="managementType"
+                        render={({ field }) => (
+                            <FormItem className="space-y-3">
+                                <FormLabel className="text-xs font-semibold uppercase text-gray-400">Management Type</FormLabel>
+                                <FormControl>
+                                    <div className="grid grid-cols-3 gap-2 p-1 bg-gray-100 rounded-lg">
+                                        {['Fixed', 'Company', 'Self'].map((type) => (
+                                            <button
+                                                key={type}
+                                                type="button"
+                                                onClick={() => field.onChange(type)}
+                                                className={cn(
+                                                    "py-1.5 px-3 rounded-md text-xs font-bold transition-all",
+                                                    field.value === type
+                                                        ? "bg-white text-zinc-900 shadow-sm"
+                                                        : "text-zinc-400 hover:text-zinc-600"
+                                                )}
+                                            >
+                                                {type === 'Company' ? 'Co. Managed' : type === 'Self' ? 'Self Managed' : 'Fixed'}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </FormControl>
+                            </FormItem>
+                        )}
+                    />
+                </div>
 
                 {/* Job Title Group */}
                 <div className="bg-white rounded-xl overflow-hidden shadow-sm">
@@ -308,9 +393,11 @@ export function EditJobForm({ job, onSuccess, onFormStateChange, submitTriggerRe
                         control={form.control}
                         name="amount"
                         render={({ field }) => (
-                            <FormItem className="px-4 py-3 flex items-center justify-between space-y-0">
-                                <FormLabel className="text-[17px] font-normal text-gray-900 w-full pt-1">Amount</FormLabel>
-                                <FormControl>
+                            <FormItem className="px-4 py-3 space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <FormLabel className="text-[17px] font-normal text-gray-900 pt-1">
+                                        {managementType === 'Self' ? 'Contract Total' : 'Initial Payout'}
+                                    </FormLabel>
                                     <div className="flex items-center justify-end text-[17px] font-normal text-gray-500">
                                         <span className="mr-1">$</span>
                                         <Input
@@ -321,7 +408,28 @@ export function EditJobForm({ job, onSuccess, onFormStateChange, submitTriggerRe
                                             className="border-0 p-0 h-auto w-[100px] text-right text-gray-900 focus-visible:ring-0 shadow-none bg-transparent"
                                         />
                                     </div>
-                                </FormControl>
+                                </div>
+                                {managementType === 'Self' && (
+                                    <div className="flex flex-col items-end gap-1 pt-1">
+                                        <p className="text-[11px] text-zinc-400 font-medium">
+                                            New Payout (52%): $ {(field.value * ((settings?.selfShare || 52) / 100)).toFixed(2)}
+                                        </p>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const currentVal = form.getValues("amount");
+                                                // Assume currentVal is the 35% payout, calculate 100% contract
+                                                const estimatedContract = currentVal / 0.35;
+                                                const digits = (estimatedContract * 100).toFixed(0);
+                                                setAmountDigits(digits);
+                                                form.setValue("amount", estimatedContract, { shouldDirty: true, shouldValidate: true });
+                                            }}
+                                            className="text-[10px] uppercase font-bold text-blue-600 hover:text-blue-700 bg-blue-50 px-2 py-1 rounded-md"
+                                        >
+                                            Calc Contract from 35% Payout
+                                        </button>
+                                    </div>
+                                )}
                                 <FormMessage />
                             </FormItem>
                         )}

@@ -40,6 +40,8 @@ export type Job = {
   status: 'Not Started' | 'In Progress' | 'Complete' | 'Open Payment' | 'Finalized';
   budget: number; // This can be considered 'Payout'
   initialValue: number;
+  managementType?: 'Fixed' | 'Self' | 'Company';
+  contractTotal?: number;
   idealMaterialCost: number;
   idealNumberOfDays: number;
   productionDays: ProductionDay[];
@@ -92,8 +94,12 @@ export type GeneralSettings = {
   id: 'global'; // Singleton document
   dailyPayTarget: number;
   idealMaterialCostPercentage: number;
-  hourlyRate: number;
-  sharePercentage: number;
+  hourlyRate: number; // Legacy/Standard hourly rate
+  sharePercentage: number; // Legacy share percentage
+  fixedHourlyRate?: number; // Rate for Fixed/Company Managed ($40)
+  clientHourlyRate?: number; // Rate for Self Managed ($80)
+  companyShare?: number; // Payout percentage for Company Managed (35%)
+  selfShare?: number; // Payout percentage for Self Managed (52%)
   reportRecipients?: string[];
   taxRate?: number;
 };

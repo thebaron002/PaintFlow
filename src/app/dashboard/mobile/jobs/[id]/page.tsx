@@ -172,6 +172,50 @@ export default function MobileJobDetailsPage() {
     const editJobSubmitTriggerRef = React.useRef<(() => void) | null>(null);
     const handleEditJobSubmit = () => { editJobSubmitTriggerRef.current?.(); };
 
+    // -- Centralized Sheet Cleanup Effect --
+    // This ensures that when all sheets are closed, the body style is reset.
+    // This is a robust fix for the Radix UI "pointer-events: none" freeze bug.
+    // -- Aggressive Sheet Cleanup Effect (MutationObserver) --
+    // Radix UI can be persistent about adding pointer-events: none. 
+    // This observer actively fights it when we know no sheets should be open.
+    React.useEffect(() => {
+        const allClosed = !isEditJobOpen && !isAddJobOpen && !isCalendarOpen && !isAdjustmentSheetOpen && !isInvoiceSheetOpen;
+
+        if (allClosed && typeof document !== 'undefined') {
+            // 1. Immediate Cleanup
+            const cleanup = () => {
+                const body = document.body;
+                if (body.style.pointerEvents === 'none') {
+                    body.style.pointerEvents = 'auto'; // Force reset
+                }
+                if (body.style.overflow === 'hidden') {
+                    body.style.overflow = 'auto';
+                }
+                if (body.hasAttribute('data-scroll-locked')) {
+                    body.removeAttribute('data-scroll-locked');
+                }
+            };
+            cleanup(); // Run once immediately
+
+            // 2. Continuous Monitoring
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.type === 'attributes' && (mutation.attributeName === 'style' || mutation.attributeName === 'data-scroll-locked')) {
+                        // If we see the bad style come back, kill it.
+                        cleanup();
+                    }
+                });
+            });
+
+            observer.observe(document.body, {
+                attributes: true,
+                attributeFilter: ['style', 'data-scroll-locked']
+            });
+
+            return () => observer.disconnect();
+        }
+    }, [isEditJobOpen, isAddJobOpen, isCalendarOpen, isAdjustmentSheetOpen, isInvoiceSheetOpen]);
+
     const handleUpdateStatus = async (newStatus: Job['status']) => {
         if (!job || !firestore || !user) return;
         const jobRef = doc(firestore, "users", user.uid, "jobs", job.id);
@@ -237,7 +281,8 @@ export default function MobileJobDetailsPage() {
             date: newInvoiceDate.toISOString(),
             notes: newInvoiceNotes,
             paidByContractor: newInvoicePaidByContractor,
-            isPayoutDiscount: newInvoiceIsPayoutDiscount,
+            // Self-Managed defaults to true, others to false
+            isPayoutDiscount: job.managementType === 'Self' ? true : newInvoiceIsPayoutDiscount,
             isPayoutAddition: newInvoiceIsPayoutAddition,
         };
 
@@ -466,15 +511,33 @@ export default function MobileJobDetailsPage() {
             <DetailCard>
                 <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                        <span className="text-[17px] font-bold text-zinc-900">Payout</span>
+                        <span className="text-[17px] font-bold text-zinc-900">
+                            {job.managementType === 'Self' ? `Payout (${settings?.selfShare || 52}%)` :
+                                job.managementType === 'Company' ? `Payout (${settings?.companyShare || 35}%)` : 'Payout'}
+                        </span>
                         <div className="bg-zinc-100 px-4 py-2 rounded-2xl">
                             <span className="text-[17px] font-bold text-zinc-900">
                                 $ {payout.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                             </span>
                         </div>
                     </div>
+
+                    {job.managementType === 'Self' && (
+                        <div className="flex items-center justify-between px-1">
+                            <span className="text-[14px] font-medium text-zinc-400">
+                                Contract Total
+                            </span>
+                            <span className="text-[14px] font-bold text-zinc-900">
+                                $ {(job.contractTotal || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            </span>
+                        </div>
+                    )}
+
                     <div className="flex items-center justify-between px-1">
-                        <span className="text-[14px] font-medium text-zinc-400">Initial Value</span>
+                        <span className="text-[14px] font-medium text-zinc-400">
+                            {job.managementType === 'Self' ? `Base Payout (${settings?.selfShare || 52}%)` :
+                                job.managementType === 'Company' ? `Base Payout (${settings?.companyShare || 35}%)` : 'Initial Value'}
+                        </span>
                         <span className="text-[14px] font-bold text-zinc-400">
                             $ {(job.initialValue || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                         </span>
@@ -543,7 +606,17 @@ export default function MobileJobDetailsPage() {
             {/* 6. Invoices Card [NEW] */}
             <DetailCard>
                 <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-bold text-zinc-900">Invoices</h3>
+                    <div className="flex items-center gap-2">
+                        <h3 className="text-lg font-bold text-zinc-900">Invoices</h3>
+                        <span className="text-[14px] font-bold text-zinc-500">
+                            {(() => {
+                                const totalInvoiced = (job.invoices || []).reduce((sum, inv) => sum + inv.amount, 0);
+                                const denominator = (job.managementType === 'Self' && job.contractTotal) ? job.contractTotal : (job.initialValue || 0);
+                                const percentage = denominator > 0 ? (totalInvoiced / denominator) * 100 : 0;
+                                return `$${totalInvoiced.toLocaleString('en-US', { maximumFractionDigits: 0 })} (${percentage.toFixed(0)}%)`;
+                            })()}
+                        </span>
+                    </div>
                     <button onClick={() => setInvoiceSheetOpen(true)}>
                         <PlusCircle className="w-6 h-6 text-zinc-900" />
                     </button>
@@ -684,7 +757,16 @@ export default function MobileJobDetailsPage() {
             <FloatingNav onPrimaryClick={() => setAddJobOpen(true)} />
 
             {/* New Job Sheet */}
-            <Sheet open={isAddJobOpen} onOpenChange={setAddJobOpen}>
+            <Sheet
+                open={isAddJobOpen}
+                onOpenChange={(open) => {
+                    setAddJobOpen(open);
+                    if (!open) {
+                        document.body.style.pointerEvents = 'auto';
+                        document.body.style.overflow = 'auto';
+                    }
+                }}
+            >
                 <SheetContent side="bottom" className="bg-[#F2F2F7]">
                     <SheetHeader className="flex flex-row items-center justify-between py-2.5 px-1">
                         <SheetClose className="w-8 h-8 rounded-full bg-[#E5E5EA] flex items-center justify-center transition-opacity active:opacity-70">
@@ -720,7 +802,17 @@ export default function MobileJobDetailsPage() {
 
 
             {/* Edit Job Sheet */}
-            <Sheet open={isEditJobOpen} onOpenChange={setEditJobOpen}>
+            <Sheet
+                open={isEditJobOpen}
+                onOpenChange={(open) => {
+                    setEditJobOpen(open);
+                    if (!open) {
+                        // Force layout cleanup to prevent pointer-events: none freeze
+                        document.body.style.pointerEvents = 'auto';
+                        document.body.style.overflow = 'auto';
+                    }
+                }}
+            >
                 <SheetContent side="bottom" className="bg-[#F2F2F7] h-[95vh]">
                     <SheetHeader className="flex flex-row items-center justify-between py-2.5 px-1">
                         <SheetClose className="w-8 h-8 rounded-full bg-[#E5E5EA] flex items-center justify-center transition-opacity active:opacity-70">
@@ -745,6 +837,7 @@ export default function MobileJobDetailsPage() {
                     <div className="h-full overflow-y-auto pb-20">
                         <EditJobForm
                             job={job}
+                            settings={settings}
                             onSuccess={() => {
                                 setEditJobOpen(false);
                                 toast({ title: "Job Updated", description: "Changes saved successfully." });

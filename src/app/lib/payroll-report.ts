@@ -3,56 +3,115 @@ import { z } from 'zod';
 
 // Ported schemas from genkit flow
 export const JobSchema = z.object({
-    id: z.string(),
-    title: z.string(),
-    clientName: z.string(),
-    quoteNumber: z.string(),
-    startDate: z.string(),
-    deadline: z.string(),
-    payout: z.number(),
-    notes: z.string().optional(),
+  id: z.string(),
+  title: z.string(),
+  clientName: z.string(),
+  quoteNumber: z.string(),
+  startDate: z.string(),
+  deadline: z.string(),
+  payout: z.number(),
+  notes: z.string().optional(),
+  // New fields for extended details
+  managementType: z.string().optional(),
+  contractTotal: z.number().optional(),
+  totalInvoiced: z.number().optional(),
+  invoices: z.array(z.object({
+    origin: z.string(),
+    amount: z.number(),
+    date: z.string()
+  })).optional(),
+  adjustments: z.array(z.object({
+    description: z.string(),
+    value: z.number(),
+    type: z.string(),
+    isPayoutAddition: z.boolean().optional()
+  })).optional(),
 });
 
 export const PayrollReportInputSchema = z.object({
-    jobs: z.array(JobSchema),
-    currentDate: z.string(),
-    weekNumber: z.number(),
-    startDate: z.string(),
-    endDate: z.string(),
-    businessName: z.string().optional(),
-    businessLogoUrl: z.string().optional(),
-    totalPayout: z.number(),
+  jobs: z.array(JobSchema),
+  currentDate: z.string(),
+  weekNumber: z.number(),
+  startDate: z.string(),
+  endDate: z.string(),
+  businessName: z.string().optional(),
+  businessLogoUrl: z.string().optional(),
+  totalPayout: z.number(),
 });
 
 export const PayrollReportOutputSchema = z.object({
-    subject: z.string(),
-    body: z.string(),
+  subject: z.string(),
+  body: z.string(),
 });
 
 export type PayrollReportInput = z.infer<typeof PayrollReportInputSchema>;
 export type PayrollReportOutput = z.infer<typeof PayrollReportOutputSchema>;
 
 export async function generatePayrollReport(input: PayrollReportInput): Promise<PayrollReportOutput> {
-    const subject = `${input.businessName ? input.businessName + ': ' : ''}Weekly Payroll Report - Week ${input.weekNumber}`;
+  const subject = `${input.businessName ? input.businessName + ': ' : ''}Weekly Payroll Report - Week ${input.weekNumber}`;
 
-    const jobsHtml = input.jobs.map(job => `
+  const jobsHtml = input.jobs.map(job => {
+    // --- Logic for Sections ---
+    const isSelfManaged = job.managementType === 'Self';
+    const hasAdjustments = job.adjustments && job.adjustments.length > 0;
+    const hasInvoices = job.invoices && job.invoices.length > 0;
+
+    // Invoice Section (For Self Managed)
+    let invoicesHtml = '';
+    if (isSelfManaged && hasInvoices) {
+      invoicesHtml = `
+                <tr><td style="padding: 8px 0 4px 0; font-size: 14px; font-weight: bold; color: #555555;">Invoices Breakdown (Total: $${(job.totalInvoiced || 0).toLocaleString()}):</td></tr>
+                ${job.invoices?.map(inv => `
+                    <tr><td style="padding: 2px 0 2px 10px; font-size: 13px; color: #666666;">• <span style="font-family: monospace; color: #999;">[${inv.date}]</span> ${inv.origin}: $${inv.amount.toLocaleString()}</td></tr>
+                `).join('')}
+            `;
+    }
+
+    // Adjustments Section (For All)
+    let adjustmentsHtml = '';
+    if (hasAdjustments) {
+      adjustmentsHtml = `
+                <tr><td style="padding: 8px 0 4px 0; font-size: 14px; font-weight: bold; color: #555555;">Adjustments:</td></tr>
+                ${job.adjustments?.map(adj => {
+        const sign = adj.isPayoutAddition === false ? '' : (adj.value >= 0 ? '+' : '-');
+        const valStr = Math.abs(adj.value).toLocaleString();
+        const color = adj.isPayoutAddition === false ? '#999' : (adj.value >= 0 ? '#166534' : '#b91c1c'); // Green/Red/Gray
+        const note = adj.isPayoutAddition === false ? '(Not in Payout)' : '';
+        return `<tr><td style="padding: 2px 0 2px 10px; font-size: 13px; color: ${color};">• ${adj.description}: ${sign}$${valStr} ${note}</td></tr>`;
+      }).join('')}
+            `;
+    }
+
+    return `
     <table width="100%" border="0" cellspacing="0" cellpadding="0" style="border: 1px solid #eeeeee; border-radius: 6px; margin-bottom: 20px;">
       <tr>
         <td style="padding: 15px;">
           <p style="margin: 0 0 10px 0; font-size: 18px; font-weight: bold; color: #333333;">${job.title}</p>
           <table width="100%" border="0" cellspacing="0" cellpadding="0">
             <tr><td style="padding: 4px 0; font-size: 14px; color: #555555;"><strong>Client:</strong> ${job.clientName}</td></tr>
-            <tr><td style="padding: 4px 0; font-size: 14px; color: #555555;"><strong>Start Date:</strong> ${job.startDate}</td></tr>
             <tr><td style="padding: 4px 0; font-size: 14px; color: #555555;"><strong>Conclusion Date:</strong> ${job.deadline}</td></tr>
-            <tr><td style="padding: 4px 0; font-size: 14px; color: #555555;"><strong>Payout:</strong> <span style="font-weight: bold; color: #1a73e8;">$${job.payout.toFixed(2)}</span></td></tr>
+            
+            <!-- Standard Details -->
+            ${job.contractTotal && isSelfManaged ? `<tr><td style="padding: 4px 0; font-size: 14px; color: #555555;"><strong>Contract Total:</strong> $${job.contractTotal.toLocaleString()}</td></tr>` : ''}
+            
+            <!-- Invoices Section -->
+            ${invoicesHtml}
+
+            <!-- Adjustments Section -->
+            ${adjustmentsHtml}
+
+            <!-- Final Payout -->
+            <tr><td style="padding: 12px 0 0 0; font-size: 16px; color: #333333; border-top: 1px dashed #eee; margin-top: 8px;"><strong>Final Payout:</strong> <span style="font-weight: bold; color: #1a73e8;">$${job.payout.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></td></tr>
+            
             ${job.notes ? `<tr><td style="padding: 8px 0 0 0; font-size: 14px; color: #555555;"><strong>Notes:</strong><br>${job.notes}</td></tr>` : ''}
           </table>
         </td>
       </tr>
     </table>
-  `).join('');
+  `;
+  }).join('');
 
-    const body = `
+  const body = `
   <!DOCTYPE html>
   <html>
   <head>
@@ -122,5 +181,5 @@ export async function generatePayrollReport(input: PayrollReportInput): Promise<
   </html>
   `;
 
-    return { subject, body };
+  return { subject, body };
 }

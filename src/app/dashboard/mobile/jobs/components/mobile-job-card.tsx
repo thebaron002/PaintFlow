@@ -22,10 +22,12 @@ function NanoGlassCard({ className, children, onClick }: { className?: string, c
     );
 }
 
+import { calculateJobPayout } from "@/app/lib/job-financials";
+
 export function MobileJobCard({ job }: { job: Job }) {
-    const price = job.initialValue || 0;
-    // Using initialValue as per mockup $1234.56 style. 
-    // Real logic might need calculateJobPayout(job) if complex.
+    // Calculate Final Payout (Net)
+    // Passing null for settings defaults to 52% (Self) / 35% (Company)
+    const price = calculateJobPayout(job, null);
 
     const statusLabel = job.status === "In Progress" ? "In Progress" : job.status;
 

@@ -25,6 +25,10 @@ const settingsSchema = z.object({
   hourlyRate: z.coerce.number().min(0, "Hourly rate must be a positive number."),
   sharePercentage: z.coerce.number().min(0, "Percentage must be between 0 and 100.").max(100, "Percentage must be between 0 and 100."),
   taxRate: z.coerce.number().min(0, "Tax rate must be between 0 and 100.").max(100, "Tax rate must be between 0 and 100."),
+  fixedHourlyRate: z.coerce.number().min(0, "Hourly rate must be a positive number."),
+  clientHourlyRate: z.coerce.number().min(0, "Hourly rate must be a positive number."),
+  companyShare: z.coerce.number().min(0, "Percentage must be between 0 and 100.").max(100, "Percentage must be between 0 and 100."),
+  selfShare: z.coerce.number().min(0, "Percentage must be between 0 and 100.").max(100, "Percentage must be between 0 and 100."),
 });
 
 type SettingsFormValues = z.infer<typeof settingsSchema>;
@@ -45,6 +49,10 @@ export function SettingsForm({ settings, onSuccess }: SettingsFormProps) {
       hourlyRate: settings.hourlyRate || 0,
       sharePercentage: settings.sharePercentage || 0,
       taxRate: settings.taxRate || 0,
+      fixedHourlyRate: settings.fixedHourlyRate || 40,
+      clientHourlyRate: settings.clientHourlyRate || 80,
+      companyShare: settings.companyShare || 35,
+      selfShare: settings.selfShare || 52,
     },
   });
 
@@ -53,7 +61,7 @@ export function SettingsForm({ settings, onSuccess }: SettingsFormProps) {
 
     const settingsRef = doc(firestore, 'settings', 'global');
     setDocumentNonBlocking(settingsRef, data, { merge: true });
-    
+
     onSuccess();
   };
 
@@ -66,11 +74,11 @@ export function SettingsForm({ settings, onSuccess }: SettingsFormProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Daily Pay Target</FormLabel>
-               <FormControl>
-                  <div className="relative">
-                      <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">$</span>
-                      <Input type="number" placeholder="300" className="pl-7" {...field} />
-                  </div>
+              <FormControl>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">$</span>
+                  <Input type="number" placeholder="300" className="pl-7" {...field} />
+                </div>
               </FormControl>
               <FormDescription>
                 Set your target daily pay for profitability calculations on jobs.
@@ -86,10 +94,10 @@ export function SettingsForm({ settings, onSuccess }: SettingsFormProps) {
             <FormItem>
               <FormLabel>Ideal Material Cost Percentage</FormLabel>
               <FormControl>
-                 <div className="relative">
-                      <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground">%</span>
-                      <Input type="number" placeholder="20" className="pr-7" {...field} />
-                  </div>
+                <div className="relative">
+                  <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground">%</span>
+                  <Input type="number" placeholder="20" className="pr-7" {...field} />
+                </div>
               </FormControl>
               <FormDescription>
                 The ideal percentage of a job's budget to be spent on materials.
@@ -104,11 +112,11 @@ export function SettingsForm({ settings, onSuccess }: SettingsFormProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Hourly Rate</FormLabel>
-               <FormControl>
-                  <div className="relative">
-                      <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">$</span>
-                      <Input type="number" placeholder="50" className="pl-7" {...field} />
-                  </div>
+              <FormControl>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">$</span>
+                  <Input type="number" placeholder="50" className="pl-7" {...field} />
+                </div>
               </FormControl>
               <FormDescription>
                 The default hourly rate for 'Time' based adjustments.
@@ -124,10 +132,10 @@ export function SettingsForm({ settings, onSuccess }: SettingsFormProps) {
             <FormItem>
               <FormLabel>Share Percentage</FormLabel>
               <FormControl>
-                 <div className="relative">
-                      <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground">%</span>
-                      <Input type="number" placeholder="70" className="pr-7" {...field} />
-                  </div>
+                <div className="relative">
+                  <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground">%</span>
+                  <Input type="number" placeholder="70" className="pr-7" {...field} />
+                </div>
               </FormControl>
               <FormDescription>
                 The percentage you receive from the total job value.
@@ -136,17 +144,17 @@ export function SettingsForm({ settings, onSuccess }: SettingsFormProps) {
             </FormItem>
           )}
         />
-         <FormField
+        <FormField
           control={form.control}
           name="taxRate"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Estimated Tax Rate</FormLabel>
               <FormControl>
-                 <div className="relative">
-                      <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground">%</span>
-                      <Input type="number" placeholder="30" className="pr-7" {...field} />
-                  </div>
+                <div className="relative">
+                  <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground">%</span>
+                  <Input type="number" placeholder="30" className="pr-7" {...field} />
+                </div>
               </FormControl>
               <FormDescription>
                 Your estimated tax rate for income tax forecasting (e.g., 30 for 30%).
@@ -155,6 +163,81 @@ export function SettingsForm({ settings, onSuccess }: SettingsFormProps) {
             </FormItem>
           )}
         />
+
+        <div className="pt-6 border-t border-zinc-200">
+          <h3 className="text-lg font-bold mb-4">Management Logic (Self/Company)</h3>
+          <div className="grid gap-6">
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="companyShare"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Company Share (%)</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground">%</span>
+                        <Input type="number" placeholder="35" className="pr-7" {...field} />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="selfShare"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Self-Managed Share (%)</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <span className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground">%</span>
+                        <Input type="number" placeholder="52" className="pr-7" {...field} />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="fixedHourlyRate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Fixed Hourly Rate ($)</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">$</span>
+                        <Input type="number" placeholder="40" className="pl-7" {...field} />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="clientHourlyRate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Client Hourly Rate ($)</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">$</span>
+                        <Input type="number" placeholder="80" className="pl-7" {...field} />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </div>
+        </div>
         <Button type="submit" className="w-full">Save Settings</Button>
       </form>
     </Form>

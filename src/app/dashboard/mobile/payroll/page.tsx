@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { format, parseISO, getWeek, getYear, startOfWeek, endOfWeek } from "date-fns";
+import { format, parseISO, getISOWeek, getISOWeekYear, startOfISOWeek, endOfISOWeek } from "date-fns";
 import {
     Wallet,
     Calendar,
@@ -121,12 +121,24 @@ export default function MobilePayrollPage() {
     // -- Derived State --
     const sortedOpenJobs = React.useMemo(() => {
         if (!jobsToPay) return [];
-        return [...jobsToPay].sort((a, b) => parseISO(a.deadline).getTime() - parseISO(b.deadline).getTime());
+        return [...jobsToPay].sort((a, b) => {
+            const dateA = a.deadline || a.startDate;
+            const dateB = b.deadline || b.startDate;
+            const timeA = dateA ? parseISO(dateA).getTime() : 0;
+            const timeB = dateB ? parseISO(dateB).getTime() : 0;
+            return timeA - timeB;
+        });
     }, [jobsToPay]);
 
     const sortedCompleteJobs = React.useMemo(() => {
         if (!completeJobs) return [];
-        return [...completeJobs].sort((a, b) => parseISO(a.deadline).getTime() - parseISO(b.deadline).getTime());
+        return [...completeJobs].sort((a, b) => {
+            const dateA = a.deadline || a.startDate;
+            const dateB = b.deadline || b.startDate;
+            const timeA = dateA ? parseISO(dateA).getTime() : 0;
+            const timeB = dateB ? parseISO(dateB).getTime() : 0;
+            return timeA - timeB;
+        });
     }, [completeJobs]);
 
     const totalPayout = React.useMemo(() => {
@@ -176,8 +188,8 @@ export default function MobilePayrollPage() {
         setIsGenerating(true);
         try {
             const now = new Date();
-            const week = getWeek(now);
-            const year = getYear(now);
+            const week = getISOWeek(now);
+            const year = getISOWeekYear(now);
 
             // Basic dupe check (matching original logic)
             const reportsCollection = collection(firestore, 'users', user.uid, 'payrollReports');
@@ -193,8 +205,8 @@ export default function MobilePayrollPage() {
             const newReport = {
                 weekNumber: week,
                 year,
-                startDate: startOfWeek(now).toISOString(),
-                endDate: endOfWeek(now).toISOString(),
+                startDate: startOfISOWeek(now).toISOString(),
+                endDate: endOfISOWeek(now).toISOString(),
                 sentDate: now.toISOString(),
                 recipientCount: 0,
                 totalPayout,
@@ -261,7 +273,7 @@ export default function MobilePayrollPage() {
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <h4 className="text-zinc-900 font-bold text-sm truncate">
-                                                        {job.title || job.clientName.split(' ')[0]} #{job.quoteNumber || "000"}
+                                                        {job.title ? job.title : `${job.clientName.split(' ')[0]} #${job.quoteNumber || "000"}`}
                                                     </h4>
                                                     <p className="text-zinc-400 text-[10px] font-bold tracking-widest uppercase">
                                                         $ {calculateJobPayout(job, settings).toLocaleString(undefined, { minimumFractionDigits: 2 })}
@@ -349,10 +361,10 @@ export default function MobilePayrollPage() {
                                     <div className="flex justify-between items-center">
                                         <div className="flex-1 min-w-0 pr-4">
                                             <h4 className="text-zinc-900 font-bold text-sm truncate">
-                                                {job.title || job.clientName.split(' ')[0]} #{job.quoteNumber || "000"}
+                                                {job.title ? job.title : `${job.clientName.split(' ')[0]} #${job.quoteNumber || "000"}`}
                                             </h4>
                                             <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-tighter mt-1">
-                                                {format(parseISO(job.deadline), "MMM dd")} • {job.address.split(',')[0]}
+                                                {(job.deadline || job.startDate) ? format(parseISO(job.deadline || job.startDate), "MMM dd") : "-"} • {job.address.split(',')[0]}
                                             </p>
                                         </div>
                                         <div className="text-right shrink-0">

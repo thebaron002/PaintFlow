@@ -34,7 +34,7 @@ import { cn } from "@/lib/utils";
 
 // Shared Logic
 import { calculateJobPayout } from "@/app/lib/job-financials";
-import { generatePayrollReport, PayrollReportInput } from "@/ai/flows/generate-payroll-report-flow";
+import { generatePayrollReport, PayrollReportOutput, PayrollReportInput } from "@/app/lib/payroll-report";
 import { FloatingNav } from "../../components/floating-nav";
 
 // ---------------------------------------------------------------------
@@ -113,21 +113,51 @@ export default function MobileReportDetailsPage() {
             if (report && jobs && userProfile && settings) {
                 setIsGeneratingEmail(true);
                 try {
-                    const sortedJobs = [...jobs].sort((a, b) => parseISO(a.deadline).getTime() - parseISO(b.deadline).getTime());
+                    const sortedJobs = [...jobs].sort((a, b) => {
+                        const dateA = a.deadline || a.startDate;
+                        const dateB = b.deadline || b.startDate;
+                        const timeA = dateA ? parseISO(dateA).getTime() : 0;
+                        const timeB = dateB ? parseISO(dateB).getTime() : 0;
+                        return timeA - timeB;
+                    });
 
                     const reportInput: PayrollReportInput = {
                         jobs: sortedJobs.map(job => {
                             const payout = calculateJobPayout(job, settings);
-                            const jobTitle = job.title || `${job.clientName.split(" ").pop() || "N/A"} #${job.quoteNumber}`;
+                            const jobTitle = job.title ? job.title : `${job.clientName.split(" ")[0]} #${job.quoteNumber}`;
+
+                            // Calculate Invoice Totals for Self Managed
+                            const totalInvoiced = job.invoices?.reduce((sum, inv) => sum + inv.amount, 0) || 0;
+
+                            // Map Adjustments with Value Calculation
+                            const mappedAdjustments = job.adjustments?.map(adj => {
+                                const val = adj.type === 'Time' ? (adj.value * (adj.hourlyRate || settings?.clientHourlyRate || 80)) : adj.value;
+                                return {
+                                    description: adj.description,
+                                    value: val,
+                                    type: adj.type,
+                                    isPayoutAddition: adj.isPayoutAddition
+                                };
+                            }) || [];
 
                             return {
                                 ...job,
                                 title: jobTitle,
                                 quoteNumber: job.quoteNumber || (job as any).workOrderNumber || 'N/A',
-                                startDate: format(new Date(job.startDate), "MM/dd/yyyy"),
-                                deadline: format(new Date(job.deadline), "MM/dd/yyyy"),
+                                startDate: job.startDate ? format(new Date(job.startDate), "MM/dd/yyyy") : "N/A",
+                                deadline: job.deadline ? format(new Date(job.deadline), "MM/dd/yyyy") : "N/A",
                                 payout: parseFloat(payout.toFixed(2)),
                                 notes: job.specialRequirements || "N/A",
+                                // New Fields
+                                managementType: job.managementType,
+                                contractTotal: job.contractTotal,
+                                totalInvoiced,
+                                invoices: job.invoices?.map(i => ({
+                                    origin: i.origin,
+                                    amount: i.amount,
+                                    date: i.date ? format(new Date(i.date), "MM/dd") : ""
+                                })) || [],
+                                adjustments: mappedAdjustments
                             }
                         }),
                         currentDate: format(new Date(report.sentDate), "MM/dd/yyyy"),
@@ -372,7 +402,7 @@ export default function MobileReportDetailsPage() {
                                     <div className="flex justify-between items-center">
                                         <div className="flex-1 min-w-0 pr-4">
                                             <h4 className="text-zinc-900 font-bold text-sm truncate">
-                                                {job.title || job.clientName.split(' ')[0]} #{job.quoteNumber || "000"}
+                                                {job.title ? job.title : `${job.clientName.split(' ')[0]} #${job.quoteNumber || "000"}`}
                                             </h4>
                                             <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-tighter mt-1 truncate">
                                                 {job.address}

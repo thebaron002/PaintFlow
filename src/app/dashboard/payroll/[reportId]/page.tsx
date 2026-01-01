@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { generatePayrollReport, PayrollReportInput } from "@/ai/flows/generate-payroll-report-flow";
+import { generatePayrollReport, PayrollReportOutput, PayrollReportInput } from "@/app/lib/payroll-report";
 import { format, parseISO } from "date-fns";
 import { calculateJobPayout } from "@/app/lib/job-financials";
 
@@ -37,10 +37,10 @@ export default function ReportDetailsPage() {
     }, [firestore, user, report?.jobIds]);
 
     const { data: jobs, isLoading: isLoadingJobs } = useCollection<Job>(jobsQuery);
-    
+
     const userProfileRef = useMemoFirebase(() => {
-      if (!firestore || !user) return null;
-      return doc(firestore, "users", user.uid);
+        if (!firestore || !user) return null;
+        return doc(firestore, "users", user.uid);
     }, [firestore, user]);
     const { data: userProfile, isLoading: isLoadingProfile } = useDoc<UserProfile>(userProfileRef);
 
@@ -57,7 +57,7 @@ export default function ReportDetailsPage() {
                 setIsGenerating(true);
                 try {
                     const sortedJobs = [...jobs].sort((a, b) => parseISO(a.deadline).getTime() - parseISO(b.deadline).getTime());
-                    
+
                     const reportInput: PayrollReportInput = {
                         jobs: sortedJobs.map(job => {
                             const payout = calculateJobPayout(job, settings);
@@ -128,13 +128,13 @@ export default function ReportDetailsPage() {
                         </div>
                     ) : generatedEmail ? (
                         <div className="space-y-4">
-                             <div>
+                            <div>
                                 <h3 className="font-semibold">Subject:</h3>
                                 <p>{generatedEmail.subject}</p>
-                             </div>
-                             <div className="border rounded-lg p-4 bg-muted/20">
+                            </div>
+                            <div className="border rounded-lg p-4 bg-muted/20">
                                 <div dangerouslySetInnerHTML={{ __html: generatedEmail.body }} />
-                             </div>
+                            </div>
                         </div>
                     ) : (
                         <p>Could not generate email preview.</p>
