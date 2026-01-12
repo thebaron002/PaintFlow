@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { format, parseISO, getISOWeek, getISOWeekYear, startOfISOWeek, endOfISOWeek } from "date-fns";
+import { format, parseISO, getISOWeek, getISOWeekYear, startOfISOWeek, endOfISOWeek, subWeeks } from "date-fns";
 import {
     Wallet,
     Calendar,
@@ -188,8 +188,11 @@ export default function MobilePayrollPage() {
         setIsGenerating(true);
         try {
             const now = new Date();
-            const week = getISOWeek(now);
-            const year = getISOWeekYear(now);
+            // Default to PREVIOUS WEEK logic as requested
+            const targetDate = subWeeks(now, 1);
+
+            const week = getISOWeek(targetDate);
+            const year = getISOWeekYear(targetDate);
 
             // Basic dupe check (matching original logic)
             const reportsCollection = collection(firestore, 'users', user.uid, 'payrollReports');
@@ -205,8 +208,8 @@ export default function MobilePayrollPage() {
             const newReport = {
                 weekNumber: week,
                 year,
-                startDate: startOfISOWeek(now).toISOString(),
-                endDate: endOfISOWeek(now).toISOString(),
+                startDate: startOfISOWeek(targetDate).toISOString(),
+                endDate: endOfISOWeek(targetDate).toISOString(),
                 sentDate: now.toISOString(),
                 recipientCount: 0,
                 totalPayout,
