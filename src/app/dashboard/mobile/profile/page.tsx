@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { LogOut, ArrowLeft, Check, Camera } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NanoProfileForm } from "./components/nano-profile-form";
+import { FloatingNav } from "../components/floating-nav";
 
 export default function MobileProfilePage() {
     const { user, loading, auth } = useUser();
@@ -144,6 +145,7 @@ export default function MobileProfilePage() {
                 </div>
 
             </div>
+            <FloatingNav />
         </div>
     );
 }

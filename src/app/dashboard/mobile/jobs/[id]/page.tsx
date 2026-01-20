@@ -46,7 +46,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { getStatusColor } from "@/app/lib/status-styles";
 import { IdealDaysCalculator } from "./components/ideal-days-calculator";
 import { DailyProfitCalculator } from "./components/daily-profit-calculator";
-import { calculateJobPayout, calculateJobProfit } from "@/app/lib/job-financials";
+import { calculateJobPayout, calculateJobProfit, calculateHelperCosts, calculatePartnerShares } from "@/app/lib/job-financials";
 
 // Helper components for the cards
 function DetailCard({ title, children, className }: { title?: string, children: React.ReactNode, className?: string }) {
@@ -126,10 +126,23 @@ export default function MobileJobDetailsPage() {
     }, [firestore, user, id]);
     const { data: job, isLoading } = useDoc<Job>(jobRef);
 
+    // -- Crew Members Fetching --
+    const crewQuery = useMemoFirebase(() => {
+        if (!firestore || !user) return null;
+        return collection(firestore, "users", user.uid, "crew");
+    }, [firestore, user]);
+    const { data: allCrewMembers } = useCollection<CrewMember>(crewQuery);
+
     // -- Production Days State & Logic --
     const [productionDays, setProductionDays] = React.useState<ProductionDay[]>([]);
     const [selectedDates, setSelectedDates] = React.useState<Date[]>([]);
     const [isCalendarOpen, setCalendarOpen] = React.useState(false);
+    const [activeMemberId, setActiveMemberId] = React.useState<string | null>(null); // null means job-global days
+
+    const [isAddCrewMemberOpen, setIsAddCrewMemberOpen] = React.useState(false);
+    const [editingMemberId, setEditingMemberId] = React.useState<string | null>(null);
+    const [tempRate, setTempRate] = React.useState<string>("");
+    const [tempPercentage, setTempPercentage] = React.useState<string>("");
 
     // -- Settings Fetching --
     const settingsRef = useMemoFirebase(() => {
@@ -339,41 +352,127 @@ export default function MobileJobDetailsPage() {
     React.useEffect(() => {
         if (job?.productionDays) {
             setProductionDays(job.productionDays);
-            setSelectedDates(job.productionDays.filter(pd => pd && pd.date).map(pd => parseISO(pd.date)));
+            if (!activeMemberId) {
+                setSelectedDates(job.productionDays.filter(pd => pd && pd.date).map(pd => parseISO(pd.date)));
+            }
         } else {
             setProductionDays([]);
-            setSelectedDates([]);
+            if (!activeMemberId) setSelectedDates([]);
         }
-    }, [job?.productionDays]);
+
+        if (activeMemberId && job?.crew) {
+            const member = job.crew.find(m => m.crewMemberId === activeMemberId);
+            setSelectedDates(member?.productionDays?.filter(pd => pd && pd.date).map(pd => parseISO(pd.date)) || []);
+        }
+    }, [job?.productionDays, job?.crew, activeMemberId]);
+
+    const handleAddCrewMember = async (member: CrewMember) => {
+        if (!job || !firestore || !user) return;
+
+        const newAssignment = {
+            crewMemberId: member.id,
+            name: member.name,
+            type: member.type,
+            productionDays: [],
+            dailyRate: member.dailyRate || 0,
+            profitPercentage: member.profitPercentage || (member.type === 'Partner' ? 50 : 0)
+        };
+
+        const updatedCrew = [...(job.crew || []), newAssignment].map(m => ({
+            ...m,
+            productionDays: m.productionDays || [],
+            dailyRate: m.dailyRate ?? 0,
+            profitPercentage: m.profitPercentage ?? 0
+        }));
+        const jobDocRef = doc(firestore, 'users', user.uid, 'jobs', job.id);
+        await updateDocumentNonBlocking(jobDocRef, { crew: updatedCrew });
+
+        toast({ title: "Crew Added", description: `${member.name} assigned to job.` });
+    }
+
+    const handleRemoveCrewMember = async (memberId: string) => {
+        if (!job || !firestore || !user) return;
+
+        const updatedCrew = (job.crew || []).filter(m => m.crewMemberId !== memberId).map(m => ({
+            ...m,
+            productionDays: m.productionDays || [],
+            dailyRate: m.dailyRate ?? 0,
+            profitPercentage: m.profitPercentage ?? 0
+        }));
+        const jobDocRef = doc(firestore, 'users', user.uid, 'jobs', job.id);
+        await updateDocumentNonBlocking(jobDocRef, { crew: updatedCrew });
+
+        toast({ title: "Crew Removed", description: "Member removed from job." });
+    }
+
+    const handleUpdateMemberFinancials = async () => {
+        if (!job || !firestore || !user || !editingMemberId) return;
+
+        const updatedCrew = (job.crew || []).map(m => {
+            const isEditing = m.crewMemberId === editingMemberId;
+            return {
+                ...m,
+                productionDays: m.productionDays || [],
+                dailyRate: isEditing
+                    ? (m.type === 'Helper' ? parseFloat(tempRate) || 0 : m.dailyRate ?? 0)
+                    : (m.dailyRate ?? 0),
+                profitPercentage: isEditing
+                    ? (m.type === 'Partner' ? parseFloat(tempPercentage) || 0 : m.profitPercentage ?? 0)
+                    : (m.profitPercentage ?? 0)
+            };
+        });
+
+        const jobDocRef = doc(firestore, 'users', user.uid, 'jobs', job.id);
+        await updateDocumentNonBlocking(jobDocRef, { crew: updatedCrew });
+        setEditingMemberId(null);
+        toast({ title: "Updated", description: "Crew member financials updated." });
+    }
 
     const handleProductionDaysChange = (newDays: ProductionDay[]) => {
         if (!firestore || !user || !job) return;
-        setProductionDays(newDays);
+
         const jobDocRef = doc(firestore, 'users', user.uid, 'jobs', job.id);
-        updateDocumentNonBlocking(jobDocRef, { productionDays: newDays });
+
+        if (activeMemberId) {
+            // Member-specific days
+            const updatedCrew = (job.crew || []).map(m => {
+                const isTarget = m.crewMemberId === activeMemberId;
+                return {
+                    ...m,
+                    productionDays: isTarget ? newDays : (m.productionDays || []),
+                    dailyRate: m.dailyRate ?? 0,
+                    profitPercentage: m.profitPercentage ?? 0
+                };
+            });
+            updateDocumentNonBlocking(jobDocRef, { crew: updatedCrew });
+        } else {
+            // Global job days
+            setProductionDays(newDays);
+            updateDocumentNonBlocking(jobDocRef, { productionDays: newDays });
+        }
     }
 
     const handleDateClick = (date: Date) => {
-        const existingDayIndex = productionDays.findIndex(pd => pd && pd.date && isSameDay(parseISO(pd.date), date));
+        const currentDays = activeMemberId
+            ? ((job?.crew || []).find(m => m.crewMemberId === activeMemberId)?.productionDays || [])
+            : productionDays;
 
-        let newProductionDays = [...productionDays];
+        const existingDayIndex = currentDays.findIndex(pd => pd && pd.date && isSameDay(parseISO(pd.date), date));
+
+        let newDays = [...currentDays];
 
         if (existingDayIndex >= 0) {
-            // Day exists
-            const existingDay = productionDays[existingDayIndex];
+            const existingDay = currentDays[existingDayIndex];
             if (existingDay.dayType === 'full') {
-                // Full -> Half
-                newProductionDays[existingDayIndex] = { ...existingDay, dayType: 'half' };
+                newDays[existingDayIndex] = { ...existingDay, dayType: 'half' };
             } else {
-                // Half -> Remove (Deselect)
-                newProductionDays.splice(existingDayIndex, 1);
+                newDays.splice(existingDayIndex, 1);
             }
         } else {
-            // Day does not exist -> Select as Full
-            newProductionDays.push({ date: date.toISOString(), dayType: 'full' });
+            newDays.push({ date: date.toISOString(), dayType: 'full' });
         }
 
-        handleProductionDaysChange(newProductionDays);
+        handleProductionDaysChange(newDays);
     }
 
     // Kept for the list view manual toggles
@@ -400,7 +499,7 @@ export default function MobileJobDetailsPage() {
     }
 
     const payout = calculateJobPayout(job, settings || null);
-    const profit = calculateJobProfit(job, settings || null);
+    const profit = calculateJobProfit(job, settings || null, allCrewMembers || []);
     const clientLastName = (job.clientName || "").split(" ").pop() || "Client";
     const jobTitle = job.title || `${clientLastName} #${job.quoteNumber || '0001'}`;
 
@@ -550,7 +649,7 @@ export default function MobileJobDetailsPage() {
                 <div className="grid grid-cols-2 divide-x divide-gray-100">
                     <div className="pr-4">
                         <p className="text-[15px] font-bold text-zinc-900 leading-tight mb-3">Ideal Number<br />of Days</p>
-                        <IdealDaysCalculator initialValue={job.initialValue || 0} />
+                        <IdealDaysCalculator initialValue={job.initialValue || 0} crewSize={1 + (job.crew?.length || 0)} />
                     </div>
                     <div className="pl-4 flex flex-col justify-between">
                         <div className="flex items-center justify-between">
@@ -583,22 +682,49 @@ export default function MobileJobDetailsPage() {
                             <p className="text-[15px] font-medium text-zinc-500">Ideal Days</p>
                             <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-tighter">Target: ${settings?.dailyPayTarget || 0}/day</p>
                         </div>
-                        <IdealDaysCalculator initialValue={job.initialValue || 0} />
+                        <IdealDaysCalculator initialValue={job.initialValue || 0} crewSize={1 + (job.crew?.length || 0)} />
                     </div>
 
-                    <div className="flex justify-between items-center">
-                        <p className="text-[15px] font-medium text-zinc-500">Profit</p>
+                    <div className="flex justify-between items-center bg-zinc-50 p-3 rounded-xl">
+                        <p className="text-[17px] font-bold text-zinc-900 focus:outline-none">Net Profit</p>
                         <span className={cn(
-                            "text-[15px] font-bold",
+                            "text-[17px] font-black",
                             profit >= 0 ? "text-green-600" : "text-red-600"
                         )}>
                             $ {profit.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                         </span>
                     </div>
-                    {/* Daily Profit Mock - Assuming profit / days */}
-                    <div className="flex justify-between items-center py-1">
-                        <span className="text-[15px] font-medium text-zinc-500">Daily Profit</span>
-                        <DailyProfitCalculator job={job} />
+
+                    <div className="flex flex-col gap-2 pt-2">
+                        <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-zinc-400 px-1">
+                            <span>Detailed Breakdown</span>
+                        </div>
+
+                        <SectionRow
+                            label="Gross Payout"
+                            value={`$ ${payout.toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
+                        />
+
+                        <SectionRow
+                            label="Material Costs"
+                            valueClass="text-rose-500"
+                            value={`- $ ${((job.invoices || []).filter(inv => !inv.paidByContractor).reduce((sum, inv) => sum + inv.amount, 0)).toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
+                        />
+
+                        {allCrewMembers && (
+                            <>
+                                <SectionRow
+                                    label="Helper Costs"
+                                    valueClass="text-rose-500"
+                                    value={`- $ ${(calculateHelperCosts(job, allCrewMembers)).toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
+                                />
+                                <SectionRow
+                                    label="Partner Shares"
+                                    valueClass="text-rose-500"
+                                    value={`- $ ${(calculatePartnerShares(job, settings || null, allCrewMembers)).toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
+                                />
+                            </>
+                        )}
                     </div>
                 </div>
             </DetailCard>
@@ -720,20 +846,78 @@ export default function MobileJobDetailsPage() {
             <DetailCard>
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-bold text-zinc-900">Crew</h3>
-                    <div className="flex items-center gap-1 opacity-50">
-                        <Users className="w-4 h-4" />
-                    </div>
+                    <button onClick={() => setIsAddCrewMemberOpen(true)}>
+                        <PlusCircle className="w-6 h-6 text-zinc-900 active:scale-90 transition-transform" />
+                    </button>
                 </div>
                 <div className="space-y-4">
                     {job.crew && job.crew.length > 0 ? (
                         job.crew.map(member => (
-                            <div key={member.crewMemberId} className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center">
-                                    <span className="text-xs font-bold text-zinc-500">{member.name.charAt(0)}</span>
+                            <div key={member.crewMemberId} className="flex flex-col gap-3 pb-3 border-b border-zinc-50 last:border-0 last:pb-0">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-zinc-100 flex items-center justify-center">
+                                            <span className="text-sm font-bold text-zinc-500">{member.name.charAt(0)}</span>
+                                        </div>
+                                        <div>
+                                            <p className="text-[15px] font-bold text-zinc-900">{member.name}</p>
+                                            <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest leading-none">{member.type}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <button
+                                            onClick={() => {
+                                                setEditingMemberId(member.crewMemberId);
+                                                setTempRate(member.dailyRate?.toString() || "");
+                                                setTempPercentage(member.profitPercentage?.toString() || "");
+                                            }}
+                                            className="text-right mr-1 active:opacity-50 transition-opacity"
+                                        >
+                                            <p className="text-[14px] font-black text-zinc-900 leading-none">
+                                                {(() => {
+                                                    if (!allCrewMembers) return "$ 0.00";
+                                                    if (member.type === 'Helper') {
+                                                        const rate = member.dailyRate ?? 0;
+                                                        const daysArr = member.productionDays || [];
+                                                        const daysCount = daysArr.reduce((dSum, d) => dSum + (d.dayType === 'half' ? 0.5 : 1), 0);
+                                                        return `$ ${(daysCount * rate).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+                                                    } else {
+                                                        // Use the updated unified logic with specificMemberId for accuracy
+                                                        const partnerShare = calculatePartnerShares(job, settings || null, allCrewMembers, member.crewMemberId);
+                                                        return `$ ${(partnerShare).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+                                                    }
+                                                })()}
+                                            </p>
+                                            <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-tighter mt-0.5">
+                                                {(() => {
+                                                    const daysCount = (member.productionDays || []).reduce((dSum, d) => dSum + (d.dayType === 'half' ? 0.5 : 1), 0);
+                                                    const valueStr = member.type === 'Helper' ? `$${member.dailyRate}/d` : `${member.profitPercentage}%`;
+                                                    return `${daysCount}d • ${valueStr}`;
+                                                })()}
+                                            </p>
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setActiveMemberId(member.crewMemberId);
+                                                setCalendarOpen(true);
+                                            }}
+                                            className="w-10 h-10 rounded-full bg-zinc-100 flex items-center justify-center active:scale-95 transition-all"
+                                        >
+                                            <Calendar className="w-5 h-5 text-zinc-400" />
+                                        </button>
+                                    </div>
                                 </div>
-                                <div className="flex-1">
-                                    <p className="text-sm font-bold text-zinc-900">{member.name}</p>
-                                    <p className="text-[10px] text-zinc-400 font-medium uppercase tracking-tight">{member.type}</p>
+                                <div className="flex flex-wrap gap-1 px-1">
+                                    {member.productionDays && member.productionDays.length > 0 ? (
+                                        member.productionDays.sort((a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime()).map(day => (
+                                            <Badge key={day.date} variant="secondary" className="text-[10px] items-center gap-1 h-5 px-1 bg-zinc-100 text-zinc-500 border-none">
+                                                {day.dayType === 'half' ? <CircleDashed className="w-2 h-2" /> : <CircleDot className="w-2 h-2" />}
+                                                {format(parseISO(day.date), "MMM dd")}
+                                            </Badge>
+                                        ))
+                                    ) : (
+                                        <p className="text-[10px] text-zinc-300 italic">No days logged</p>
+                                    )}
                                 </div>
                             </div>
                         ))
@@ -856,9 +1040,11 @@ export default function MobileJobDetailsPage() {
                 <SheetContent side="bottom" className="h-[85vh] rounded-t-[24px] p-0 flex flex-col">
                     <SheetHeader className="p-4 border-b flex flex-row items-center justify-between space-y-0">
                         <div className="w-8"></div> {/* Spacer */}
-                        <SheetTitle className="text-lg font-bold">Production Days</SheetTitle>
-                        <SheetDescription className="sr-only">Select production days for this job</SheetDescription>
-                        <SheetClose asChild>
+                        <SheetTitle className="text-lg font-bold">
+                            {activeMemberId ? `Days: ${job?.crew?.find(m => m.crewMemberId === activeMemberId)?.name}` : "Production Days"}
+                        </SheetTitle>
+                        <SheetDescription className="sr-only">Select production days</SheetDescription>
+                        <SheetClose asChild onClick={() => setActiveMemberId(null)}>
                             <button className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center transition-opacity active:opacity-70">
                                 <X className="w-4 h-4 text-zinc-500" />
                             </button>
@@ -870,7 +1056,7 @@ export default function MobileJobDetailsPage() {
                         {/* Custom Calendar Implementation */}
                         <div className="bg-white rounded-xl border p-4">
                             <CustomMobileCalendar
-                                productionDays={productionDays}
+                                productionDays={activeMemberId ? (job?.crew?.find(m => m.crewMemberId === activeMemberId)?.productionDays || []) : productionDays}
                                 onDayClick={handleDateClick}
                             />
                         </div>
@@ -880,7 +1066,10 @@ export default function MobileJobDetailsPage() {
                             <div className="space-y-3">
                                 {selectedDates.length > 0 ? (
                                     selectedDates.sort((a, b) => a.getTime() - b.getTime()).map(date => {
-                                        const dayInfo = (productionDays || []).find(pd => pd && pd.date && isSameDay(parseISO(pd.date), date));
+                                        const currentDays = activeMemberId
+                                            ? (job?.crew?.find(m => m.crewMemberId === activeMemberId)?.productionDays || [])
+                                            : productionDays;
+                                        const dayInfo = (currentDays || []).find(pd => pd && pd.date && isSameDay(parseISO(pd.date), date));
                                         return (
                                             <div key={date.toISOString()} className="flex items-center justify-between bg-white p-3 rounded-lg border shadow-sm">
                                                 <div className="flex items-center gap-3">
@@ -1242,6 +1431,125 @@ export default function MobileJobDetailsPage() {
                                 </button>
                             </div>
                         </div>
+                    </div>
+                </SheetContent>
+            </Sheet>
+
+            {/* Add Crew Member Sheet */}
+            <Sheet open={isAddCrewMemberOpen} onOpenChange={setIsAddCrewMemberOpen}>
+                <SheetContent side="bottom" className="h-[70vh] rounded-t-[32px] bg-[#F2F1EF] p-0 flex flex-col">
+                    <SheetHeader className="p-4 border-b flex flex-row items-center justify-between space-y-0 bg-white rounded-t-[32px]">
+                        <SheetClose className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center">
+                            <X className="w-4 h-4 text-zinc-500" />
+                        </SheetClose>
+                        <SheetTitle className="text-lg font-bold">Assign Crew</SheetTitle>
+                        <SheetDescription className="sr-only">Choose a technician or partner to add to this job</SheetDescription>
+                        <div className="w-8"></div>
+                    </SheetHeader>
+
+                    <div className="flex-1 overflow-y-auto p-6">
+                        <div className="space-y-3">
+                            {allCrewMembers?.filter(m => !job.crew?.some(cj => cj.crewMemberId === m.id)).map(member => (
+                                <button
+                                    key={member.id}
+                                    onClick={() => {
+                                        handleAddCrewMember(member);
+                                        setIsAddCrewMemberOpen(false);
+                                    }}
+                                    className="w-full bg-white p-4 rounded-2xl flex items-center justify-between border border-gray-100 shadow-sm active:scale-95 transition-all"
+                                >
+                                    <div className="flex items-center gap-4 text-left">
+                                        <div className="w-12 h-12 rounded-full bg-zinc-100 flex items-center justify-center font-bold text-zinc-500">
+                                            {member.name.charAt(0)}
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-zinc-900">{member.name}</p>
+                                            <p className="text-xs text-zinc-400 font-bold uppercase tracking-widest">{member.type}</p>
+                                        </div>
+                                    </div>
+                                    <PlusCircle className="w-6 h-6 text-blue-500" />
+                                </button>
+                            ))}
+                            {allCrewMembers?.filter(m => !job.crew?.some(cj => cj.crewMemberId === m.id)).length === 0 && (
+                                <div className="text-center py-10 text-zinc-400">
+                                    <p>No more crew members available to add.</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {job.crew && job.crew.length > 0 && (
+                            <div className="mt-8">
+                                <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-4 px-1">Currently Assigned</h4>
+                                <div className="space-y-2">
+                                    {job.crew.map(member => (
+                                        <div key={member.crewMemberId} className="bg-white/50 p-3 rounded-xl flex items-center justify-between border border-dashed border-zinc-200">
+                                            <span className="text-sm font-medium text-zinc-600">{member.name}</span>
+                                            <button
+                                                onClick={() => handleRemoveCrewMember(member.crewMemberId)}
+                                                className="text-xs font-bold text-rose-500 bg-rose-50 px-3 py-1.5 rounded-lg active:bg-rose-100"
+                                            >
+                                                Unassign
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </SheetContent>
+            </Sheet>
+
+            {/* Edit Member Financials Sheet */}
+            <Sheet open={!!editingMemberId} onOpenChange={(open) => !open && setEditingMemberId(null)}>
+                <SheetContent side="bottom" className="rounded-t-[24px] p-0 flex flex-col max-h-[50vh]">
+                    <SheetHeader className="p-4 border-b flex flex-row items-center justify-between space-y-0 text-zinc-900">
+                        <SheetClose asChild>
+                            <button className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center">
+                                <X className="w-4 h-4 text-zinc-500" />
+                            </button>
+                        </SheetClose>
+                        <SheetTitle className="text-lg font-bold">
+                            {job.crew?.find(m => m.crewMemberId === editingMemberId)?.name}
+                        </SheetTitle>
+                        <SheetDescription className="sr-only">Edit rate or percentage for this member</SheetDescription>
+                        <button
+                            onClick={handleUpdateMemberFinancials}
+                            className="bg-[#007AFF] text-white px-4 py-1.5 rounded-full text-sm font-bold active:scale-95 transition-all"
+                        >
+                            Save
+                        </button>
+                    </SheetHeader>
+
+                    <div className="p-6 space-y-6">
+                        {job.crew?.find(m => m.crewMemberId === editingMemberId)?.type === 'Helper' ? (
+                            <div className="space-y-2">
+                                <Label className="text-sm font-semibold text-zinc-900">Daily Rate</Label>
+                                <div className="relative">
+                                    <span className="absolute left-0 top-1/2 -translate-y-1/2 text-zinc-500 font-bold">$</span>
+                                    <Input
+                                        type="number"
+                                        value={tempRate}
+                                        onChange={(e) => setTempRate(e.target.value)}
+                                        className="bg-transparent border-0 border-b border-zinc-200 rounded-none px-4 shadow-none h-12 text-lg font-bold focus-visible:ring-0 focus-visible:border-zinc-900"
+                                    />
+                                    <span className="absolute right-0 top-1/2 -translate-y-1/2 text-zinc-400 font-bold text-sm">/ day</span>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                <Label className="text-sm font-semibold text-zinc-900">Profit Percentage</Label>
+                                <div className="relative">
+                                    <Input
+                                        type="number"
+                                        value={tempPercentage}
+                                        onChange={(e) => setTempPercentage(e.target.value)}
+                                        className="bg-transparent border-0 border-b border-zinc-200 rounded-none px-0 shadow-none h-12 text-lg font-bold focus-visible:ring-0 focus-visible:border-zinc-900"
+                                    />
+                                    <span className="absolute right-0 top-1/2 -translate-y-1/2 text-zinc-400 font-bold text-sm">% of Profit</span>
+                                </div>
+                            </div>
+                        )}
+                        <div className="h-4" />
                     </div>
                 </SheetContent>
             </Sheet>

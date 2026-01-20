@@ -8,9 +8,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 interface IdealDaysCalculatorProps {
     initialValue: number;
+    crewSize?: number;
 }
 
-export function IdealDaysCalculator({ initialValue }: IdealDaysCalculatorProps) {
+export function IdealDaysCalculator({ initialValue, crewSize = 1 }: IdealDaysCalculatorProps) {
     const firestore = useFirestore();
 
     const settingsRef = useMemoFirebase(() => {
@@ -26,10 +27,10 @@ export function IdealDaysCalculator({ initialValue }: IdealDaysCalculatorProps) 
 
     const dailyPayTarget = settings?.dailyPayTarget || 0;
 
-    // Logic: Initial Value / Daily Pay Target
+    // Logic: (Initial Value / Daily Pay Target) / Crew Size
     let idealDays = "-";
     if (dailyPayTarget > 0 && initialValue > 0) {
-        const calculated = initialValue / dailyPayTarget;
+        const calculated = (initialValue / dailyPayTarget) / (crewSize || 1);
         // Format to 1 decimal place if needed, otherwise integer
         idealDays = Number.isInteger(calculated)
             ? calculated.toString()

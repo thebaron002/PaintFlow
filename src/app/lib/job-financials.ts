@@ -94,16 +94,20 @@ export function calculateJobPayout(job: Job, settings: GeneralSettings | null): 
 }
 
 /**
- * Calculates the final profit for a job.
+ * Calculates the final net profit for a job, subtracting all crew costs and material costs.
  */
-export function calculateJobProfit(job: Job, settings: GeneralSettings | null): number {
+export function calculateJobProfit(job: Job, settings: GeneralSettings | null, crewMembers: CrewMember[] = []): number {
   const payout = calculateJobPayout(job, settings);
 
-  const nonContractorCosts = job.invoices
+  // Material costs NOT paid by contractor (paid by company)
+  const materialCosts = job.invoices
     ?.filter(inv => !inv.paidByContractor)
     .reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
 
-  return payout - nonContractorCosts;
+  const helperCosts = calculateHelperCosts(job, crewMembers);
+  const partnerShares = calculatePartnerShares(job, settings, crewMembers);
+
+  return payout - materialCosts - helperCosts - partnerShares;
 }
 
 /**
@@ -134,7 +138,7 @@ export function calculatePayoutDiscounts(invoices: Job['invoices']): number {
 }
 
 /**
- * Calculates the total amount of invoices that are marked as an addition to the payout.
+ * Calculates total amount of invoices that are marked as an addition to the payout.
  */
 export function calculatePayoutAdditions(invoices: Job['invoices']): number {
   return (
@@ -142,4 +146,73 @@ export function calculatePayoutAdditions(invoices: Job['invoices']): number {
       ?.filter((inv) => inv.isPayoutAddition)
       .reduce((sum, inv) => sum + inv.amount, 0) ?? 0
   );
+}
+
+/**
+ * Calculates the cost of helpers for a specific job.
+ */
+export function calculateHelperCosts(job: Job, crewMembers: CrewMember[]): number {
+  return job.crew?.reduce((sum, assignment) => {
+    if (assignment.type !== 'Helper') return sum;
+
+    // Find rates: priority to job-specific override, then crew member profile
+    const profile = crewMembers.find(m => m.id === assignment.crewMemberId);
+    const rate = assignment.dailyRate ?? profile?.dailyRate ?? 0;
+
+    // Use job-specific production days if they exist, otherwise fallback to job global days
+    const daysArr = assignment.productionDays || job.productionDays || [];
+    const daysCount = daysArr.reduce((dSum, d) => dSum + (d.dayType === 'half' ? 0.5 : 1), 0);
+
+    return sum + (daysCount * rate);
+  }, 0) ?? 0;
+}
+
+/**
+ * Calculates the partner shares for a specific job.
+ * Partner share is typically a percentage of the (Payout - Helper Costs).
+ */
+export function calculatePartnerShares(job: Job, settings: GeneralSettings | null, crewMembers: CrewMember[], specificMemberId?: string): number {
+  const payout = calculateJobPayout(job, settings);
+
+  // Material costs paid by company
+  const materialCosts = job.invoices
+    ?.filter(inv => !inv.paidByContractor)
+    .reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
+
+  const helperCosts = calculateHelperCosts(job, crewMembers);
+
+  // Base profit to be shared among Contractor + Partners
+  const baseProfit = payout - materialCosts - helperCosts;
+
+  if (baseProfit <= 0) return 0;
+
+  // Calculate Total Weighted Days (Egalitarian: 50% = weight 1.0)
+  const contractorDays = (job.productionDays || []).reduce((sum, d) => sum + (d.dayType === 'half' ? 0.5 : 1), 0);
+
+  const totalWeightedDays = contractorDays + (job.crew || [])
+    .filter(m => m.type === 'Partner')
+    .reduce((pSum, m) => {
+      const mDays = (m.productionDays || []).reduce((dSum, d) => dSum + (d.dayType === 'half' ? 0.5 : 1), 0);
+      const weight = (m.profitPercentage ?? 50) / 50; // 50% is egalitarian (1.0 weight)
+      return pSum + (mDays * weight);
+    }, 0);
+
+  if (totalWeightedDays <= 0) return 0;
+
+  // Profit per Weighted Day
+  const profitPerWeightedDay = baseProfit / totalWeightedDays;
+
+  // Total partner share is the sum of each partner's share (or just one if filtered)
+  return (job.crew || [])
+    .filter(m => m.type === 'Partner' && (!specificMemberId || m.crewMemberId === specificMemberId))
+    .reduce((sum, assignment) => {
+      const profile = crewMembers.find(curr => curr.id === assignment.crewMemberId);
+      const percentage = assignment.profitPercentage ?? profile?.profitPercentage ?? 50;
+      const weight = percentage / 50;
+
+      const partnerDays = (assignment.productionDays || []).reduce((dSum, d) => dSum + (d.dayType === 'half' ? 0.5 : 1), 0);
+
+      // Partner Share = (Their Weighted Days * Profit/Day)
+      return sum + (partnerDays * weight * profitPerWeightedDay);
+    }, 0);
 }

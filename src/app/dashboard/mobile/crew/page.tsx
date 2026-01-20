@@ -1,6 +1,7 @@
 "use client";
 
 import { NanoHeader } from "../components/nano-header";
+import { FloatingNav } from "../components/floating-nav";
 import { useRouter } from "next/navigation";
 import { useFirestore, useUser, useCollection, useMemoFirebase, setDocumentNonBlocking } from "@/firebase";
 import { collection, query, where, doc, addDoc, deleteDoc } from "firebase/firestore";
@@ -202,7 +203,11 @@ export default function MobileCrewPage() {
     const watchType = form.watch("type");
 
     return (
-        <div className="min-h-screen bg-[#F2F1EF] px-5 pt-16 font-sans">
+        <div className="min-h-screen bg-[#F2F1EF] px-5 pt-16 font-sans pb-32">
+            <NanoHeader
+                subtitle="Team Management,"
+                title={"Our Techs &\nPartners"}
+            />
             <Tabs defaultValue="partners" className="w-full">
                 <TabsList className="grid w-full grid-cols-2 mb-6 p-1 bg-zinc-200/50 rounded-full h-auto">
                     <TabsTrigger value="partners" className="rounded-full py-2.5 text-xs font-bold uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:shadow-sm">
@@ -329,6 +334,8 @@ export default function MobileCrewPage() {
                     </div>
                 </SheetContent>
             </Sheet>
+
+            <FloatingNav />
         </div>
     );
 }

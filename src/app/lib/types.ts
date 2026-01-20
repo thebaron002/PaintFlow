@@ -59,6 +59,9 @@ export type Job = {
     crewMemberId: string;
     name: string;
     type: 'Helper' | 'Partner';
+    productionDays?: ProductionDay[];
+    dailyRate?: number;
+    profitPercentage?: number;
   }[];
   // Simplified income and expenses, stored directly on the job
   income?: { id: string; description: string; amount: number; date: string; }[];
