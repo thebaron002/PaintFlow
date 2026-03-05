@@ -1,7 +1,7 @@
 "use client";
 
-import { NanoHeader } from "./components/nano-header";
-import { FloatingNav } from "./components/floating-nav";
+import { NanoHeader } from "../components/nano-header";
+import { FloatingNav } from "../components/floating-nav";
 import { useRouter } from "next/navigation";
 import { useFirestore, useUser, useCollection, useMemoFirebase, setDocumentNonBlocking } from "@/firebase";
 import { collection, query, where, doc, addDoc, deleteDoc } from "firebase/firestore";

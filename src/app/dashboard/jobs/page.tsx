@@ -6,14 +6,15 @@ import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebas
 import { collection, query, orderBy } from "firebase/firestore";
 import type { Job } from "@/app/lib/types";
 import { cn } from "@/lib/utils";
+import { safeDateCompare } from "@/lib/safe-date";
 import { Search, Menu, ArrowLeft, X, ChevronRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MobileJobCard } from "./components/mobile-job-card";
-import { FloatingNav } from "./components/floating-nav";
+import { FloatingNav } from "../components/floating-nav";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
 import { AddJobForm } from "@/app/dashboard/jobs/components/add-job-form";
-import { NanoHeader } from "./components/nano-header";
+import { NanoHeader } from "../components/nano-header";
 import React from "react";
 
 type JobStatus = Job['status'];
@@ -78,7 +79,7 @@ export default function MobileJobsListPage() {
             if (statusIndexA !== statusIndexB) {
                 return statusIndexA - statusIndexB;
             }
-            return new Date(b.startDate).getTime() - new Date(a.startDate).getTime();
+            return safeDateCompare(b.startDate, a.startDate);
         });
 
     }, [jobs, activeFilter, searchTerm]);

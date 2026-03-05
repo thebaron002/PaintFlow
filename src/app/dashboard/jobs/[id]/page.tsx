@@ -25,7 +25,7 @@ import { ChevronRight } from "lucide-react";
 import { AddJobForm } from "@/app/dashboard/jobs/components/add-job-form";
 import { EditJobForm } from "@/app/dashboard/jobs/components/edit-job-form";
 import { useToast } from "@/hooks/use-toast";
-import { FloatingNav } from "../components/floating-nav";
+import { FloatingNav } from "../../components/floating-nav";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetClose } from "@/components/ui/sheet";
 import {
     DropdownMenu,

@@ -35,7 +35,7 @@ import { cn } from "@/lib/utils";
 // Shared Logic
 import { calculateJobPayout } from "@/app/lib/job-financials";
 import { generatePayrollReport, PayrollReportOutput, PayrollReportInput } from "@/app/lib/payroll-report";
-import { FloatingNav } from "../components/floating-nav";
+import { FloatingNav } from "../../components/floating-nav";
 
 // ---------------------------------------------------------------------
 // NANO-UI COMPONENTS (v4)

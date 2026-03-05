@@ -1,25 +1,12 @@
 "use client";
 
-import { NanoHeader } from "./components/nano-header";
+import { NanoHeader } from "../components/nano-header";
 import { useFirestore, useUser, useCollection, useMemoFirebase, setDocumentNonBlocking } from "@/firebase";
 import { collection, query, orderBy, where, doc, deleteDoc } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Ticket, Calendar, Clock, AlertCircle, MoreVertical, CheckCircle, Trash } from "lucide-react";
-// ... imports
 
-// ... in MobileTicketsPage
-
-const handleDelete = async (id: string) => {
-    if (!firestore || !user) return;
-    try {
-        await deleteDoc(doc(firestore, 'users', user.uid, 'tickets', id));
-        toast({ title: "Deleted", description: "Ticket removed permanently." });
-    } catch (error) {
-        console.error(error);
-        toast({ title: "Error", description: "Could not delete ticket.", variant: "destructive" });
-    }
-}
-import { format } from "date-fns";
+import { safeFormatDate } from "@/lib/safe-date";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -100,7 +87,7 @@ function NanoTicketCard({ ticket, onResolve, onDelete }: { ticket: TicketType, o
             <div className="flex items-center gap-4 pt-1 text-xs font-medium text-zinc-400">
                 <div className="flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5" />
-                    <span>{ticket.createdAt ? format(new Date(ticket.createdAt), "MMM dd") : "N/A"}</span>
+                    <span>{safeFormatDate(ticket.createdAt, "MMM dd", "N/A")}</span>
                 </div>
                 {ticket.priority && (
                     <div className="flex items-center gap-1.5">
@@ -143,7 +130,7 @@ export default function MobileTicketsPage() {
     const handleDelete = async (id: string) => {
         if (!firestore || !user) return;
         try {
-            await deleteDocument(doc(firestore, 'users', user.uid, 'tickets', id));
+            await deleteDoc(doc(firestore, 'users', user.uid, 'tickets', id));
             toast({ title: "Deleted", description: "Ticket removed permanently." });
         } catch (error) {
             console.error(error);

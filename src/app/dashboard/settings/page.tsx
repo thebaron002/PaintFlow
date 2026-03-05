@@ -1,6 +1,6 @@
 "use client";
 
-import { NanoHeader } from "./components/nano-header";
+import { NanoHeader } from "../components/nano-header";
 import { useAuth, useUser, useFirestore, useDoc, setDocumentNonBlocking } from "@/firebase";
 import { doc } from "firebase/firestore";
 import { LogOut, Save, BadgeDollarSign, Percent, Scale, Clock, DollarSign } from "lucide-react";

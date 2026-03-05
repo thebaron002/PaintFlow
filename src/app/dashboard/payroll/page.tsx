@@ -47,8 +47,8 @@ import { collection, query, orderBy, limit, where, doc, getDocs, updateDoc, writ
 
 // Shared Logic
 import { calculateJobPayout } from "@/app/lib/job-financials";
-import { FloatingNav } from "./components/floating-nav";
-import { NanoHeader } from "./components/nano-header";
+import { FloatingNav } from "../components/floating-nav";
+import { NanoHeader } from "../components/nano-header";
 
 // ---------------------------------------------------------------------
 // NANO-UI COMPONENTS (v4)

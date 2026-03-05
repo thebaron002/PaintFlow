@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { format } from "date-fns";
+import { safeFormatDate } from "@/lib/safe-date";
 import { MapPin, Calendar, ChevronRight } from "lucide-react";
 import type { Job } from "@/app/lib/types";
 import { cn } from "@/lib/utils";
@@ -71,13 +71,13 @@ export function MobileJobCard({ job }: { job: Job }) {
                         <div className="text-sm font-medium text-zinc-800 flex flex-col gap-1 items-end">
                             <div className="flex items-center gap-2">
                                 <Calendar className="w-4 h-4 text-zinc-900 shrink-0" strokeWidth={2} />
-                                <span>{job.startDate ? format(new Date(job.startDate), "MMM dd, yyyy") : "-"}</span>
+                                <span>{safeFormatDate(job.startDate, "MMM dd, yyyy")}</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <Calendar className="w-4 h-4 text-zinc-900 shrink-0" strokeWidth={2} />
                                 <span>
                                     {(job.status === 'Complete' || job.status === 'Finalized' || job.status === 'Open Payment') && job.deadline
-                                        ? format(new Date(job.deadline), "MMM dd, yyyy")
+                                        ? safeFormatDate(job.deadline, "MMM dd, yyyy")
                                         : "-"}
                                 </span>
                             </div>

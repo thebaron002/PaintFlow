@@ -39,7 +39,7 @@ import {
     SheetFooter,
     SheetClose
 } from "@/components/ui/sheet";
-import { AddGeneralExpenseForm } from "../finance/components/add-general-expense-form";
+import { AddGeneralExpenseForm } from "./components/add-general-expense-form";
 import { FinalizeJobsSheet } from "./components/finalize-jobs-sheet";
 
 // Firebase
@@ -54,8 +54,8 @@ import { collection, doc } from "firebase/firestore";
 
 // Shared Logic
 import { useFinanceData } from "@/hooks/use-finance-data";
-import { FloatingNav } from "./components/floating-nav";
-import { NanoHeader } from "./components/nano-header";
+import { FloatingNav } from "../components/floating-nav";
+import { NanoHeader } from "../components/nano-header";
 
 // ---------------------------------------------------------------------
 // NANO-UI COMPONENTS
