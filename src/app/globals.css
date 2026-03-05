@@ -96,11 +96,7 @@
 }
 
 .app-bg {
-  --blob-1: radial-gradient(900px 600px at -10% -10%, #f5f7fa 35%, transparent 60%);
-  --blob-2: radial-gradient(900px 600px at 110% -10%, #eef1f4 35%, transparent 60%);
-  --blob-3: radial-gradient(800px 500px at 50% 120%, #e9edf1 28%, transparent 60%);
-  --base: linear-gradient(180deg, #f7f7f8 0%, #eef1f4 40%, #e9edf1 100%);
-  background: var(--blob-1), var(--blob-2), var(--blob-3), var(--base);
+  background-color: #f2f1ef;
 }
 
 .glass {
