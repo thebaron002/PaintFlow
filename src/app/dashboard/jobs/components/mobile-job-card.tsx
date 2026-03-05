@@ -32,7 +32,7 @@ export function MobileJobCard({ job }: { job: Job }) {
     const statusLabel = job.status === "In Progress" ? "In Progress" : job.status;
 
     return (
-        <Link href={`/dashboard/mobile/jobs/${job.id}`}>
+        <Link href={`/dashboard/jobs/${job.id}`}>
             <NanoGlassCard className="p-5 flex flex-col gap-4">
                 {/* Header: Title & Chevron */}
                 <div className="flex justify-between items-start">

@@ -1,475 +1,457 @@
-
 "use client";
 
-import { useState, useEffect, useActionState, useMemo } from "react";
+import * as React from "react";
 import { useRouter } from "next/navigation";
-import { PageHeader } from "@/components/page-header";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card";
-import { 
-  Table,
-  TableBody,
-  TableCell,
-  TableFooter,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import type { Job, GeneralSettings, UserProfile, PayrollReport } from "@/app/lib/types";
-import { ChevronDown, LoaderCircle, History, MoreHorizontal } from "lucide-react";
+import { format, parseISO, getISOWeek, getISOWeekYear, startOfISOWeek, endOfISOWeek, subWeeks } from "date-fns";
+import {
+    Wallet,
+    Calendar,
+    ChevronRight,
+    History,
+    MoreVertical,
+    Check,
+    AlertCircle,
+    LoaderCircle,
+    RefreshCw,
+    X,
+    Plus,
+    DollarSign,
+    Briefcase
+} from "lucide-react";
+
+// Types
+import type { Job, PayrollReport, GeneralSettings } from "@/app/lib/types";
+
+// UI Components
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { useDoc, useFirestore, useMemoFirebase, setDocumentNonBlocking, useCollection, useUser, addDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
-import { collection, query, where, orderBy, limit, doc, getDocs } from "firebase/firestore";
-import { format, parseISO, getWeek, startOfWeek, endOfWeek, getYear } from "date-fns";
 import { cn } from "@/lib/utils";
-import React from "react";
-import { calculateJobPayout, calculateMaterialCost } from "@/app/lib/job-financials";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
+// Firebase
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+    useUser,
+    useFirestore,
+    useMemoFirebase,
+    useCollection,
+    useDoc,
+    addDocumentNonBlocking,
+    deleteDocumentNonBlocking
+} from "@/firebase";
+import { collection, query, orderBy, limit, where, doc, getDocs, updateDoc, writeBatch } from "firebase/firestore";
 
+// Shared Logic
+import { calculateJobPayout } from "@/app/lib/job-financials";
+import { FloatingNav } from "./components/floating-nav";
+import { NanoHeader } from "./components/nano-header";
 
-const JobDetailsRow = ({ job }: { job: Job }) => {
+// ---------------------------------------------------------------------
+// NANO-UI COMPONENTS (v4)
+// ---------------------------------------------------------------------
+
+function NanoGlassCard({ className, children, onClick }: { className?: string, children: React.ReactNode, onClick?: () => void }) {
+    return (
+        <div
+            onClick={onClick}
+            className={cn(
+                "bg-white rounded-[24px] shadow-sm transition-all relative overflow-hidden",
+                onClick && "active:scale-[0.98] active:shadow-none cursor-pointer",
+                className
+            )}
+        >
+            {children}
+        </div>
+    );
+}
+
+// ---------------------------------------------------------------------
+// PAGE
+// ---------------------------------------------------------------------
+
+export default function MobilePayrollPage() {
+    const router = useRouter();
+    const { toast } = useToast();
+    const { user } = useUser();
     const firestore = useFirestore();
+    const [isGenerating, setIsGenerating] = React.useState(false);
+
+    // -- Data Fetching --
     const settingsRef = useMemoFirebase(() => {
         if (!firestore) return null;
         return doc(firestore, "settings", "global");
     }, [firestore]);
     const { data: settings } = useDoc<GeneralSettings>(settingsRef);
-    const globalHourlyRate = settings?.hourlyRate ?? 0;
 
-    const materialCost = calculateMaterialCost(job.invoices);
-    
-    const totalAdjustments = job.adjustments?.reduce((sum, adj) => {
-        if (adj.type === 'Time') {
-            const rate = adj.hourlyRate ?? globalHourlyRate;
-            return sum + (adj.value * rate);
-        }
-        return sum + adj.value;
-    }, 0) ?? 0;
+    const [selectedJobIds, setSelectedJobIds] = React.useState<Set<string>>(new Set());
+    const [isMovingJobs, setIsMovingJobs] = React.useState(false);
 
-    const totalInvoiced = job.invoices?.reduce((sum, inv) => sum + inv.amount, 0) ?? 0;
-
-
-    return (
-         <TableRow className="bg-muted hover:bg-muted">
-            <TableCell colSpan={5} className="p-0">
-                <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="space-y-1">
-                        <p className="text-sm font-medium text-muted-foreground">Start Date</p>
-                        <p>{format(new Date(job.startDate), "MMM dd, yyyy")}</p>
-                    </div>
-                     <div className="space-y-1">
-                        <p className="text-sm font-medium text-muted-foreground">Material Cost</p>
-                        <p>${materialCost.toLocaleString()}</p>
-                    </div>
-                    <div className="space-y-1">
-                        <p className="text-sm font-medium text-muted-foreground">Total Invoiced</p>
-                        <p>${totalInvoiced.toLocaleString()}</p>
-                    </div>
-                     <div className="space-y-1">
-                        <p className="text-sm font-medium text-muted-foreground">Total Adjustments</p>
-                        <p>${totalAdjustments.toLocaleString()}</p>
-                    </div>
-                   
-                    <div className="space-y-1 lg:col-span-4">
-                        <p className="text-sm font-medium text-muted-foreground">Notes</p>
-                        <p className="text-sm">{job.specialRequirements || "No notes for this job."}</p>
-                    </div>
-                </div>
-            </TableCell>
-        </TableRow>
-    )
-}
-
-const JobCard = ({ job, settings }: { job: Job, settings: GeneralSettings | null }) => {
-    const router = useRouter();
-    const jobTitle = job.title || `${job.clientName.split(" ").pop() || "N/A"} #${job.quoteNumber}`;
-    const payout = calculateJobPayout(job, settings);
-
-    return (
-        <Card onClick={() => router.push(`/dashboard/jobs/${job.id}`)} className="cursor-pointer">
-            <CardContent className="p-4">
-                <div className="flex justify-between items-start gap-3">
-                    <div className="flex-1 min-w-0">
-                        <p className="font-semibold truncate">{jobTitle}</p>
-                        <p className="text-sm text-muted-foreground truncate">{job.address}</p>
-                    </div>
-                    <p className="text-lg font-bold ml-4 shrink-0">${payout.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
-                </div>
-                <div className="flex justify-between items-center mt-3 text-xs text-muted-foreground">
-                    <span>Completion Date</span>
-                    <span>{format(new Date(job.deadline), "MMM dd, yyyy")}</span>
-                </div>
-            </CardContent>
-        </Card>
-    );
-};
-
-export default function PayrollPage() {
-  const router = useRouter();
-  const { toast } = useToast();
-  const { user } = useUser();
-  const firestore = useFirestore();
-  const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [reportToDelete, setReportToDelete] = useState<string | null>(null);
-
-  const settingsRef = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return doc(firestore, "settings", "global");
-  }, [firestore]);
-
-  const { data: settings, isLoading: isLoadingSettings } = useDoc<GeneralSettings>(settingsRef);
-  
-  const userProfileRef = useMemoFirebase(() => {
-      if (!firestore || !user) return null;
-      return doc(firestore, "users", user.uid);
-  }, [firestore, user]);
-  const { data: userProfile, isLoading: isLoadingProfile } = useDoc<UserProfile>(userProfileRef);
-
-  const jobsToPayQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(collection(firestore, 'users', user.uid, 'jobs'), where('status', '==', 'Open Payment'));
-  }, [firestore, user]);
-
-  const { data: jobsToPay, isLoading: isLoadingJobs } = useCollection<Job>(jobsToPayQuery);
-  
-  const sortedJobsToPay = useMemo(() => {
-    if (!jobsToPay) return [];
-    return [...jobsToPay].sort((a, b) => parseISO(a.deadline).getTime() - parseISO(b.deadline).getTime());
-  }, [jobsToPay]);
-  
-  const totalReadyForPayout = useMemo(() => {
-    if (!sortedJobsToPay || !settings) return 0;
-    return sortedJobsToPay.reduce((acc, job) => acc + calculateJobPayout(job, settings), 0);
-  }, [sortedJobsToPay, settings]);
-
-
-  const reportsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(collection(firestore, 'users', user.uid, 'payrollReports'), orderBy('sentDate', 'desc'), limit(10));
-  }, [firestore, user]);
-
-  const { data: pastReports, isLoading: isLoadingReports } = useCollection<PayrollReport>(reportsQuery);
-
-
-  const isLoading = isLoadingJobs || isLoadingSettings || isLoadingProfile || isLoadingReports;
-
-  const handleJobClick = (jobId: string) => {
-    router.push(`/dashboard/jobs/${jobId}`);
-  };
-
-  const handleReportClick = (reportId: string) => {
-    router.push(`/dashboard/payroll/${reportId}`);
-  }
-  
-  const toggleRow = (jobId: string) => {
-    setExpandedJobId(prevId => (prevId === jobId ? null : jobId));
-  }
-  
-  const handleGenerateAndSave = async () => {
-    if (!sortedJobsToPay || sortedJobsToPay.length === 0 || !firestore || !user) {
-      toast({
-        variant: "destructive",
-        title: "No Jobs for Payroll",
-        description: "There are no jobs with 'Open Payment' status to include in the report.",
-      });
-      return;
-    }
-    
-    setIsGenerating(true);
-
-    try {
-        const now = new Date();
-        const currentWeek = getWeek(now);
-        const currentYear = getYear(now);
-        
-        // Check for existing report for the current week and year
-        const reportsCollectionRef = collection(firestore, 'users', user.uid, 'payrollReports');
-        const existingReportQuery = query(reportsCollectionRef, 
-            where('weekNumber', '==', currentWeek),
-            where('year', '==', currentYear)
+    const openPaymentJobsQuery = useMemoFirebase(() => {
+        if (!firestore || !user) return null;
+        return query(
+            collection(firestore, "users", user.uid, "jobs"),
+            where("status", "==", "Open Payment")
         );
-        const existingReportSnap = await getDocs(existingReportQuery);
+    }, [firestore, user]);
+    const { data: jobsToPay, isLoading: isLoadingOpenPayment } = useCollection<Job>(openPaymentJobsQuery);
 
-        if (!existingReportSnap.empty) {
+    const completeJobsQuery = useMemoFirebase(() => {
+        if (!firestore || !user) return null;
+        return query(
+            collection(firestore, "users", user.uid, "jobs"),
+            where("status", "==", "Complete")
+        );
+    }, [firestore, user]);
+    const { data: completeJobs, isLoading: isLoadingCompleteJobs } = useCollection<Job>(completeJobsQuery);
+
+    const reportsQuery = useMemoFirebase(() => {
+        if (!firestore || !user) return null;
+        return query(
+            collection(firestore, "users", user.uid, "payrollReports"),
+            orderBy("sentDate", "desc"),
+            limit(10)
+        );
+    }, [firestore, user]);
+    const { data: pastReports, isLoading: isLoadingReports } = useCollection<PayrollReport>(reportsQuery);
+
+    // -- Derived State --
+    const sortedOpenJobs = React.useMemo(() => {
+        if (!jobsToPay) return [];
+        return [...jobsToPay].sort((a, b) => {
+            const dateA = a.deadline || a.startDate;
+            const dateB = b.deadline || b.startDate;
+            const timeA = dateA ? parseISO(dateA).getTime() : 0;
+            const timeB = dateB ? parseISO(dateB).getTime() : 0;
+            return timeA - timeB;
+        });
+    }, [jobsToPay]);
+
+    const sortedCompleteJobs = React.useMemo(() => {
+        if (!completeJobs) return [];
+        return [...completeJobs].sort((a, b) => {
+            const dateA = a.deadline || a.startDate;
+            const dateB = b.deadline || b.startDate;
+            const timeA = dateA ? parseISO(dateA).getTime() : 0;
+            const timeB = dateB ? parseISO(dateB).getTime() : 0;
+            return timeA - timeB;
+        });
+    }, [completeJobs]);
+
+    const totalPayout = React.useMemo(() => {
+        if (!sortedOpenJobs || !settings) return 0;
+        return sortedOpenJobs.reduce((acc, job) => acc + calculateJobPayout(job, settings), 0);
+    }, [sortedOpenJobs, settings]);
+
+    // -- Handlers --
+    const handleToggleSelection = (jobId: string) => {
+        const newSet = new Set(selectedJobIds);
+        if (newSet.has(jobId)) newSet.delete(jobId);
+        else newSet.add(jobId);
+        setSelectedJobIds(newSet);
+    };
+
+    const handleMoveToOpenPayment = async () => {
+        if (selectedJobIds.size === 0 || !firestore || !user) return;
+
+        setIsMovingJobs(true);
+        try {
+            const batch = writeBatch(firestore);
+            selectedJobIds.forEach((jobId) => {
+                const jobRef = doc(firestore, "users", user.uid, "jobs", jobId);
+                batch.update(jobRef, { status: "Open Payment" });
+            });
+            await batch.commit();
+            setSelectedJobIds(new Set());
+            toast({ title: "Updated! 💸", description: `${selectedJobIds.size} jobs moved to payroll.` });
+        } catch (err) {
+            console.error(err);
+            toast({ variant: "destructive", title: "Error", description: "Failed to update jobs." });
+        } finally {
+            setIsMovingJobs(false);
+        }
+    };
+
+    const handleGenerateReport = async () => {
+        if (!sortedOpenJobs.length || !firestore || !user) {
             toast({
                 variant: "destructive",
-                title: "Report Already Exists",
-                description: `A payroll report for week ${currentWeek} of ${currentYear} has already been saved.`,
+                title: "No Jobs Ready",
+                description: "Complete jobs and move them to payroll first.",
             });
-            setIsGenerating(false);
             return;
         }
 
-        const start = startOfWeek(now);
-        const end = endOfWeek(now);
-        const totalPayout = sortedJobsToPay.reduce((acc, job) => acc + calculateJobPayout(job, settings), 0);
+        setIsGenerating(true);
+        try {
+            const now = new Date();
+            // Default to PREVIOUS WEEK logic as requested
+            const targetDate = subWeeks(now, 1);
 
-        const newReport: Omit<PayrollReport, 'id'> = {
-            weekNumber: currentWeek,
-            year: currentYear,
-            startDate: start.toISOString(),
-            endDate: end.toISOString(),
-            sentDate: now.toISOString(),
-            recipientCount: 0,
-            totalPayout,
-            jobCount: sortedJobsToPay.length,
-            jobIds: sortedJobsToPay.map(j => j.id),
-        };
-        await addDocumentNonBlocking(reportsCollectionRef, newReport);
-        
-        toast({
-            title: "Report Generated & Saved",
-            description: "The payroll report has been saved to your history.",
-        });
+            const week = getISOWeek(targetDate);
+            const year = getISOWeekYear(targetDate);
 
-    } catch (error) {
-      console.error("Failed to generate or save report:", error);
-      toast({
-          variant: "destructive",
-          title: "Process Failed",
-          description: "Could not generate or save the payroll report.",
-      });
-    } finally {
-        setIsGenerating(false);
-    }
-  };
+            // Basic dupe check (matching original logic)
+            const reportsCollection = collection(firestore, 'users', user.uid, 'payrollReports');
+            const q = query(reportsCollection, where('weekNumber', '==', week), where('year', '==', year));
+            const snap = await getDocs(q);
 
-  const handleDeleteReport = () => {
-    if (!reportToDelete || !firestore || !user) return;
-    const reportRef = doc(firestore, "users", user.uid, "payrollReports", reportToDelete);
-    deleteDocumentNonBlocking(reportRef);
-    toast({
-        title: "Report Deleted",
-        description: "The selected payroll report has been deleted.",
-    });
-    setReportToDelete(null);
-  };
+            if (!snap.empty) {
+                toast({ variant: "destructive", title: "Already Generated", description: `Weekly report for week ${week} exists.` });
+                setIsGenerating(false);
+                return;
+            }
 
+            const newReport = {
+                weekNumber: week,
+                year,
+                startDate: startOfISOWeek(targetDate).toISOString(),
+                endDate: endOfISOWeek(targetDate).toISOString(),
+                sentDate: now.toISOString(),
+                recipientCount: 0,
+                totalPayout,
+                jobCount: sortedOpenJobs.length,
+                jobIds: sortedOpenJobs.map(j => j.id),
+            };
 
-  return (
-    <div>
-      <PageHeader title="Payroll" />
-      <div className="grid gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Jobs Ready for Payout</CardTitle>
-              <CardDescription>
-                These jobs have the status "Open Payment" and are ready to be processed for payroll.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-                {/* Desktop Table */}
-              <div className="hidden md:block">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Job</TableHead>
-                      <TableHead>Completion Date</TableHead>
-                      <TableHead className="text-right">Payout</TableHead>
-                      <TableHead className="w-[100px] text-center">Details</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {isLoadingJobs ? (
-                      [...Array(3)].map((_, i) => (
-                        <TableRow key={i}>
-                          <TableCell>
-                            <Skeleton className="h-5 w-32 mb-1" />
-                            <Skeleton className="h-4 w-40" />
-                          </TableCell>
-                          <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                          <TableCell className="text-right"><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
-                           <TableCell><Skeleton className="h-8 w-full" /></TableCell>
-                        </TableRow>
-                      ))
-                    ) : sortedJobsToPay && sortedJobsToPay.length > 0 ? sortedJobsToPay.map(job => {
-                       const jobTitle = job.title || `${job.clientName.split(" ").pop() || "N/A"} #${job.quoteNumber}`;
-                       const payout = calculateJobPayout(job, settings);
+            await addDocumentNonBlocking(reportsCollection, newReport);
+            toast({ title: "Report Saved! 📄", description: "Weekly payroll history updated." });
+        } catch (err) {
+            console.error(err);
+            toast({ variant: "destructive", title: "Error", description: "Failed to generate report." });
+        } finally {
+            setIsGenerating(false);
+        }
+    };
 
-                      return (
-                          <React.Fragment key={job.id}>
-                             <TableRow>
-                              <TableCell>
-                                <div 
-                                  className="font-medium cursor-pointer hover:underline"
-                                  onClick={() => handleJobClick(job.id)}
-                                >
-                                  {jobTitle}
+    const handleDeleteReport = (reportId: string) => {
+        if (!firestore || !user) return;
+        const ref = doc(firestore, "users", user.uid, "payrollReports", reportId);
+        deleteDocumentNonBlocking(ref);
+        toast({ title: "Report Deleted" });
+    };
+
+    return (
+        <div className="min-h-screen bg-[#F2F1EF] pb-32 font-sans relative overflow-x-hidden">
+            <div className="px-5 pt-16 max-w-md mx-auto">
+                <NanoHeader
+                    subtitle="Weekly Summary,"
+                    title={"Payroll &\nPayouts"}
+                />
+
+                {/* 2. Completed Jobs Selection */}
+                <div className="mb-8">
+                    <div className="flex justify-between items-center mb-4 px-1">
+                        <h2 className="text-lg font-extrabold text-zinc-900">Completed Jobs</h2>
+                        <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">{sortedCompleteJobs.length} To Approve</span>
+                    </div>
+
+                    <NanoGlassCard className="p-1 pb-4 bg-white border border-zinc-100 shadow-sm">
+                        <div className="flex flex-col">
+                            {isLoadingCompleteJobs ? (
+                                <div className="p-4 space-y-3">
+                                    <Skeleton className="h-12 w-full rounded-xl" />
+                                    <Skeleton className="h-12 w-full rounded-xl" />
                                 </div>
-                                <div className="text-sm text-muted-foreground">{job.address}</div>
-                              </TableCell>
-                              <TableCell>{format(new Date(job.deadline), "MMM dd, yyyy")}</TableCell>
-                              <TableCell className="text-right">${payout.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</TableCell>
-                              <TableCell className="text-center">
-                                  <Button variant="ghost" size="sm" onClick={() => toggleRow(job.id)}>
-                                      <span className="sr-only">Toggle Details</span>
-                                      <ChevronDown className={cn("h-4 w-4 transition-transform", expandedJobId === job.id && "rotate-180")} />
-                                  </Button>
-                              </TableCell>
-                            </TableRow>
-                            {expandedJobId === job.id && <JobDetailsRow job={job} />}
-                         </React.Fragment>
-                      )
-                    }) : (
-                      <TableRow>
-                        <TableCell colSpan={4} className="text-center h-24">
-                          No jobs are currently awaiting payment.
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                  <TableFooter>
-                      <TableRow>
-                          <TableCell colSpan={2} className="font-bold">Total</TableCell>
-                          <TableCell className="text-right font-bold">
-                              ${totalReadyForPayout.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                          </TableCell>
-                          <TableCell></TableCell>
-                      </TableRow>
-                  </TableFooter>
-                </Table>
-              </div>
+                            ) : sortedCompleteJobs.length > 0 ? (
+                                <>
+                                    <div className="flex flex-col max-h-[300px] overflow-y-auto px-1">
+                                        {sortedCompleteJobs.map((job) => (
+                                            <div
+                                                key={job.id}
+                                                onClick={() => handleToggleSelection(job.id)}
+                                                className={cn(
+                                                    "flex items-center gap-4 p-4 rounded-2xl transition-all active:scale-[0.98]",
+                                                    selectedJobIds.has(job.id) ? "bg-zinc-50" : "bg-transparent hover:bg-zinc-50/50"
+                                                )}
+                                            >
+                                                <div className={cn(
+                                                    "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all",
+                                                    selectedJobIds.has(job.id) ? "bg-emerald-500 border-emerald-500" : "border-zinc-200"
+                                                )}>
+                                                    {selectedJobIds.has(job.id) && <Check className="w-4 h-4 text-white" />}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <h4 className="text-zinc-900 font-bold text-sm truncate">
+                                                        {job.title ? job.title : `${job.clientName.split(' ')[0]} #${job.quoteNumber || "000"}`}
+                                                    </h4>
+                                                    <p className="text-zinc-400 text-[10px] font-bold tracking-widest uppercase">
+                                                        $ {calculateJobPayout(job, settings).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="px-4 mt-4">
+                                        <button
+                                            onClick={handleMoveToOpenPayment}
+                                            disabled={selectedJobIds.size === 0 || isMovingJobs}
+                                            className={cn(
+                                                "w-full h-12 rounded-xl flex items-center justify-center gap-2 font-bold transition-all shadow-md active:scale-[0.95]",
+                                                selectedJobIds.size > 0
+                                                    ? "bg-[#FF5A5F] text-white shadow-rose-100"
+                                                    : "bg-zinc-100 text-zinc-400 cursor-not-allowed shadow-none"
+                                            )}
+                                        >
+                                            {isMovingJobs ? <LoaderCircle className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                                            <span>Move to Payroll ({selectedJobIds.size})</span>
+                                        </button>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="py-10 text-center text-zinc-400">
+                                    <Briefcase className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                                    <p className="text-[10px] font-bold uppercase tracking-widest px-4 leading-relaxed">
+                                        No new completed jobs found
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    </NanoGlassCard>
+                </div>
 
-               {/* Mobile Card List */}
-               <div className="md:hidden space-y-4">
-                  {isLoadingJobs ? (
-                      [...Array(3)].map((_, i) => <Skeleton key={i} className="h-24 w-full" />)
-                  ) : sortedJobsToPay && sortedJobsToPay.length > 0 ? (
-                      sortedJobsToPay.map(job => (
-                          <JobCard key={job.id} job={job} settings={settings} />
-                      ))
-                  ) : (
-                      <div className="text-center text-muted-foreground py-10">
-                          No jobs are currently awaiting payment.
-                      </div>
-                  )}
+                {/* 3. Main Summary Card */}
+                <NanoGlassCard className="p-6 mb-8 bg-white border border-zinc-100 shadow-sm">
+                    <div className="flex flex-col gap-1 mb-6">
+                        <span className="text-zinc-400 text-xs font-bold uppercase tracking-widest">Total Ready for Payout</span>
+                        <div className="flex items-baseline gap-1">
+                            <span className="text-4xl font-extrabold text-zinc-950 tracking-tighter">
+                                $ {totalPayout.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 mt-2">
+                            <div className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-bold">
+                                {sortedOpenJobs.length} PENDING IN REPORT
+                            </div>
+                        </div>
+                    </div>
 
-                  {sortedJobsToPay && sortedJobsToPay.length > 0 && (
-                      <div className="flex justify-between items-center border-t pt-4 mt-4">
-                          <p className="font-bold">Total</p>
-                          <p className="font-bold text-lg">${totalReadyForPayout.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
-                      </div>
-                  )}
-              </div>
-            </CardContent>
-          </Card>
-          
-          <div className="flex justify-end">
-             <Button onClick={handleGenerateAndSave} disabled={isGenerating || isLoading || !sortedJobsToPay || sortedJobsToPay.length === 0}>
-                {isGenerating ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <History className="mr-2 h-4 w-4" />}
-                {isGenerating ? 'Saving...' : 'Save Report to History'}
-              </Button>
-          </div>
+                    <button
+                        onClick={handleGenerateReport}
+                        disabled={isGenerating || sortedOpenJobs.length === 0}
+                        className={cn(
+                            "w-full h-14 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-[0.98]",
+                            isGenerating || sortedOpenJobs.length === 0
+                                ? "bg-zinc-100 text-zinc-400 grayscale cursor-not-allowed"
+                                : "bg-zinc-950 text-white font-bold"
+                        )}
+                    >
+                        {isGenerating ? (
+                            <LoaderCircle className="w-5 h-5 animate-spin" />
+                        ) : (
+                            <RefreshCw className="w-5 h-5" />
+                        )}
+                        <span>{isGenerating ? "Generating..." : "Generate Weekly Report"}</span>
+                    </button>
+                </NanoGlassCard>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Report History</CardTitle>
-              <CardDescription>A log of your past generated payroll reports.</CardDescription>
-            </CardHeader>
-            <CardContent>
-               <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Week</TableHead>
-                    <TableHead>Date Saved</TableHead>
-                    <TableHead>Jobs</TableHead>
-                    <TableHead className="text-right">Total Payout</TableHead>
-                    <TableHead className="w-[50px] text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoadingReports ? (
-                     [...Array(3)].map((_, i) => (
-                      <TableRow key={i}>
-                        <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-                        <TableCell><Skeleton className="h-5 w-28" /></TableCell>
-                        <TableCell><Skeleton className="h-5 w-12" /></TableCell>
-                        <TableCell className="text-right"><Skeleton className="h-5 w-24 ml-auto" /></TableCell>
-                        <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
-                      </TableRow>
-                    ))
-                  ) : pastReports && pastReports.length > 0 ? (
-                    pastReports.map(report => (
-                      <TableRow key={report.id} className="group">
-                        <TableCell onClick={() => handleReportClick(report.id)} className="cursor-pointer">
-                          <div className="font-medium">Week {report.weekNumber}, {report.year}</div>
-                        </TableCell>
-                        <TableCell onClick={() => handleReportClick(report.id)} className="cursor-pointer">{format(new Date(report.sentDate), "MMM dd, yyyy")}</TableCell>
-                        <TableCell onClick={() => handleReportClick(report.id)} className="cursor-pointer">{report.jobCount}</TableCell>
-                        <TableCell onClick={() => handleReportClick(report.id)} className="text-right cursor-pointer">${report.totalPayout.toLocaleString()}</TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <MoreHorizontal className="h-4 w-4" />
-                                <span className="sr-only">Open menu</span>
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuItem disabled>Edit</DropdownMenuItem>
-                                <DropdownMenuItem 
-                                    className="text-destructive"
-                                    onSelect={() => setReportToDelete(report.id)}
+                {/* 4. Ready for Payout List */}
+                <div className="mb-8">
+                    <div className="flex justify-between items-center mb-4 px-1">
+                        <h2 className="text-lg font-extrabold text-zinc-900">Ready for Payout</h2>
+                        <span className="text-xs font-bold text-emerald-500 uppercase tracking-widest">Included</span>
+                    </div>
+
+                    <div className="flex flex-col gap-3">
+                        {isLoadingOpenPayment ? (
+                            [...Array(2)].map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-[24px]" />)
+                        ) : sortedOpenJobs.length > 0 ? (
+                            sortedOpenJobs.map((job) => (
+                                <NanoGlassCard key={job.id} className="p-4" onClick={() => router.push(`/dashboard/jobs/${job.id}`)}>
+                                    <div className="flex justify-between items-center">
+                                        <div className="flex-1 min-w-0 pr-4">
+                                            <h4 className="text-zinc-900 font-bold text-sm truncate">
+                                                {job.title ? job.title : `${job.clientName.split(' ')[0]} #${job.quoteNumber || "000"}`}
+                                            </h4>
+                                            <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-tighter mt-1">
+                                                {(job.deadline || job.startDate) ? format(parseISO(job.deadline || job.startDate), "MMM dd") : "-"} • {job.address.split(',')[0]}
+                                            </p>
+                                        </div>
+                                        <div className="text-right shrink-0">
+                                            <div className="text-zinc-950 font-extrabold text-sm tracking-tight">
+                                                $ {calculateJobPayout(job, settings).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                            </div>
+                                        </div>
+                                        <ChevronRight className="w-4 h-4 text-zinc-300 ml-2" />
+                                    </div>
+                                </NanoGlassCard>
+                            ))
+                        ) : (
+                            <div className="py-6 text-center text-zinc-400 bg-white/30 rounded-[24px] border border-dashed border-zinc-200">
+                                <p className="text-[10px] font-bold uppercase tracking-widest">Payroll is empty</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* 4. Past Reports History */}
+                <div className="mb-8 pb-4">
+                    <div className="flex justify-between items-center mb-4 px-1">
+                        <h2 className="text-lg font-extrabold text-zinc-900">Report History</h2>
+                        <History className="w-4 h-4 text-zinc-400" />
+                    </div>
+
+                    <div className="flex flex-col gap-3">
+                        {isLoadingReports ? (
+                            [...Array(3)].map((_, i) => <Skeleton key={i} className="h-16 w-full rounded-[24px]" />)
+                        ) : pastReports && pastReports.length > 0 ? (
+                            pastReports.map((report) => (
+                                <NanoGlassCard
+                                    key={report.id}
+                                    className="p-4 flex items-center justify-between border-l-4 border-l-blue-500"
+                                    onClick={() => router.push(`/dashboard/payroll/${report.id}`)}
                                 >
-                                    Delete
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={5} className="h-24 text-center">
-                        No reports have been saved yet.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-      </div>
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+                                            <Wallet className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-zinc-900 font-bold text-sm">Week {report.weekNumber}, {report.year}</h4>
+                                            <p className="text-zinc-500 text-[10px] font-medium uppercase tracking-tighter">
+                                                {format(new Date(report.sentDate), "MMM dd, yyyy")} • {report.jobCount} Jobs
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <div className="text-right">
+                                            <div className="text-zinc-950 font-bold text-sm">
+                                                $ {report.totalPayout.toLocaleString()}
+                                            </div>
+                                        </div>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                                <button className="p-1 hover:bg-zinc-100 rounded-full transition-colors">
+                                                    <MoreVertical className="w-4 h-4 text-zinc-400" />
+                                                </button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end" className="rounded-xl border-zinc-100 shadow-xl">
+                                                <DropdownMenuItem
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleDeleteReport(report.id);
+                                                    }}
+                                                    className="text-destructive font-medium focus:bg-red-50"
+                                                >
+                                                    Delete Report
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </div>
+                                </NanoGlassCard>
+                            ))
+                        ) : (
+                            <p className="text-center py-6 text-zinc-400 text-xs italic">No reports found.</p>
+                        )}
+                    </div>
+                </div>
 
-       <AlertDialog open={!!reportToDelete} onOpenChange={(open) => !open && setReportToDelete(null)}>
-        <AlertDialogContent>
-            <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete this payroll report.
-            </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteReport}>Delete</AlertDialogAction>
-            </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
-  );
+            </div>
+
+            {/* Bottom Nav */}
+            <FloatingNav />
+        </div>
+    );
 }

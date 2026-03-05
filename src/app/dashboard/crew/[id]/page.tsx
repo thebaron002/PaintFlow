@@ -3,8 +3,8 @@
 
 import { useFirestore, useUser, useDoc, useCollection, useMemoFirebase, setDocumentNonBlocking } from "@/firebase";
 import { doc, collection, query, where, orderBy, updateDoc } from "firebase/firestore";
-import { NanoHeader } from "../../components/nano-header";
-import { FloatingNav } from "../../components/floating-nav";
+import { NanoHeader } from "../components/nano-header";
+import { FloatingNav } from "../components/floating-nav";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { CrewMember, Job, Expense, ProductionDay } from "@/app/lib/types";
 import { useParams, useRouter } from "next/navigation";

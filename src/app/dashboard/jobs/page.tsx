@@ -1,147 +1,190 @@
-
 "use client";
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
-import { collection } from "firebase/firestore";
+import { collection, query, orderBy } from "firebase/firestore";
 import type { Job } from "@/app/lib/types";
 import { cn } from "@/lib/utils";
-import { Plus, Search } from "lucide-react";
-import { JobCard } from "./_components/job-card";
+import { Search, Menu, ArrowLeft, X, ChevronRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { MobileJobCard } from "./components/mobile-job-card";
+import { FloatingNav } from "./components/floating-nav";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
+import { useToast } from "@/hooks/use-toast";
+import { AddJobForm } from "@/app/dashboard/jobs/components/add-job-form";
+import { NanoHeader } from "./components/nano-header";
+import React from "react";
 
 type JobStatus = Job['status'];
 
 const statusOrder: JobStatus[] = ["In Progress", "Not Started", "Open Payment", "Complete", "Finalized"];
 
 const filters: { label: string; value: JobStatus | "all" }[] = [
-  { label: "All", value: "all" },
-  { label: "Not Started", value: "Not Started" },
-  { label: "In Progress", value: "In Progress" },
-  { label: "Complete", value: "Complete" },
-  { label: "Open Payment", value: "Open Payment" },
-  { label: "Finalized", value: "Finalized" },
+    { label: "Not Started", value: "Not Started" },
+    { label: "In Progress", value: "In Progress" },
+    { label: "Complete", value: "Complete" },
+    { label: "Open Payment", value: "Open Payment" },
+    { label: "Finalized", value: "Finalized" },
 ];
 
-export default function MyJobsPage() {
-  const { user } = useUser();
-  const firestore = useFirestore();
-  const [activeFilter, setActiveFilter] = useState<JobStatus | "all">("all");
-  const [searchTerm, setSearchTerm] = useState("");
+export default function MobileJobsListPage() {
+    const { user } = useUser();
+    const firestore = useFirestore();
+    const [activeFilter, setActiveFilter] = useState<JobStatus | "all">("all");
+    const [searchTerm, setSearchTerm] = useState("");
 
-  const jobsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return collection(firestore, 'users', user.uid, 'jobs');
-  }, [firestore, user]);
+    // -- Job Modal Logic --
+    const [isAddJobOpen, setAddJobOpen] = useState(false);
+    const [isJobFormValid, setIsJobFormValid] = useState(false);
+    const { toast } = useToast();
+    const jobSubmitTriggerRef = React.useRef<(() => void) | null>(null);
+    const handleJobSubmit = () => { jobSubmitTriggerRef.current?.(); };
 
-  const { data: jobs, isLoading } = useCollection<Job>(jobsQuery);
+    const jobsQuery = useMemoFirebase(() => {
+        if (!firestore || !user) return null;
+        return query(collection(firestore, 'users', user.uid, 'jobs'), orderBy("startDate", "desc"));
+    }, [firestore, user]);
 
-  const filteredAndSortedJobs = useMemo(() => {
-    if (!jobs) return [];
+    const { data: jobs, isLoading } = useCollection<Job>(jobsQuery);
 
-    const filtered = jobs
-      .filter(job => {
-        // Filter by status
-        const statusMatch = activeFilter === 'all' || job.status === activeFilter;
-        if (!statusMatch) return false;
+    const filteredAndSortedJobs = useMemo(() => {
+        if (!jobs) return [];
 
-        // Filter by search term
-        if (searchTerm) {
-          const lowerCaseSearch = searchTerm.toLowerCase();
-          const clientNameMatch = job.clientName.toLowerCase().includes(lowerCaseSearch);
-          const addressMatch = job.address.toLowerCase().includes(lowerCaseSearch);
-          const titleMatch = job.title?.toLowerCase().includes(lowerCaseSearch);
-          const quoteMatch = job.quoteNumber?.toLowerCase().includes(lowerCaseSearch);
-          
-          return clientNameMatch || addressMatch || titleMatch || quoteMatch;
-        }
+        const filtered = jobs
+            .filter(job => {
+                // Filter by status
+                const statusMatch = activeFilter === 'all' || job.status === activeFilter;
+                if (!statusMatch) return false;
 
-        return true;
-      });
+                // Filter by search term
+                if (searchTerm) {
+                    const lowerCaseSearch = searchTerm.toLowerCase();
+                    const clientNameMatch = job.clientName.toLowerCase().includes(lowerCaseSearch);
+                    const addressMatch = job.address.toLowerCase().includes(lowerCaseSearch);
+                    const titleMatch = job.title?.toLowerCase().includes(lowerCaseSearch);
+                    const quoteMatch = job.quoteNumber?.toLowerCase().includes(lowerCaseSearch);
 
-      // Sort the filtered jobs
-      return filtered.sort((a, b) => {
-        // Sort by status first
-        const statusIndexA = statusOrder.indexOf(a.status);
-        const statusIndexB = statusOrder.indexOf(b.status);
-        if (statusIndexA !== statusIndexB) {
-          return statusIndexA - statusIndexB;
-        }
-        // If statuses are the same, sort by start date (newest first)
-        return new Date(b.startDate).getTime() - new Date(a.startDate).getTime();
-      });
+                    return clientNameMatch || addressMatch || titleMatch || quoteMatch;
+                }
 
-  }, [jobs, activeFilter, searchTerm]);
+                return true;
+            });
 
-  return (
-    <div className="min-h-full w-full bg-gradient-to-b from-zinc-50 to-zinc-100 p-4 sm:p-8 rounded-2xl flex flex-col">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">My Jobs</h1>
-          <p className="text-gray-500 text-sm">
-            Gerencie seus trabalhos, status e pagamentos.
-          </p>
-        </div>
-        <Link href="/dashboard/jobs/new" className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-gray-900 text-white font-medium shadow hover:bg-gray-800 transition-colors">
-          <Plus size={18} /> New Job
-        </Link>
-      </div>
+        // Sort
+        return filtered.sort((a, b) => {
+            const statusIndexA = statusOrder.indexOf(a.status);
+            const statusIndexB = statusOrder.indexOf(b.status);
+            if (statusIndexA !== statusIndexB) {
+                return statusIndexA - statusIndexB;
+            }
+            return new Date(b.startDate).getTime() - new Date(a.startDate).getTime();
+        });
 
-      {/* Filtros */}
-      <div className="flex flex-wrap justify-start gap-2 sm:gap-3 mb-6">
-        {filters.map((filter) => (
-          <button
-            key={filter.value}
-            onClick={() => setActiveFilter(filter.value)}
-            className={cn(
-              "px-4 py-2 text-sm font-medium rounded-full border transition-colors",
-              activeFilter === filter.value
-                ? "bg-black text-white border-black"
-                : "bg-white text-gray-700 border-gray-200 hover:bg-gray-100"
-            )}
-          >
-            {filter.label}
-          </button>
-        ))}
-      </div>
+    }, [jobs, activeFilter, searchTerm]);
 
-      {/* Campo de busca */}
-      <div className="mb-6 relative">
-         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-        <input
-          type="text"
-          placeholder="Search job, client or address..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl bg-white text-sm text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-gray-300 focus:outline-none transition-all"
-        />
-      </div>
+    return (
+        <div className="min-h-screen bg-[#F2F1EF] px-5 pt-16 pb-32 font-sans">
+            <NanoHeader title="My Jobs" />
 
-      {/* Cards de Jobs */}
-      {isLoading ? (
-        <div className="flex flex-col gap-4">
-          <Skeleton className="h-40 w-full rounded-xl" />
-          <Skeleton className="h-40 w-full rounded-xl" />
-          <Skeleton className="h-40 w-full rounded-xl" />
-        </div>
-      ) : filteredAndSortedJobs.length > 0 ? (
-        <div className="flex flex-col gap-4">
-            {filteredAndSortedJobs.map(job => (
-                <JobCard key={job.id} job={job} />
-            ))}
-        </div>
-      ) : (
-         <div className="flex-1 flex items-center justify-center">
-            <div className="text-center p-5 bg-white rounded-xl shadow-sm border border-gray-100">
-                <h3 className="text-lg font-semibold text-gray-800">No Jobs Found</h3>
-                <p className="text-sm text-gray-500 mt-1">
-                    No jobs match the current filter and search term.
-                </p>
+            {/* Search Bar */}
+            <div className="mb-6 relative">
+                <input
+                    type="text"
+                    placeholder="Search"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full h-12 rounded-[16px] border-none bg-white pl-5 pr-12 text-[17px] text-zinc-900 placeholder:text-zinc-400 shadow-sm focus:ring-0"
+                />
+                <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400" />
             </div>
+
+            {/* Filter Tabs (Scrollable) */}
+            <div className="flex gap-2 overflow-x-auto pb-4 -mx-5 px-5 no-scrollbar mb-4">
+                {/* 'All' isn't in mockup but usually helpful. Mockup starts with "Not Started" */}
+                <button
+                    onClick={() => setActiveFilter("all")}
+                    className={cn(
+                        "whitespace-nowrap px-4 py-2 rounded-full text-sm font-bold transition-colors",
+                        activeFilter === "all"
+                            ? "bg-white text-zinc-900 shadow-sm"
+                            : "bg-transparent text-zinc-500 hover:text-zinc-700"
+                    )}
+                >
+                    All
+                </button>
+                {filters.map((filter) => (
+                    <button
+                        key={filter.value}
+                        onClick={() => setActiveFilter(filter.value)}
+                        className={cn(
+                            "whitespace-nowrap px-4 py-2 rounded-full text-sm font-bold transition-colors relative",
+                            // Mockup style: Selected looks like a white pill? Or simple text? 
+                            // Image shows: Not Started | In Progress | ...
+                            // They behave like text links separated by bars? No, looks like a segmented control or pills.
+                            // Let's stick to Pill style for touch targets.
+                            activeFilter === filter.value
+                                ? "bg-white text-zinc-900 shadow-sm"
+                                : "bg-transparent text-zinc-500 hover:text-zinc-700"
+                        )}
+                    >
+                        {filter.label}
+                    </button>
+                ))}
+            </div>
+
+            {/* Job List */}
+            <div className="flex flex-col gap-4">
+                {isLoading ? (
+                    <>
+                        <Skeleton className="h-[200px] w-full rounded-[24px]" />
+                        <Skeleton className="h-[200px] w-full rounded-[24px]" />
+                    </>
+                ) : filteredAndSortedJobs.length > 0 ? (
+                    filteredAndSortedJobs.map(job => (
+                        <MobileJobCard key={job.id} job={job} />
+                    ))
+                ) : (
+                    <div className="text-center py-10 text-zinc-400">
+                        <p>No jobs found.</p>
+                    </div>
+                )}
+            </div>
+
+            <FloatingNav onPrimaryClick={() => setAddJobOpen(true)} />
+
+            {/* New Job Sheet */}
+            <Sheet open={isAddJobOpen} onOpenChange={setAddJobOpen}>
+                <SheetContent side="bottom" className="bg-[#F2F2F7]">
+                    <SheetHeader className="flex flex-row items-center justify-between py-2.5 px-1">
+                        <SheetClose className="w-8 h-8 rounded-full bg-[#E5E5EA] flex items-center justify-center transition-opacity active:opacity-70">
+                            <X className="w-3.5 h-3.5 text-[#8E8E93] stroke-[3]" />
+                        </SheetClose>
+
+                        <SheetTitle className="text-[17px] font-semibold text-center !m-0 flex-1">New Job</SheetTitle>
+
+                        <button
+                            type="button"
+                            onClick={handleJobSubmit}
+                            disabled={!isJobFormValid}
+                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${isJobFormValid
+                                ? 'bg-[#007AFF] text-white hover:bg-[#0051D5]'
+                                : 'bg-[#E5E5EA] text-[#8E8E93] cursor-not-allowed'
+                                }`}
+                        >
+                            <ChevronRight className="w-4 h-4 rotate-[-90deg] stroke-[3]" />
+                        </button>
+                    </SheetHeader>
+                    <AddJobForm
+                        onSuccess={() => {
+                            setAddJobOpen(false);
+                            toast({ title: "Job Created", description: "New job added successfully." });
+                        }}
+                        onFormStateChange={(isValid) => setIsJobFormValid(isValid)}
+                        submitTriggerRef={jobSubmitTriggerRef}
+                    />
+                </SheetContent>
+            </Sheet>
         </div>
-      )}
-    </div>
-  );
+    );
 }

@@ -27,10 +27,10 @@ export function NanoHeader({ title, subtitle }: NanoHeaderProps) {
     const { data: profile, isLoading } = useDoc<UserProfile>(profileRef);
 
     const menuItems = [
-        { icon: Home, label: "Home", href: "/dashboard/mobile" },
-        { icon: Users, label: "Crew", href: "/dashboard/mobile/crew" },
-        { icon: Ticket, label: "Tickets", href: "/dashboard/mobile/tickets" },
-        { icon: Settings, label: "Settings", href: "/dashboard/mobile/settings" },
+        { icon: Home, label: "Home", href: "/dashboard" },
+        { icon: Users, label: "Crew", href: "/dashboard/crew" },
+        { icon: Ticket, label: "Tickets", href: "/dashboard/tickets" },
+        { icon: Settings, label: "Settings", href: "/dashboard/settings" },
     ];
 
     const handleSignOut = async () => {
@@ -87,7 +87,7 @@ export function NanoHeader({ title, subtitle }: NanoHeaderProps) {
                     </SheetContent>
                 </Sheet>
 
-                <Link href="/dashboard/mobile/profile">
+                <Link href="/dashboard/profile">
                     <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-sm active:scale-95 transition-transform bg-zinc-200">
                         {isLoading ? (
                             <Skeleton className="w-full h-full" />

@@ -6,11 +6,11 @@ import { LayoutDashboard, Paintbrush, CirclePlus, WalletMinimal, Mails } from "l
 
 export function FloatingNav({ onPrimaryClick }: { onPrimaryClick?: () => void }) {
     const navItems = [
-        { icon: LayoutDashboard, href: "/dashboard/mobile", active: true },
-        { icon: Paintbrush, href: "/dashboard/mobile/jobs" },
+        { icon: LayoutDashboard, href: "/dashboard", active: true },
+        { icon: Paintbrush, href: "/dashboard/jobs" },
         { icon: CirclePlus, href: "/dashboard/jobs/new", isPrimary: true }, // Center Plus
-        { icon: WalletMinimal, href: "/dashboard/mobile/finance" },
-        { icon: Mails, href: "/dashboard/mobile/payroll" },
+        { icon: WalletMinimal, href: "/dashboard/finance" },
+        { icon: Mails, href: "/dashboard/payroll" },
     ];
 
     return (

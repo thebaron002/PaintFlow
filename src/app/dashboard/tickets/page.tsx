@@ -1,149 +1,203 @@
-
 "use client";
 
-import { useState } from "react";
-import type { Ticket } from "@/app/lib/types";
-import { PageHeader } from "@/components/page-header";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { PlusCircle, ArrowUp, ArrowRight, ArrowDown } from "lucide-react";
-import { useCollection, useFirestore, useMemoFirebase, useUser } from "@/firebase";
-import { collection, query, orderBy } from "firebase/firestore";
+import { NanoHeader } from "./components/nano-header";
+import { useFirestore, useUser, useCollection, useMemoFirebase, setDocumentNonBlocking } from "@/firebase";
+import { collection, query, orderBy, where, doc, deleteDoc } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TicketForm } from "./components/ticket-form";
-import { useToast } from "@/hooks/use-toast";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Ticket, Calendar, Clock, AlertCircle, MoreVertical, CheckCircle, Trash } from "lucide-react";
+// ... imports
+
+// ... in MobileTicketsPage
+
+const handleDelete = async (id: string) => {
+    if (!firestore || !user) return;
+    try {
+        await deleteDoc(doc(firestore, 'users', user.uid, 'tickets', id));
+        toast({ title: "Deleted", description: "Ticket removed permanently." });
+    } catch (error) {
+        console.error(error);
+        toast({ title: "Error", description: "Could not delete ticket.", variant: "destructive" });
+    }
+}
+import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
-import { formatDistanceToNow } from "date-fns";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useToast } from "@/hooks/use-toast";
 
-const priorityIcons = {
-  Low: <ArrowDown className="h-4 w-4 text-green-500" />,
-  Medium: <ArrowRight className="h-4 w-4 text-yellow-500" />,
-  High: <ArrowUp className="h-4 w-4 text-red-500" />,
-};
-
-const statusColors = {
-    Open: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-700',
-    'In Progress': 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/50 dark:text-yellow-300 dark:border-yellow-700',
-    Done: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700',
+// Assume basic Ticket Type for now
+interface TicketType {
+    id: string;
+    title: string;
+    description: string;
+    status: 'Open' | 'In Progress' | 'Closed';
+    priority?: 'Low' | 'Medium' | 'High';
+    createdAt: string;
+    ticketId?: string; // e.g. T-1001
 }
 
-type ModalState = {
-  isOpen: boolean;
-  ticket: Ticket | null;
-};
+function NanoTicketCard({ ticket, onResolve, onDelete }: { ticket: TicketType, onResolve: (id: string) => void, onDelete: (id: string) => void }) {
+    const getStatusColor = (s: string) => {
+        switch (s) {
+            case 'Open': return 'bg-blue-100 text-blue-700';
+            case 'In Progress': return 'bg-amber-100 text-amber-700';
+            case 'Closed': return 'bg-zinc-100 text-zinc-500';
+            default: return 'bg-zinc-100 text-zinc-500';
+        }
+    };
 
-export default function TicketsPage() {
-  const firestore = useFirestore();
-  const { user } = useUser();
-  const { toast } = useToast();
-  const [modalState, setModalState] = useState<ModalState>({ isOpen: false, ticket: null });
+    return (
+        <div className="bg-white rounded-[24px] p-5 shadow-sm border border-zinc-50 flex flex-col gap-3 relative">
 
-  const ticketsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(collection(firestore, "users", user.uid, "tickets"), orderBy("createdAt", "desc"));
-  }, [firestore, user]);
+            {/* Action Menu */}
+            <div className="absolute top-4 right-4">
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <button className="p-1.5 -mr-1.5 rounded-full hover:bg-zinc-100 text-zinc-400">
+                            <MoreVertical className="w-5 h-5" />
+                        </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="rounded-[16px]">
+                        {ticket.status !== 'Closed' && (
+                            <DropdownMenuItem onClick={() => onResolve(ticket.id)} className="gap-2 p-3 cursor-pointer">
+                                <CheckCircle className="w-4 h-4 text-green-600" />
+                                <span className="font-semibold text-zinc-700">Mark as Resolved</span>
+                            </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem onClick={() => onDelete(ticket.id)} className="gap-2 p-3 text-red-600 focus:text-red-700 cursor-pointer">
+                            <Trash className="w-4 h-4" />
+                            <span className="font-semibold">Delete Ticket</span>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
 
-  const { data: tickets, isLoading } = useCollection<Ticket>(ticketsQuery);
+            <div className="flex justify-between items-start pr-8">
+                <div className="flex-1">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1 block">
+                        #{ticket.ticketId || ticket.id.slice(0, 6)}
+                    </span>
+                    <h3 className="text-zinc-900 font-bold text-lg leading-tight">{ticket.title}</h3>
+                </div>
+            </div>
+            <div className="self-start">
+                <Badge variant="secondary" className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wide border-0 ${getStatusColor(ticket.status)}`}>
+                    {ticket.status}
+                </Badge>
+            </div>
 
-  const handleFormSuccess = () => {
-    toast({
-      title: `Ticket ${modalState.ticket ? 'Updated' : 'Created'}`,
-      description: `The ticket has been saved successfully.`,
-    });
-    setModalState({ isOpen: false, ticket: null });
-  };
-
-  const openNewTicketModal = () => {
-    setModalState({ isOpen: true, ticket: null });
-  };
-
-  const openEditTicketModal = (ticket: Ticket) => {
-    setModalState({ isOpen: true, ticket });
-  };
-
-  return (
-    <div className="p-4 sm:p-6">
-      <PageHeader title="My Tickets">
-        <Button onClick={openNewTicketModal}>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          New Ticket
-        </Button>
-      </PageHeader>
-
-      <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[100px]">Priority</TableHead>
-              <TableHead>Title</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Created</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              [...Array(5)].map((_, i) => (
-                <TableRow key={i}>
-                  <TableCell><Skeleton className="h-5 w-12" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-full" /></TableCell>
-                  <TableCell><Skeleton className="h-6 w-20" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                </TableRow>
-              ))
-            ) : tickets && tickets.length > 0 ? (
-              tickets.map((ticket) => (
-                <TableRow key={ticket.id} onClick={() => openEditTicketModal(ticket)} className="cursor-pointer">
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                        {priorityIcons[ticket.priority]}
-                        <span>{ticket.priority}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-medium">{ticket.title}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={cn("capitalize", statusColors[ticket.status])}>{ticket.status}</Badge>
-                  </TableCell>
-                  <TableCell>{formatDistanceToNow(new Date(ticket.createdAt), { addSuffix: true })}</TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center">
-                  No tickets found. Create your first one!
-                </TableCell>
-              </TableRow>
+            {ticket.description && (
+                <p className="text-zinc-500 text-sm line-clamp-2 leading-relaxed">
+                    {ticket.description}
+                </p>
             )}
-          </TableBody>
-        </Table>
-      </div>
 
-      <Dialog open={modalState.isOpen} onOpenChange={(isOpen) => setModalState({ isOpen, ticket: isOpen ? modalState.ticket : null })}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{modalState.ticket ? "Edit Ticket" : "Create New Ticket"}</DialogTitle>
-          </DialogHeader>
-          <TicketForm
-            onSuccess={handleFormSuccess}
-            existingTicket={modalState.ticket}
-          />
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
+            <div className="flex items-center gap-4 pt-1 text-xs font-medium text-zinc-400">
+                <div className="flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5" />
+                    <span>{ticket.createdAt ? format(new Date(ticket.createdAt), "MMM dd") : "N/A"}</span>
+                </div>
+                {ticket.priority && (
+                    <div className="flex items-center gap-1.5">
+                        <AlertCircle className={`w-3.5 h-3.5 ${ticket.priority === 'High' ? 'text-red-500' : 'text-zinc-400'}`} />
+                        <span className={ticket.priority === 'High' ? 'text-red-500' : ''}>{ticket.priority}</span>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
 }
 
-    
+export default function MobileTicketsPage() {
+    const firestore = useFirestore();
+    const { user } = useUser();
+    const { toast } = useToast();
+
+    // Placeholder query - verify collection name
+    const ticketsQuery = useMemoFirebase(() => {
+        if (!firestore || !user) return null;
+        return query(collection(firestore, 'users', user.uid, 'tickets'), orderBy('createdAt', 'desc'));
+    }, [firestore, user]);
+
+    const { data: tickets, isLoading } = useCollection<TicketType>(ticketsQuery);
+
+    const activeTickets = tickets?.filter(t => t.status !== 'Closed') || [];
+    const closedTickets = tickets?.filter(t => t.status === 'Closed') || [];
+
+    const handleResolve = async (id: string) => {
+        if (!firestore || !user) return;
+        try {
+            await setDocumentNonBlocking(doc(firestore, 'users', user.uid, 'tickets', id), { status: 'Closed' }, { merge: true });
+            toast({ title: "Resolved", description: "Ticket moved to archive." });
+        } catch (error) {
+            console.error(error);
+            toast({ title: "Error", description: "Could not resolve ticket.", variant: "destructive" });
+        }
+    }
+
+    const handleDelete = async (id: string) => {
+        if (!firestore || !user) return;
+        try {
+            await deleteDocument(doc(firestore, 'users', user.uid, 'tickets', id));
+            toast({ title: "Deleted", description: "Ticket removed permanently." });
+        } catch (error) {
+            console.error(error);
+            toast({ title: "Error", description: "Could not delete ticket.", variant: "destructive" });
+        }
+    }
+
+    return (
+        <div className="min-h-screen bg-[#F2F1EF] px-5 pt-16 font-sans">
+            <NanoHeader
+                title={`Support\nTickets`}
+                subtitle="Issues & Tasks"
+            />
+
+            <Tabs defaultValue="active" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-6 p-1 bg-zinc-200/50 rounded-full h-auto">
+                    <TabsTrigger value="active" className="rounded-full py-2.5 text-xs font-bold uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                        Active
+                    </TabsTrigger>
+                    <TabsTrigger value="closed" className="rounded-full py-2.5 text-xs font-bold uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                        Resolved
+                    </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="active" className="space-y-4 pb-20 mt-0">
+                    {isLoading ? (
+                        [...Array(3)].map((_, i) => <Skeleton key={i} className="h-32 w-full rounded-[24px]" />)
+                    ) : activeTickets.length > 0 ? (
+                        activeTickets.map((ticket) => (
+                            <NanoTicketCard key={ticket.id} ticket={ticket} onResolve={handleResolve} onDelete={handleDelete} />
+                        ))
+                    ) : (
+                        <div className="text-center py-10 text-zinc-400 font-medium">
+                            <Ticket className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                            <p>No active tickets.</p>
+                        </div>
+                    )}
+                </TabsContent>
+
+                <TabsContent value="closed" className="space-y-4 pb-20 mt-0">
+                    {isLoading ? (
+                        [...Array(3)].map((_, i) => <Skeleton key={i} className="h-32 w-full rounded-[24px]" />)
+                    ) : closedTickets.length > 0 ? (
+                        closedTickets.map((ticket) => (
+                            <NanoTicketCard key={ticket.id} ticket={ticket} onResolve={handleResolve} onDelete={handleDelete} />
+                        ))
+                    ) : (
+                        <div className="text-center py-10 text-zinc-400 font-medium">
+                            <CheckCircle className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                            <p>No resolved tickets.</p>
+                        </div>
+                    )}
+                </TabsContent>
+            </Tabs>
+        </div>
+    );
+}

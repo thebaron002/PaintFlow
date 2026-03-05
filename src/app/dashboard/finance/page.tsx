@@ -1,357 +1,366 @@
-
 "use client";
 
-import { useState, useEffect } from "react";
-import { startOfMonth, endOfMonth } from "date-fns";
-import { DateRange } from "react-day-picker";
+import * as React from "react";
+import { useRouter } from "next/navigation";
+import { format, parseISO, startOfMonth, endOfMonth } from "date-fns";
+import {
+    DollarSign,
+    TrendingUp,
+    TrendingDown,
+    Calendar,
+    ArrowUpRight,
+    ArrowDownRight,
+    Wallet,
+    Banknote,
+    Receipt,
+    Plus,
+    ChevronRight,
+    LoaderCircle,
+    ReceiptText,
+    Banknote as PayIcon
+} from "lucide-react";
 
-import { PageHeader } from "@/components/page-header";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { DollarSign, FileDown, PlusCircle, CheckCircle, Banknote } from "lucide-react";
-import { format, parseISO } from "date-fns";
+// Types
 import type { Job, GeneralSettings, GeneralExpense } from "@/app/lib/types";
-import { CashFlowChart } from "./components/cash-flow-chart";
+
+// UI Components
 import { Skeleton } from "@/components/ui/skeleton";
-import { useCollection, useDoc, useFirestore, useMemoFirebase, useUser } from "@/firebase";
-import { collection, doc } from "firebase/firestore";
-import { AddGeneralExpenseForm } from "./components/add-general-expense-form";
-import { useToast } from "@/hooks/use-toast";
-
-import { FinalizePaymentsModal } from "./components/finalize-payments-modal";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
+import { DateRange } from "react-day-picker";
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+    SheetFooter,
+    SheetClose
+} from "@/components/ui/sheet";
+import { AddGeneralExpenseForm } from "../finance/components/add-general-expense-form";
+import { FinalizeJobsSheet } from "./components/finalize-jobs-sheet";
+
+// Firebase
+import {
+    useUser,
+    useFirestore,
+    useMemoFirebase,
+    useCollection,
+    useDoc
+} from "@/firebase";
+import { collection, doc } from "firebase/firestore";
+
+// Shared Logic
 import { useFinanceData } from "@/hooks/use-finance-data";
-import { StatCard } from "./components/stat-card";
-import { RecentTransactionsList, Transaction } from "./components/recent-transactions-list";
+import { FloatingNav } from "./components/floating-nav";
+import { NanoHeader } from "./components/nano-header";
 
-export default function FinancePage() {
-  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
-  const [isFinalizeModalOpen, setIsFinalizeModalOpen] = useState(false);
-  const { toast } = useToast();
-  const firestore = useFirestore();
-  const { user } = useUser();
+// ---------------------------------------------------------------------
+// NANO-UI COMPONENTS
+// ---------------------------------------------------------------------
 
-  const jobsQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return collection(firestore, 'users', user.uid, 'jobs');
-  }, [firestore, user]);
-  const { data: jobs, isLoading: isLoadingJobs } = useCollection<Job>(jobsQuery);
-  const generalExpensesQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return collection(firestore, 'users', user.uid, 'generalExpenses');
-  }, [firestore, user]);
-  const { data: generalExpenses, isLoading: isLoadingGeneralExpenses } = useCollection<GeneralExpense>(generalExpensesQuery);
-
-  const settingsRef = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return doc(firestore, "settings", "global");
-  }, [firestore]);
-  const { data: settings, isLoading: isLoadingSettings } = useDoc<GeneralSettings>(settingsRef);
-  const isLoading = isLoadingJobs || isLoadingGeneralExpenses || isLoadingSettings;
-
-  const openPaymentJobs = jobs?.filter(job => job.status === 'Open Payment') ?? [];
-
-  // --- Date Range State ---
-  // Initialize with undefined or a fixed date to prevent hydration mismatch 
-  // if server time differs from client time.
-  const [date, setDate] = useState<DateRange | undefined>();
-
-  // Set default to current month only on client side
-  useEffect(() => {
-    setDate({
-      from: startOfMonth(new Date()),
-      to: endOfMonth(new Date()),
-    });
-  }, []);
-
-  // --- Data Hook ---
-  const {
-    income,
-    expenses: allExpenses,
-    totalIncome,
-    totalExpenses,
-    netProfit,
-    estimatedTax,
-    trends,
-    allIncome: unfilteredIncome,
-    allExpenses: unfilteredExpenses
-  } = useFinanceData(jobs || [], generalExpenses || [], settings, date);
-
-  const expenseCategories = [...new Set(allExpenses.map(e => e.category))];
-
-  // --- Prepare Recent Transactions (Last 5 Global) ---
-  const recentTransactions: Transaction[] = isLoading ? [] : [
-    ...(unfilteredIncome || []).map(i => ({
-      id: i.id,
-      type: 'income' as const,
-      description: i.jobTitle || i.description,
-      amount: i.amount,
-      date: i.date,
-      category: 'Job Payment'
-    })),
-    ...(unfilteredExpenses || []).map(e => ({
-      id: e.id,
-      type: 'expense' as const,
-      description: e.description,
-      amount: e.amount,
-      date: e.date,
-      category: e.category
-    }))
-  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-  const handleExpenseFormSuccess = () => {
-    setIsExpenseModalOpen(false);
-    toast({
-      title: "Expense Added",
-      description: "The new expense has been recorded successfully.",
-    });
-  };
-
-  const handleFinalizeSuccess = (count: number) => {
-    setIsFinalizeModalOpen(false);
-    toast({
-      title: "Payments Finalized",
-      description: `${count} job(s) have been marked as Finalized.`,
-    });
-  }
-
-  return (
-    <div className="container max-w-7xl mx-auto py-6 space-y-6">
-      <PageHeader title="Financials">
-        <div className="flex flex-wrap items-center gap-2">
-          <DatePickerWithRange date={date} setDate={setDate} className="w-full sm:w-auto" />
-
-          <Dialog open={isFinalizeModalOpen} onOpenChange={setIsFinalizeModalOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" disabled={openPaymentJobs.length === 0}>
-                <CheckCircle className="mr-2 h-4 w-4" />
-                Finalize Payments
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Finalize Job Payments</DialogTitle>
-                <DialogDescription>
-                  Select the jobs you have received payment for to mark them as 'Finalized'.
-                </DialogDescription>
-              </DialogHeader>
-              <FinalizePaymentsModal
-                jobs={openPaymentJobs}
-                settings={settings}
-                onSuccess={handleFinalizeSuccess}
-              />
-            </DialogContent>
-          </Dialog>
-          <Button variant="outline">
-            <FileDown className="mr-2 h-4 w-4" />
-            Export Report
-          </Button>
-          <Dialog open={isExpenseModalOpen} onOpenChange={setIsExpenseModalOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Add Transaction
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add General Expense</DialogTitle>
-              </DialogHeader>
-              <AddGeneralExpenseForm categories={expenseCategories} onSuccess={handleExpenseFormSuccess} />
-            </DialogContent>
-          </Dialog>
+function NanoGlassCard({ className, children, onClick }: { className?: string, children: React.ReactNode, onClick?: () => void }) {
+    return (
+        <div
+            onClick={onClick}
+            className={cn(
+                "bg-white rounded-[24px] shadow-sm transition-all relative overflow-hidden",
+                onClick && "active:scale-[0.98] active:shadow-none cursor-pointer",
+                className
+            )}
+        >
+            {children}
         </div>
-      </PageHeader>
+    );
+}
 
-      <Tabs defaultValue="overview">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="income">Income</TabsTrigger>
-          <TabsTrigger value="expenses">Expenses</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview" className="mt-4 space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <StatCard
-              title="Total Income"
-              value={totalIncome}
-              trend={trends.income}
-              icon={DollarSign}
-              isLoading={isLoading}
-              valueColorClass="text-emerald-600"
-            />
-            <StatCard
-              title="Total Expenses"
-              value={totalExpenses}
-              trend={trends.expenses}
-              icon={DollarSign}
-              isLoading={isLoading}
-              valueColorClass="text-rose-600"
-            />
-            <StatCard
-              title="Net Profit"
-              value={netProfit}
-              icon={DollarSign}
-              isLoading={isLoading}
-            />
-            <StatCard
-              title="Tax Reserve (Est.)"
-              value={estimatedTax}
-              icon={Banknote}
-              isLoading={isLoading}
-              valueColorClass="text-amber-600"
-              subtext={`${settings?.taxRate ?? 22}% rate`}
-            />
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-7 lg:grid-cols-7">
-            <Card className="col-span-1 md:col-span-4 lg:col-span-5 h-[400px]">
-              <CardHeader>
-                <CardTitle>Cash Flow</CardTitle>
-                <CardDescription>Income vs. Expenses over time.</CardDescription>
-              </CardHeader>
-              <CardContent className="pl-2 h-[320px]">
-                <CashFlowChart income={income} expenses={allExpenses} isLoading={isLoading} />
-              </CardContent>
-            </Card>
-
-            <div className="col-span-1 md:col-span-3 lg:col-span-2 h-[400px]">
-              <RecentTransactionsList transactions={recentTransactions} isLoading={isLoading} />
-
+function StatItem({ label, value, trend, icon: Icon, colorClass, isLoading }: {
+    label: string,
+    value: number,
+    trend?: number,
+    icon: any,
+    colorClass: string,
+    isLoading: boolean
+}) {
+    return (
+        <NanoGlassCard className="p-5">
+            <div className="flex justify-between items-start mb-2">
+                <div className={cn("p-2 rounded-xl bg-opacity-10", colorClass.replace('text-', 'bg-').replace('600', '50'))}>
+                    <Icon className={cn("w-5 h-5", colorClass)} />
+                </div>
+                {trend !== undefined && (
+                    <div className={cn(
+                        "flex items-center gap-0.5 text-[10px] font-bold px-2 py-0.5 rounded-full",
+                        trend >= 0 ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
+                    )}>
+                        {trend >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                        {Math.abs(trend)}%
+                    </div>
+                )}
             </div>
-          </div>
-        </TabsContent>
+            <div className="flex flex-col">
+                <span className="text-zinc-400 text-[10px] font-bold uppercase tracking-wider">{label}</span>
+                {isLoading ? (
+                    <Skeleton className="h-8 w-24 mt-1" />
+                ) : (
+                    <span className="text-2xl font-extrabold text-zinc-950 tracking-tight mt-1">
+                        $ {value.toLocaleString(undefined, { minimumFractionDigits: 0 })}
+                    </span>
+                )}
+            </div>
+        </NanoGlassCard>
+    );
+}
 
-        <TabsContent value="income" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Income</CardTitle>
-              <CardDescription>List of all payments received from finalized jobs.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Job</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading ? (
-                    [...Array(3)].map((_, i) => (
-                      <TableRow key={i}>
-                        <TableCell><Skeleton className="h-5 w-32 mb-1" /><Skeleton className="h-4 w-48" /></TableCell>
-                        <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                        <TableCell className="text-right"><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
-                      </TableRow>
-                    ))
-                  ) : income?.length > 0 ? (
-                    income.map((item) => {
-                      return (
-                        <TableRow key={item.id}>
-                          <TableCell>
-                            <div className="font-medium">{item?.jobTitle}</div>
-                            <div className="text-sm text-muted-foreground">{item.description}</div>
-                          </TableCell>
-                          <TableCell>{format(parseISO(item.date), "MMM dd, yyyy")}</TableCell>
-                          <TableCell className="text-right text-green-600 font-semibold">${item.amount.toLocaleString()}</TableCell>
-                        </TableRow>
-                      )
-                    })
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={3} className="h-24 text-center">
-                        No income recorded from finalized jobs.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="expenses" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Expenses</CardTitle>
-              <CardDescription>List of all logged expenses from job invoices and general business costs.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading ? (
-                    [...Array(4)].map((_, i) => (
-                      <TableRow key={i}>
-                        <TableCell><Skeleton className="h-5 w-32 mb-1" /><Skeleton className="h-4 w-40" /></TableCell>
-                        <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-                        <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                        <TableCell className="text-right"><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
-                      </TableRow>
-                    ))
-                  ) : allExpenses?.length > 0 ? (
-                    allExpenses.map((item) => {
-                      return (
-                        <TableRow key={item.id}>
-                          <TableCell>
-                            <div className="font-medium">{item.description}</div>
-                            {item.jobTitle && <div className="text-sm text-muted-foreground">{item.jobTitle} ({item?.clientName})</div>}
-                          </TableCell>
-                          <TableCell>{item.category}</TableCell>
-                          <TableCell>{format(parseISO(item.date), "MMM dd, yyyy")}</TableCell>
-                          <TableCell className="text-right text-red-600 font-semibold">${item.amount.toLocaleString()}</TableCell>
-                        </TableRow>
-                      )
-                    })
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={4} className="h-24 text-center">
-                        No expenses recorded.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs >
-    </div >
-  );
+// ---------------------------------------------------------------------
+// PAGE
+// ---------------------------------------------------------------------
+
+export default function MobileFinancePage() {
+    const router = useRouter();
+    const { user } = useUser();
+    const firestore = useFirestore();
+
+    // -- State --
+    const [date, setDate] = React.useState<DateRange | undefined>({
+        from: startOfMonth(new Date()),
+        to: endOfMonth(new Date())
+    });
+
+    // -- Data Fetching --
+    const settingsRef = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return doc(firestore, "settings", "global");
+    }, [firestore]);
+    const { data: settings, isLoading: isLoadingSettings } = useDoc<GeneralSettings>(settingsRef);
+
+    const jobsQuery = useMemoFirebase(() => {
+        if (!firestore || !user) return null;
+        return collection(firestore, "users", user.uid, "jobs");
+    }, [firestore, user]);
+    const { data: jobs, isLoading: isLoadingJobs } = useCollection<Job>(jobsQuery);
+
+    const expensesQuery = useMemoFirebase(() => {
+        if (!firestore || !user) return null;
+        return collection(firestore, "users", user.uid, "generalExpenses");
+    }, [firestore, user]);
+    const { data: generalExpenses, isLoading: isLoadingExpenses } = useCollection<GeneralExpense>(expensesQuery);
+
+    const isLoading = isLoadingJobs || isLoadingExpenses || isLoadingSettings;
+
+    // -- Financial Calculations (Shared Hook) --
+    const {
+        totalIncome,
+        totalExpenses,
+        netProfit,
+        estimatedTax,
+        trends,
+        expenses: filteredExpenses,
+        income: filteredIncome
+    } = useFinanceData(jobs || [], generalExpenses || [], settings, date);
+
+    // -- Form State --
+    const [isExpenseSheetOpen, setIsExpenseSheetOpen] = React.useState(false);
+    const [isFormValid, setIsFormValid] = React.useState(false);
+    const submitTriggerRef = React.useRef<(() => void) | null>(null);
+
+    // Merge transactions for recent list
+    const allTransactions = React.useMemo(() => {
+        const t = [
+            ...filteredIncome.map(i => ({ ...i, category: "Job Payment", type: "income" })),
+            ...filteredExpenses.map(e => ({ ...e, type: "expense" }))
+        ];
+        return t.sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime());
+    }, [filteredIncome, filteredExpenses]);
+
+    return (
+        <div className="min-h-screen bg-[#F2F1EF] pb-32 font-sans relative overflow-x-hidden">
+            <div className="px-5 pt-16 max-w-md mx-auto">
+                <NanoHeader
+                    subtitle="Financials,"
+                    title={"Cash Flow &\nProfits"}
+                />
+
+                <NanoGlassCard className="p-1 border border-zinc-100 shadow-sm overflow-visible z-50 mb-6">
+                    <DatePickerWithRange
+                        date={date}
+                        setDate={setDate}
+                        className="w-full border-none shadow-none focus-within:ring-0"
+                    />
+                </NanoGlassCard>
+
+                {/* Quick Actions */}
+                <div className="grid grid-cols-3 gap-3 mb-8">
+                    <Sheet open={isExpenseSheetOpen} onOpenChange={setIsExpenseSheetOpen}>
+                        <SheetTrigger asChild>
+                            <button className="flex-1 bg-white p-3 rounded-[24px] shadow-sm border border-zinc-100 flex flex-col items-center gap-2 active:scale-95 transition-all h-full justify-center">
+                                <div className="w-10 h-10 rounded-2xl bg-rose-50 flex items-center justify-center relative">
+                                    <ReceiptText className="w-5 h-5 text-rose-500" />
+                                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-white rounded-full flex items-center justify-center border border-zinc-100 shadow-sm">
+                                        <Plus className="w-2.5 h-2.5 text-zinc-400" />
+                                    </div>
+                                </div>
+                                <span className="text-[9px] font-black uppercase tracking-tight text-center text-zinc-900 leading-none mt-1">New<br />Expense</span>
+                            </button>
+                        </SheetTrigger>
+                        <SheetContent side="bottom" className="h-[92%] rounded-t-[32px] p-0 overflow-hidden border-none">
+                            <div className="h-full flex flex-col pt-6">
+                                <SheetHeader className="px-6 pb-2">
+                                    <div className="w-12 h-1.5 bg-zinc-200 rounded-full mx-auto mb-4" />
+                                    <SheetTitle className="text-2xl font-black tracking-tight">Add Expense</SheetTitle>
+                                    <SheetDescription className="font-medium">Record a company or tool expense.</SheetDescription>
+                                </SheetHeader>
+
+                                <div className="flex-1 overflow-y-auto px-6">
+                                    <AddGeneralExpenseForm
+                                        categories={[]}
+                                        onSuccess={() => setIsExpenseSheetOpen(false)}
+                                        onFormStateChange={(valid) => setIsFormValid(valid)}
+                                        submitTriggerRef={submitTriggerRef}
+                                    />
+                                </div>
+
+                                <div className="p-6 bg-white border-t border-zinc-100">
+                                    <Button
+                                        className="w-full h-14 rounded-2xl bg-zinc-950 font-black text-white hover:bg-zinc-800 disabled:opacity-50"
+                                        onClick={() => submitTriggerRef.current?.()}
+                                        disabled={!isFormValid}
+                                    >
+                                        Save Expense
+                                    </Button>
+                                    <SheetClose asChild>
+                                        <Button variant="ghost" className="w-full mt-2 font-bold h-12">Cancel</Button>
+                                    </SheetClose>
+                                </div>
+                            </div>
+                        </SheetContent>
+                    </Sheet>
+
+                    <FinalizeJobsSheet
+                        jobs={jobs || []}
+                        settings={settings}
+                    />
+
+                    <button
+                        onClick={() => router.push('/dashboard/payroll')}
+                        className="bg-white p-3 rounded-[24px] shadow-sm border border-zinc-100 flex flex-col items-center gap-2 active:scale-95 transition-all h-full justify-center"
+                    >
+                        <div className="w-10 h-10 rounded-2xl bg-emerald-50 flex items-center justify-center">
+                            <PayIcon className="w-5 h-5 text-emerald-500" />
+                        </div>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Pay Crew</span>
+                    </button>
+                </div>
+
+                {/* 2. Key Stats Grid */}
+                <div className="grid grid-cols-2 gap-4 mb-8">
+                    <StatItem
+                        label="Total Income"
+                        value={totalIncome}
+                        trend={trends.income}
+                        icon={TrendingUp}
+                        colorClass="text-emerald-600"
+                        isLoading={isLoading}
+                    />
+                    <StatItem
+                        label="Expenses"
+                        value={totalExpenses}
+                        trend={trends.expenses}
+                        icon={TrendingDown}
+                        colorClass="text-rose-600"
+                        isLoading={isLoading}
+                    />
+                </div>
+
+                {/* 3. Main Profit Focus Card */}
+                <NanoGlassCard className="p-6 mb-8 bg-zinc-950 text-white shadow-xl shadow-zinc-200">
+                    <div className="flex justify-between items-center mb-6">
+                        <div className="flex flex-col">
+                            <span className="text-zinc-400 text-[10px] font-bold uppercase tracking-[0.2em]">Net Profit</span>
+                            <div className="flex items-baseline gap-1 mt-1">
+                                <span className="text-4xl font-extrabold tracking-tighter">
+                                    $ {netProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                </span>
+                            </div>
+                        </div>
+                        <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center">
+                            <Banknote className="w-6 h-6 text-emerald-400" />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 pt-6 border-t border-white/10">
+                        <div className="flex flex-col">
+                            <span className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider">Tax Reserve</span>
+                            <span className="text-lg font-bold text-amber-400">$ {estimatedTax.toLocaleString(undefined, { minimumFractionDigits: 0 })}</span>
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-zinc-500 text-[10px] font-bold uppercase tracking-wider">Margin</span>
+                            <span className="text-lg font-bold text-zinc-200">
+                                {totalIncome > 0 ? Math.round((netProfit / totalIncome) * 100) : 0}%
+                            </span>
+                        </div>
+                    </div>
+                </NanoGlassCard>
+
+                {/* 4. Recent Transactions */}
+                <div className="mb-8">
+                    <div className="flex justify-between items-center mb-4 px-1">
+                        <h2 className="text-lg font-extrabold text-zinc-900">Recent Activity</h2>
+                        <Receipt className="w-4 h-4 text-zinc-400" />
+                    </div>
+
+                    <div className="flex flex-col gap-3">
+                        {isLoading ? (
+                            [...Array(4)].map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-[24px]" />)
+                        ) : allTransactions.length > 0 ? (
+                            allTransactions.slice(0, 15).map((t) => (
+                                <NanoGlassCard
+                                    key={t.id}
+                                    className="p-4"
+                                    onClick={() => t.jobId ? router.push(`/dashboard/jobs/${t.jobId}`) : null}
+                                >
+                                    <div className="flex justify-between items-center">
+                                        <div className="flex items-center gap-4 flex-1 min-w-0">
+                                            <div className={cn(
+                                                "w-10 h-10 rounded-2xl flex items-center justify-center shrink-0",
+                                                t.type === 'income' ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
+                                            )}>
+                                                {t.type === 'income' ? <ArrowUpRight className="w-5 h-5" /> : <ArrowDownRight className="w-5 h-5" />}
+                                            </div>
+                                            <div className="flex-1 min-w-0 pr-4">
+                                                <h4 className="text-zinc-900 font-bold text-sm truncate">
+                                                    {t.description || (t as any).jobTitle}
+                                                </h4>
+                                                <p className="text-zinc-400 text-[10px] font-bold uppercase tracking-wider mt-0.5">
+                                                    {format(parseISO(t.date), "MMM dd")} • {t.category}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right shrink-0">
+                                            <div className={cn(
+                                                "font-extrabold text-sm tracking-tight",
+                                                t.type === 'income' ? "text-emerald-600" : "text-zinc-950"
+                                            )}>
+                                                {t.type === 'income' ? '+' : '-'} $ {t.amount.toLocaleString()}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </NanoGlassCard>
+                            ))
+                        ) : (
+                            <div className="py-12 text-center text-zinc-400 bg-white/50 rounded-[24px] border border-dashed border-zinc-200">
+                                <Plus className="w-8 h-8 mx-auto mb-2 opacity-10" />
+                                <p className="text-[10px] font-bold uppercase tracking-widest leading-loose">No transactions found <br />in this period</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Bottom Nav */}
+                <FloatingNav />
+            </div>
+        </div>
+    );
 }

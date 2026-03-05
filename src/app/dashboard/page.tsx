@@ -1,461 +1,534 @@
-
-
 "use client";
 
 import * as React from "react";
 import Link from "next/link";
-import { format, startOfToday, addDays, isWithinInterval, parseISO, isSameDay, formatDistanceToNow, isFuture, isPast } from "date-fns";
-import {
-  Card, CardContent,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { format, isFuture } from "date-fns";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PlusCircle, Receipt, ArrowRight, MapPin, CalendarDays, CalendarCheck } from "lucide-react";
-import { useUser, useFirestore, useMemoFirebase, useCollection, useDoc } from "@/firebase";
-import { collection, query, where, orderBy, limit, doc } from "firebase/firestore";
-import type { Job as JobType, GeneralSettings } from "@/app/lib/types";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetClose,
+} from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
-import { JobSelectionModal } from "./components/job-selection-modal";
-import { AddInvoiceForm } from "./jobs/[id]/components/add-invoice-form";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { RevenueChart } from "./components/revenue-chart";
+
+// Icons
+import {
+  Plus,
+  MapPin,
+  Calendar,
+  Home,
+  Search,
+  BookOpen, // For "Jobs" / Book
+  DollarSign,
+  ChevronRight,
+  PlusCircle, // For center nav
+  CalendarDays,
+  Navigation,
+  X,
+} from "lucide-react";
+
+// Firebase
+import {
+  useUser,
+  useFirestore,
+  useMemoFirebase,
+  useCollection,
+} from "@/firebase";
+import { collection, query, orderBy } from "firebase/firestore";
+
+// Types
+import type { Job as JobType, GeneralExpense } from "@/app/lib/types";
+
+// Utils
 import { cn } from "@/lib/utils";
-import { calculateJobPayout, calculateMaterialCost } from "@/app/lib/job-financials";
+import { calculateJobPayout } from "@/app/lib/job-financials";
 
-// Types (ajuste se necessário)
-type Invoice = { amount: number; date?: string; isPayoutDiscount?: boolean; source?: string };
-type Adjustment = { type: "Time" | "Material" | "General"; value: number; hourlyRate?: number };
-type Job = JobType;
+// Components
+import { RevenueChart } from "./components/revenue-chart";
+import { AddGeneralExpenseForm } from "./finance/components/add-general-expense-form";
+import { AddJobForm } from "./jobs/components/add-job-form";
+import { FloatingNav } from "./components/floating-nav";
+import { NanoHeader } from "./components/nano-header";
+import { JobMap } from "@/components/job-map";
+import { useETA } from "@/hooks/use-eta";
 
 // ---------------------------------------------------------------------
-// UI helpers
+// NANO-UI COMPONENTS (v4)
 // ---------------------------------------------------------------------
-function GlassSection({ className = "", children }: React.PropsWithChildren<{ className?: string }>) {
+
+function NanoGlassCard({
+  className,
+  children,
+  onClick,
+}: {
+  className?: string;
+  children: React.ReactNode;
+  onClick?: () => void;
+}) {
   return (
     <div
-      className={
-        "rounded-2xl border border-white/50 bg-white/70 shadow-xl backdrop-blur-md " +
-        "dark:bg-zinc-900/60 dark:border-white/10 " + className
-      }
+      onClick={onClick}
+      className={cn(
+        "bg-white rounded-[24px] shadow-sm transition-all relative overflow-hidden", // Removed blur for cleaner white look in v4
+        onClick && "active:scale-[0.98] active:shadow-none cursor-pointer",
+        className,
+      )}
     >
       {children}
     </div>
   );
 }
 
-function SectionHeader({
-  title,
-  subtitle,
-  right,
-}: {
-  title: string;
-  subtitle?: string;
-  right?: React.ReactNode;
-}) {
+// ---------------------------------------------------------------------
+// MAIN COMPONENTS
+// ---------------------------------------------------------------------
+
+function HeroJobCard({ job }: { job: JobType }) {
+  const { duration, distance, loading, error, refresh } = useETA(job?.address);
+
+  if (!job)
+    return (
+      <NanoGlassCard className="p-6 flex flex-col items-center justify-center h-[180px] text-zinc-400 bg-white">
+        <p>No active jobs</p>
+      </NanoGlassCard>
+    );
+
+  const mapLink = `https://maps.apple.com/?q=${encodeURIComponent(job.address)}`;
+  // Placeholder map image style - in a real app, use a static map API
+  const mapPlaceholderUrl =
+    "https://placehold.co/400x400/e2e8f0/94a3b8?text=Map";
+
+  // Formatting Price - use actual job budget (payout)
+  const price = job.budget || job.initialValue || 0;
+
   return (
-    <div className="flex items-center justify-between">
-      <div>
-        <h2 className="text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">{title}</h2>
-        {subtitle ? (
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">{subtitle}</p>
-        ) : null}
+    <NanoGlassCard className="p-5 flex flex-col gap-4 bg-white shadow-sm border border-zinc-50">
+      {/* Top Row: Title & Chevron */}
+      <Link
+        href={`/dashboard/jobs/${job.id}`}
+        className="flex justify-between items-start group"
+      >
+        <div className="flex-1 min-w-0 pr-2">
+          <h3 className="text-zinc-900 font-extrabold text-[22px] leading-none tracking-tight truncate mb-1">
+            {job.title ||
+              `${job.clientName?.split(" ")[0] || "Job"} #${job.quoteNumber || "0001"}`}
+          </h3>
+          <p className="text-zinc-500 font-normal text-sm truncate">
+            {job.clientName || "Client Name"}
+          </p>
+        </div>
+        <ChevronRight className="w-5 h-5 text-zinc-400 mt-1 shrink-0 group-active:text-zinc-600 transition-colors" />
+      </Link>
+
+      {/* Bottom Row: Content + Map */}
+      <div className="flex gap-3 items-stretch">
+        {/* Left Content (Address, Date, Price) */}
+        <div className="flex flex-col justify-between flex-1 min-w-0">
+          <div className="flex flex-col gap-2">
+            <div className="flex items-start gap-2 text-zinc-800 text-sm font-medium">
+              <MapPin
+                className="w-4 h-4 mt-0.5 shrink-0 text-zinc-900"
+                strokeWidth={2}
+              />
+              <span className="leading-tight line-clamp-2 max-w-[140px]">
+                {job.address}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-zinc-800 text-sm font-medium">
+              <Calendar
+                className="w-4 h-4 shrink-0 text-zinc-900"
+                strokeWidth={2}
+              />
+              <span>
+                {job.startDate
+                  ? (() => {
+                      try {
+                        const d = new Date(job.startDate.replace(" ", "T"));
+                        return isNaN(d.getTime())
+                          ? "TBD"
+                          : format(d, "MMM dd, yyyy");
+                      } catch (e) {
+                        return "TBD";
+                      }
+                    })()
+                  : "TBD"}
+              </span>
+            </div>
+          </div>
+
+          {/* Price Badge */}
+          <div className="mt-4 bg-[#F2F4F5] rounded-[14px] px-4 py-2 self-start flex items-center justify-center">
+            <span className="text-zinc-950 font-extrabold text-xl tracking-tight">
+              $ {price.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+            </span>
+          </div>
+        </div>
+
+        {/* Right: Map Thumbnail / Navigation */}
+        <a
+          href={error === "Location access denied" ? "#" : mapLink}
+          onClick={(e) => {
+            if (error === "Location access denied") {
+              e.preventDefault();
+              // Force browser to re-request location permission
+              navigator.geolocation.getCurrentPosition(
+                () => window.location.reload(),
+                () =>
+                  alert(
+                    "Por favor, permita o acesso à localização quando solicitado.",
+                  ),
+                { enableHighAccuracy: false },
+              );
+            }
+          }}
+          target="_blank"
+          rel="noreferrer"
+          className="w-[124px] shrink-0 relative group"
+        >
+          <div className="w-full h-full rounded-[24px] overflow-hidden shadow-sm bg-zinc-100 relative active:scale-95 transition-transform border border-zinc-50">
+            {/* Interactive Map (Small) */}
+            <div className="absolute inset-0 pointer-events-none scale-[1.35] origin-center translate-y-[-10%] opacity-80">
+              <JobMap address={job.address} />
+            </div>
+            {/* Gradient Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
+
+            {/* Center Icon Overlay / Navigation Trigger */}
+            <div
+              className={cn(
+                "absolute inset-0 flex flex-col items-center justify-center gap-0.5 text-white backdrop-blur-[1px] transition-colors",
+                error || !duration || duration === "-- min"
+                  ? "bg-zinc-900/60 active:bg-zinc-800"
+                  : "bg-blue-600/90 active:bg-blue-700",
+              )}
+            >
+              {loading ? (
+                <div className="flex flex-col items-center">
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mb-1" />
+                  <span className="text-[8px] font-bold uppercase tracking-widest leading-none">
+                    Updating...
+                  </span>
+                </div>
+              ) : error || !duration || duration === "-- min" ? (
+                <div className="flex flex-col items-center px-1 text-center">
+                  <div className="p-2 bg-white/20 rounded-full mb-1 backdrop-blur-sm shadow-sm ring-1 ring-white/30">
+                    <Navigation className="w-5 h-5 text-white fill-current" />
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] drop-shadow-sm">
+                    Navigate
+                  </span>
+                  <div className="flex flex-col items-center mt-1">
+                    <span className="text-[7px] font-black uppercase tracking-widest text-amber-300">
+                      {error || "ETA N/A"}
+                    </span>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        refresh();
+                      }}
+                      className="mt-1 px-2 py-0.5 bg-white/20 rounded-full text-[6px] font-bold uppercase tracking-tighter hover:bg-white/30 transition-colors"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <span className="text-3xl font-black leading-none tracking-tighter">
+                    {duration.split(" ")[0]}
+                  </span>
+                  <span className="text-[10px] font-black uppercase tracking-widest leading-none mb-1 opacity-90">
+                    {duration.split(" ")[1] || "min"}
+                  </span>
+                  <div className="h-[1px] w-8 bg-white/30 mb-1" />
+                  <span className="text-[10px] font-bold leading-none opacity-80">
+                    {distance}
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+        </a>
       </div>
-      {right ? <div>{right}</div> : null}
-    </div>
+    </NanoGlassCard>
   );
 }
 
-function Metric({
-  label,
-  value,
-  help,
-}: {
-  label: string;
-  value: string;
-  help?: string;
-}) {
-  return (
-    <div className="flex min-w-[140px] flex-col rounded-xl border border-zinc-200/60 bg-white/60 p-4 text-zinc-900 shadow-sm backdrop-blur sm:min-w-[160px] dark:bg-zinc-900/50 dark:text-zinc-50 dark:border-white/10">
-      <span className="text-xs uppercase tracking-wide text-zinc-500">{label}</span>
-      <span className="mt-1 text-2xl font-bold">{value}</span>
-      {help ? <span className="mt-1 text-xs text-zinc-500">{help}</span> : null}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------
-// Data helpers
-// ---------------------------------------------------------------------
-
-function currency(n: number) {
-  return n.toLocaleString(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
-}
-
-// ---------------------------------------------------------------------
-// Quick Actions (os 3 botões grandes)
-// ---------------------------------------------------------------------
-function QuickActions({ inProgressJobs }: { inProgressJobs: Job[] }) {
+function ActionGrid({ upcomingJobs }: { upcomingJobs: { job: JobType }[] }) {
   const { toast } = useToast();
-  const [isJobSelectionOpen, setJobSelectionOpen] = React.useState(false);
-  const [isSingleJobInvoiceOpen, setSingleJobInvoiceOpen] = React.useState(false);
+  const [isAddExpenseOpen, setAddExpenseOpen] = React.useState(false);
+  const [isFormValid, setIsFormValid] = React.useState(false);
+  const [isFormDirty, setIsFormDirty] = React.useState(false);
+  const submitTriggerRef = React.useRef<(() => void) | null>(null);
 
-  // This is needed to get all possible invoice origins for the combobox inside AddInvoiceForm
   const { user } = useUser();
   const firestore = useFirestore();
-  const allJobsQuery = useMemoFirebase(() => {
+  const expensesQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return collection(firestore, 'users', user.uid, 'jobs');
+    return collection(firestore, "users", user.uid, "generalExpenses");
   }, [firestore, user]);
-  const { data: allJobs } = useCollection<Job>(allJobsQuery);
-  const invoiceOrigins = [...new Set(allJobs?.flatMap(j => j.invoices?.map(i => i.origin)).filter(Boolean) ?? [])];
+  const { data: expenses } = useCollection<GeneralExpense>(expensesQuery);
+  const categories = [
+    ...new Set(expenses?.map((e) => e.category).filter(Boolean)),
+  ] as string[];
 
+  const handleFormStateChange = (isValid: boolean, isDirty: boolean) => {
+    setIsFormValid(isValid);
+    setIsFormDirty(isDirty);
+  };
 
-  const handleAddInvoiceClick = () => {
-    if (!inProgressJobs || inProgressJobs.length === 0) {
-      toast({
-        variant: "destructive",
-        title: "No Active Jobs",
-        description: "You must have at least one job 'In Progress' to add an invoice.",
-      });
-      return;
-    }
-
-    if (inProgressJobs.length > 1) {
-      setJobSelectionOpen(true);
-    } else {
-      setSingleJobInvoiceOpen(true);
+  const handleSubmit = () => {
+    if (submitTriggerRef.current) {
+      submitTriggerRef.current();
     }
   };
 
-  const handleInvoiceFormSuccess = () => {
-    toast({
-      title: "Invoice Added!",
-      description: "The new invoice has been added successfully.",
-    });
-    setSingleJobInvoiceOpen(false);
-  }
-
-  const singleJob = inProgressJobs?.[0];
-
   return (
-    <>
-      <GlassSection className="p-4">
-        <SectionHeader
-          title="Quick Actions"
-          subtitle="Faça o que mais importa em 1 clique."
-        />
-        <Separator className="my-4" />
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Card
-            className="group cursor-pointer rounded-xl bg-white/50 p-4 shadow-sm backdrop-blur transition hover:bg-white/80 dark:bg-zinc-900/50 dark:hover:bg-zinc-900/70"
-            onClick={handleAddInvoiceClick}
-          >
-            <CardContent className="p-0">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900">
-                    <Receipt className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <div className="font-semibold">Add Invoice</div>
-                    <div className="text-xs text-zinc-600 dark:text-zinc-400">Lançar no job atual</div>
-                  </div>
-                </div>
-                <ArrowRight className="h-4 w-4 text-zinc-400 transition group-hover:translate-x-0.5" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Link href="/dashboard/jobs/new">
-            <Card className="group cursor-pointer rounded-xl bg-white/50 p-4 shadow-sm backdrop-blur transition hover:bg-white/80 dark:bg-zinc-900/50 dark:hover:bg-zinc-900/70">
-              <CardContent className="p-0">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-900 text-white dark:bg-zinc-50 dark:text-zinc-900">
-                      <PlusCircle className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <div className="font-semibold">New Job</div>
-                      <div className="text-xs text-zinc-600 dark:text-zinc-400">Criar projeto</div>
-                    </div>
-                  </div>
-                  <ArrowRight className="h-4 w-4 text-zinc-400 transition group-hover:translate-x-0.5" />
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
+    <div className="grid grid-cols-2 gap-4">
+      {/* Card 1: New Expense (Red) */}
+      <NanoGlassCard
+        className="bg-[#FF5A5F] text-white p-5 flex flex-col justify-between h-[160px] shadow-lg shadow-rose-200 border-none"
+        onClick={() => setAddExpenseOpen(true)}
+      >
+        <div className="bg-white/20 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm">
+          <Plus className="text-white w-6 h-6" />
         </div>
-      </GlassSection>
+        <div>
+          <h3 className="text-2xl font-medium leading-tight mb-1">
+            New
+            <br />
+            Expense
+          </h3>
+        </div>
+      </NanoGlassCard>
 
-      {/* Modal for multiple jobs */}
-      <JobSelectionModal
-        jobs={inProgressJobs}
-        isOpen={isJobSelectionOpen}
-        onOpenChange={setJobSelectionOpen}
-      />
+      {/* Card 2: Upcoming (White) */}
+      <NanoGlassCard className="bg-white p-5 h-[160px] flex flex-col">
+        <h3 className="text-zinc-900 font-medium text-lg mb-3">Upcoming</h3>
+        <div className="flex flex-col gap-3 overflow-y-auto">
+          {upcomingJobs.length > 0 ? (
+            upcomingJobs.slice(0, 2).map((item, idx) => (
+              <Link
+                href={`/dashboard/jobs/${item.job.id}`}
+                key={idx}
+                className="block active:opacity-60 transition-opacity group"
+              >
+                <div className="text-zinc-900 font-bold text-xs group-active:text-blue-600 transition-colors">
+                  {item.job.title?.trim() || "Job"} #
+                  {item.job.quoteNumber || "000"}
+                </div>
+                {(() => {
+                  try {
+                    const d = new Date(item.job.startDate.replace(" ", "T"));
+                    return isNaN(d.getTime())
+                      ? "TBD"
+                      : format(d, "MMM dd, yyyy");
+                  } catch (e) {
+                    return "TBD";
+                  }
+                })()}
+              </Link>
+            ))
+          ) : (
+            <p className="text-zinc-400 text-xs">No upcoming jobs.</p>
+          )}
+        </div>
+      </NanoGlassCard>
 
-      {/* Modal for single job */}
-      {singleJob && (
-        <Dialog open={isSingleJobInvoiceOpen} onOpenChange={setSingleJobInvoiceOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle className="text-2xl font-bold">{singleJob.title}</DialogTitle>
-            </DialogHeader>
-            <AddInvoiceForm
-              jobId={singleJob.id}
-              existingInvoices={singleJob.invoices || []}
-              origins={invoiceOrigins}
-              onSuccess={handleInvoiceFormSuccess}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
-    </>
-  );
-}
+      <Sheet open={isAddExpenseOpen} onOpenChange={setAddExpenseOpen}>
+        <SheetContent side="bottom" className="bg-[#F2F2F7]">
+          <SheetHeader className="flex flex-row items-center justify-between py-2.5 px-1">
+            {/* iOS Close Button (Left) */}
+            <SheetClose className="w-8 h-8 rounded-full bg-[#E5E5EA] flex items-center justify-center transition-opacity active:opacity-70">
+              <X className="w-3.5 h-3.5 text-[#8E8E93] stroke-[3]" />
+            </SheetClose>
 
-// ---------------------------------------------------------------------
-// Current Job snapshot (o último em progresso, fallback para Not Started)
-// ---------------------------------------------------------------------
-function CurrentJobCard({ job, settings }: { job: Job; settings: GeneralSettings | null }) {
-  const payout = calculateJobPayout(job, settings);
-  const materialCost = calculateMaterialCost(job.invoices);
+            <SheetTitle className="text-[17px] font-semibold text-center !m-0 flex-1">
+              New Expense
+            </SheetTitle>
 
-  const sub = job.title || `${(job.clientName || "").split(" ").pop() || "Client"} #${job.quoteNumber}`;
-
-  return (
-    <GlassSection className="p-4">
-      <SectionHeader
-        title="Current Job"
-        subtitle="Seu projeto em foco"
-        right={
-          <Link href={`/dashboard/jobs/${job.id}`}>
-            <Button variant="secondary" size="icon" className="rounded-full">
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </Link>
-        }
-      />
-      <Separator className="my-4" />
-      <div className="flex items-center justify-between gap-4">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 flex-1">
-          <div className="flex flex-col gap-2">
-            <div className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">{sub}</div>
-            <a
-              href={`https://maps.apple.com/?q=${encodeURIComponent(job.address)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400 hover:underline"
+            {/* iOS Submit Button (Right) */}
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={!isFormValid}
+              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                isFormValid
+                  ? "bg-[#007AFF] text-white hover:bg-[#0051D5]"
+                  : "bg-[#E5E5EA] text-[#8E8E93] cursor-not-allowed"
+              }`}
             >
-              <MapPin className="h-4 w-4" /> {job.address}
-            </a>
-            <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
-              {job.startDate ? `Start: ${(() => { try { const d = new Date(job.startDate.replace(' ', 'T')); return isNaN(d.getTime()) ? 'TBD' : format(d, "MMM dd, yyyy"); } catch(e) { return 'TBD'; } })()}` : "No start date"} · {job.deadline ? `Deadline: ${(() => { try { const d = new Date(job.deadline.replace(' ', 'T')); return isNaN(d.getTime()) ? 'TBD' : format(d, "MMM dd, yyyy"); } catch(e) { return 'TBD'; } })()}` : "No deadline"}
-            </div>
-            <div className="pt-2">
-              <Badge variant="outline" className="capitalize">{job.status}</Badge>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-3">
-            <Metric label="Remaining Payout" value={currency(Math.max(payout, 0))} />
-            <Metric label="Material Cost" value={currency(materialCost)} />
-          </div>
-        </div>
-      </div>
-    </GlassSection>
-  );
-}
-
-function CurrentJobFallback() {
-  return (
-    <GlassSection className="p-4">
-      <SectionHeader
-        title="Current Job"
-        subtitle="Você ainda não tem um job em progresso."
-        right={
-          <Link href="/dashboard/jobs/new">
-            <Button className="gap-2"><PlusCircle className="h-4 w-4" /> New Job</Button>
-          </Link>
-        }
-      />
-      <Separator className="my-4" />
-      <div className="grid grid-cols-3 gap-3">
-        <Skeleton className="h-20 rounded-xl" />
-        <Skeleton className="h-20 rounded-xl" />
-        <Skeleton className="h-20 rounded-xl" />
-      </div>
-    </GlassSection>
+              <ChevronRight className="w-4 h-4 rotate-[-90deg] stroke-[3]" />
+            </button>
+            <SheetDescription className="sr-only">
+              Track your business expenses
+            </SheetDescription>
+          </SheetHeader>
+          <AddGeneralExpenseForm
+            categories={categories || []}
+            onFormStateChange={handleFormStateChange}
+            submitTriggerRef={submitTriggerRef}
+            onSuccess={() => {
+              setAddExpenseOpen(false);
+              toast({
+                title: "Expense Added",
+                description: "Expense logged successfully.",
+              });
+            }}
+          />
+        </SheetContent>
+      </Sheet>
+    </div>
   );
 }
 
 // ---------------------------------------------------------------------
-// Página
+// PAGE
 // ---------------------------------------------------------------------
-export default function DashboardPage() {
+
+export default function MobileDashboardPage() {
   const { user } = useUser();
   const firestore = useFirestore();
-  const [timeOfDay, setTimeOfDay] = React.useState('');
+  const { toast } = useToast();
 
-  React.useEffect(() => {
-    // This now runs only on the client, avoiding hydration mismatches.
-    const hour = new Date().getHours();
-    setTimeOfDay(hour < 12 ? "morning" : "afternoon");
-  }, []);
+  // -- Job Modal Logic --
+  const [isAddJobOpen, setAddJobOpen] = React.useState(false);
+  const [isJobFormValid, setIsJobFormValid] = React.useState(false);
+  const jobSubmitTriggerRef = React.useRef<(() => void) | null>(null);
+  const handleJobSubmit = () => {
+    jobSubmitTriggerRef.current?.();
+  };
 
-  const settingsRef = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return doc(firestore, "settings", "global");
-  }, [firestore]);
-  const { data: settings } = useDoc<GeneralSettings>(settingsRef);
-
-  // Query for all jobs to be used across the dashboard
+  // Data Logic
   const allJobsQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
     return query(
       collection(firestore, "users", user.uid, "jobs"),
-      orderBy("startDate", "desc")
+      orderBy("startDate", "desc"),
     );
   }, [firestore, user]);
+  const { data: allJobs, isLoading } = useCollection<JobType>(allJobsQuery);
 
-  const { data: allJobs, isLoading: loadingAllJobs } = useCollection<Job>(allJobsQuery);
+  const targetJobId = "wT6U4DWMNlk6Swa2PKbM";
+  const targetJob = allJobs?.find((j) => j.id === targetJobId);
+  const inProgressJobs =
+    allJobs?.filter((job) => job.status === "In Progress") || [];
 
-  // Jobs "In Progress"
-  const inProgressJobs = React.useMemo(() => {
-    return allJobs?.filter(job => job.status === "In Progress") || [];
-  }, [allJobs]);
+  // Hero Card Logic: Prioritize In Progress jobs, then most recent
+  const currentJob = inProgressJobs[0] || allJobs?.[0] || null;
 
-  // Fallback: se não houver In Progress, pega 1 Not Started mais próximo do futuro
-  const notStartedJobs = React.useMemo(() => {
-    if (!allJobs) return [];
-    const today = startOfToday();
-    return allJobs?.filter(job => {
-      const startDate = parseISO(job.startDate);
-      return job.status === "Not Started" && (isSameDay(startDate, today) || isFuture(startDate));
-    })
-      .sort((a, b) => parseISO(a.startDate).getTime() - parseISO(b.startDate).getTime()) || [];
-  }, [allJobs]);
-
-  // Upcoming Jobs for the next 7 days
-  const upcomingJobs = React.useMemo(() => {
-    if (!allJobs) return [];
-
-    const today = startOfToday();
-    const nextWeek = addDays(today, 7);
-
-    const upcoming = allJobs.map(job => {
-      const allDates = [job.startDate, ...(job.productionDays?.map(pd => pd.date) || [])];
-      const nextActivityDate = allDates
-        .filter(d => !!d) // ensure date is not null/undefined
-        .map(d => parseISO(d))
-        .filter(d => isWithinInterval(d, { start: today, end: nextWeek }))
-        .sort((a, b) => a.getTime() - b.getTime())[0];
-
-      return nextActivityDate ? { job, nextActivityDate } : null;
-    }).filter((item): item is { job: Job, nextActivityDate: Date } => item !== null);
-
-    return upcoming.sort((a, b) => a!.nextActivityDate.getTime() - b!.nextActivityDate.getTime());
-
-  }, [allJobs]);
-
-  const getLatestInProgressJob = (jobs: Job[] | null) => {
-    if (!jobs || jobs.length === 0) return null;
-    // sort by start date descending for in progress jobs
-    return [...jobs].sort((a, b) => new Date((b.startDate||'').replace(' ', 'T')).getTime() - new Date((a.startDate||'').replace(' ', 'T')).getTime())[0];
-  }
-
-  const currentJob = getLatestInProgressJob(inProgressJobs) || notStartedJobs[0];
-  const isLoading = loadingAllJobs;
+  // Upcoming Logic: Only show "Not Started" jobs
+  const upcomingJobs = (allJobs || [])
+    .filter((j) => j.status === "Not Started")
+    .map((j) => ({ job: j }))
+    .slice(0, 5);
 
   return (
-    <div
-      className={
-        "min-h-full w-full p-4 sm:p-6 text-zinc-900 " +
-        "bg-[radial-gradient(1200px_600px_at_-200px_-100px,rgba(0,0,0,0.05),transparent),radial-gradient(1200px_600px_at_120%_20%,rgba(0,0,0,0.06),transparent)] " +
-        "dark:text-zinc-50 dark:bg-[radial-gradient(1000px_500px_at_-200px_-100px,rgba(255,255,255,0.08),transparent),radial-gradient(1000px_500px_at_120%_20%,rgba(255,255,255,0.06),transparent)]"
-      }
-    >
-      {/* Header */}
-      <div className="mb-5">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Good {timeOfDay}, {user?.displayName?.split(' ')[0] || 'User'} 👋</h1>
-            <p className="text-sm text-zinc-600 dark:text-zinc-400">Let’s make today productive.</p>
-          </div>
-        </div>
-      </div>
+    <div className="min-h-screen bg-[#F2F1EF] pb-32 font-sans relative overflow-x-hidden selection:bg-rose-200">
+      {/* Background Color is slightly warmer gray per mockup */}
 
-      {/* Grid principal */}
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-        <div className="xl:col-span-2 flex flex-col gap-4">
-          <QuickActions inProgressJobs={inProgressJobs || []} />
+      <div className="px-5 pt-16 relative z-10 max-w-md mx-auto">
+        {/* 1. Header */}
+        <NanoHeader
+          subtitle={`Hello ${user?.displayName?.split(" ")[0] || "User"},`}
+          title={"What we gonna\ndo today?"}
+        />
 
-          {/* Current job */}
+        {/* 2. Hero Job Card */}
+        <div className="mb-6">
           {isLoading ? (
-            <GlassSection className="p-4">
-              <SectionHeader title="Current Job" subtitle="Carregando..." />
-              <Separator className="my-4" />
-              <div className="grid grid-cols-3 gap-3">
-                <Skeleton className="h-20 rounded-xl" />
-                <Skeleton className="h-20 rounded-xl" />
-                <Skeleton className="h-20 rounded-xl" />
-              </div>
-            </GlassSection>
-          ) : currentJob ? (
-            <CurrentJobCard job={currentJob} settings={settings} />
+            <Skeleton className="h-[180px] w-full rounded-[24px]" />
           ) : (
-            <CurrentJobFallback />
+            <HeroJobCard job={currentJob!} />
           )}
         </div>
 
-        {/* Side Column */}
-        <div className="flex flex-col gap-4">
-          <RevenueChart />
+        {/* 3. Action Grid (Red Expense + Upcoming) */}
+        <div className="mb-6">
+          <ActionGrid upcomingJobs={upcomingJobs} />
+        </div>
 
-          <GlassSection className="p-4">
-            <SectionHeader
-              title="Upcoming"
-              subtitle="Jobs scheduled for the next 7 days"
-              right={
-                <Link href="/dashboard/calendar">
-                  <Button variant="ghost" className="gap-2">
-                    Open Calendar <ArrowRight className="h-4 w-4" />
-                  </Button>
-                </Link>
-              }
-            />
-            <Separator className="my-4" />
-            <div className="grid grid-cols-1 gap-3">
-              {isLoading ? (
-                <>
-                  <Skeleton className="h-14 w-full" />
-                  <Skeleton className="h-14 w-full" />
-                  <Skeleton className="h-14 w-full" />
-                </>
-              ) : upcomingJobs && upcomingJobs.length > 0 ? (
-                upcomingJobs.map(({ job, nextActivityDate }) => (
-                  <Link href={`/dashboard/jobs/${job!.id}`} key={job!.id + nextActivityDate.toISOString()} className="block rounded-lg border border-zinc-200/60 bg-white/60 p-3 text-sm backdrop-blur dark:border-white/10 dark:bg-zinc-900/50 hover:bg-white/80 transition-colors">
-                    <div className="flex justify-between items-center">
-                      <span className="font-semibold truncate pr-2">{job!.title || `${job!.clientName} #${job!.quoteNumber}`}</span>
-                      <Badge variant="secondary" className={cn(isSameDay(nextActivityDate, new Date()) && "bg-primary/10 text-primary border-primary/20")}>
-                        <CalendarCheck className="h-3 w-3 mr-1.5" />
-                        {formatDistanceToNow(nextActivityDate, { addSuffix: true })}
-                      </Badge>
-                    </div>
-                  </Link>
-                ))
-              ) : (
-                <div className="rounded-lg border border-zinc-200/60 bg-white/60 p-3 text-sm backdrop-blur dark:border-white/10 dark:bg-zinc-900/50 text-center text-muted-foreground">
-                  No jobs scheduled for the next 7 days.
-                </div>
-              )}
+        {/* 4. Revenue Overview (Existing) */}
+        <div className="mb-8 relative">
+          <div className="absolute top-4 left-4 z-10">
+            <h2 className="text-lg font-extrabold text-zinc-900">
+              Revenue Overview
+            </h2>
+          </div>
+          {/* Using the Chart but framed in a white card */}
+          <NanoGlassCard className="p-4 pt-12 bg-white">
+            <div className="h-[180px] w-full">
+              <RevenueChart simple={true} />
             </div>
-          </GlassSection>
+            {/* Mock Filter Bar from Image */}
+            <div className="mt-4 flex justify-between px-2 text-[10px] text-zinc-400 font-medium uppercase tracking-wider">
+              <span>Nov 09</span>
+              <span>Nov 16</span>
+              <span>Nov 23</span>
+              <span>Nov 30</span>
+              <span>Dec 07</span>
+            </div>
+          </NanoGlassCard>
+          {/* Overlay Nav Mock (From Image) - purely decorative to match visual if desired, 
+                         but strictly speaking floating nav is separate. 
+                         The mockup shows the nav OVER the chart. 
+                     */}
         </div>
       </div>
+
+      {/* 5. Floating Nav */}
+      {/* 5. Floating Nav */}
+      <FloatingNav onPrimaryClick={() => setAddJobOpen(true)} />
+
+      {/* 6. New Job Sheet */}
+      <Sheet open={isAddJobOpen} onOpenChange={setAddJobOpen}>
+        <SheetContent side="bottom" className="bg-[#F2F2F7]">
+          <SheetHeader className="flex flex-row items-center justify-between py-2.5 px-1">
+            {/* iOS Close Button (Left) */}
+            <SheetClose className="w-8 h-8 rounded-full bg-[#E5E5EA] flex items-center justify-center transition-opacity active:opacity-70">
+              <X className="w-3.5 h-3.5 text-[#8E8E93] stroke-[3]" />
+            </SheetClose>
+
+            <SheetTitle className="text-[17px] font-semibold text-center !m-0 flex-1">
+              New Job
+            </SheetTitle>
+
+            {/* iOS Submit Button (Right) */}
+            <button
+              type="button"
+              onClick={handleJobSubmit}
+              disabled={!isJobFormValid}
+              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                isJobFormValid
+                  ? "bg-[#007AFF] text-white hover:bg-[#0051D5]"
+                  : "bg-[#E5E5EA] text-[#8E8E93] cursor-not-allowed"
+              }`}
+            >
+              <ChevronRight className="w-4 h-4 rotate-[-90deg] stroke-[3]" />
+            </button>
+          </SheetHeader>
+          <AddJobForm
+            onSuccess={() => {
+              setAddJobOpen(false);
+              toast({
+                title: "Job Created",
+                description: "New job added successfully.",
+              });
+            }}
+            onFormStateChange={(isValid) => setIsJobFormValid(isValid)}
+            submitTriggerRef={jobSubmitTriggerRef}
+          />
+        </SheetContent>
+      </Sheet>
+
+      {/* Overlay Nav from Mockup (Dark Bar) positioned exactly over bottom of content? 
+                Actually the FloatingNav above handles this function. 
+            */}
     </div>
   );
 }
-
