@@ -4,6 +4,7 @@ import { isWithinInterval, parseISO, startOfMonth, endOfMonth, subMonths, isSame
 import { DateRange } from "react-day-picker";
 import type { Job, GeneralExpense } from "@/app/lib/types";
 import { calculateJobPayout } from "@/app/lib/job-financials";
+import { safeParseDate } from "@/lib/safe-date";
 
 // Helper Types
 export type IncomeItem = {
@@ -69,19 +70,29 @@ export function useFinanceData(
             amount: exp.amount
         }));
 
-        return [...jobExpenses, ...genExpenses].sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime());
+        return [...jobExpenses, ...genExpenses].sort((a, b) => {
+            const dateA = safeParseDate(a.date)?.getTime() || 0;
+            const dateB = safeParseDate(b.date)?.getTime() || 0;
+            return dateB - dateA;
+        });
     }, [jobs, generalExpenses]);
 
 
     // 2. Filter by Date Range
     const filteredIncome = useMemo(() => {
         if (!dateRange?.from || !dateRange?.to) return allIncome;
-        return allIncome.filter(item => isWithinInterval(parseISO(item.date), { start: dateRange.from!, end: dateRange.to! }));
+        return allIncome.filter(item => {
+            const d = safeParseDate(item.date);
+            return d ? isWithinInterval(d, { start: dateRange.from!, end: dateRange.to! }) : false;
+        });
     }, [allIncome, dateRange]);
 
     const filteredExpenses = useMemo(() => {
         if (!dateRange?.from || !dateRange?.to) return allExpenses;
-        return allExpenses.filter(item => isWithinInterval(parseISO(item.date), { start: dateRange.from!, end: dateRange.to! }));
+        return allExpenses.filter(item => {
+            const d = safeParseDate(item.date);
+            return d ? isWithinInterval(d, { start: dateRange.from!, end: dateRange.to! }) : false;
+        });
     }, [allExpenses, dateRange]);
 
 
@@ -113,11 +124,15 @@ export function useFinanceData(
         const prevStart = new Date(dateRange.from.getTime() - duration);
         const prevEnd = new Date(dateRange.to.getTime() - duration);
 
-        const prevIncome = allIncome.filter(item => isWithinInterval(parseISO(item.date), { start: prevStart, end: prevEnd }))
-            .reduce((acc, i) => acc + i.amount, 0);
+        const prevIncome = allIncome.filter(item => {
+            const d = safeParseDate(item.date);
+            return d ? isWithinInterval(d, { start: prevStart, end: prevEnd }) : false;
+        }).reduce((acc, i) => acc + i.amount, 0);
 
-        const prevExpenses = allExpenses.filter(item => isWithinInterval(parseISO(item.date), { start: prevStart, end: prevEnd }))
-            .reduce((acc, i) => acc + i.amount, 0);
+        const prevExpenses = allExpenses.filter(item => {
+            const d = safeParseDate(item.date);
+            return d ? isWithinInterval(d, { start: prevStart, end: prevEnd }) : false;
+        }).reduce((acc, i) => acc + i.amount, 0);
         const calculateGrowth = (current: number, previous: number) => {
             if (previous === 0) return current > 0 ? 100 : 0;
             return Math.round(((current - previous) / previous) * 100);

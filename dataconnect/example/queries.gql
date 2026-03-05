@@ -1,4 +1,8 @@
-query ListAllProjects @auth(level: PUBLIC, insecureReason: "This operation is safe to expose to the public") {
+query ListAllProjects
+@auth(
+  level: PUBLIC
+  insecureReason: "This operation is safe to expose to the public"
+) {
   projects {
     id
     name
@@ -12,13 +16,11 @@ query ListAllProjects @auth(level: PUBLIC, insecureReason: "This operation is sa
 }
 
 query GetMyTasks @auth(level: USER) {
-  tasks(where: {
-    taskAssignments_on_task: {
-      exist: {
-        userId: {eq_expr: "auth.uid"}
-      }
+  tasks(
+    where: {
+      taskAssignments_on_task: { exist: { userId: { eq_expr: "auth.uid" } } }
     }
-  }) {
+  ) {
     id
     name
     description
@@ -32,21 +34,35 @@ query GetMyTasks @auth(level: USER) {
   }
 }
 
-mutation CreateNewTask($name: String!, $description: String, $projectId: UUID, $startDate: Date, $endDate: Date) @auth(level: USER) {
-  task_insert(data: {
-    name: $name,
-    description: $description,
-    status: "TODO", # Default status for new tasks
-    projectId: $projectId,
-    startDate: $startDate,
-    endDate: $endDate,
-    createdAt_expr: "request.time"
-  }) {
-    id
-  }
+mutation CreateNewTask(
+  $name: String!
+  $description: String
+  $projectId: UUID
+  $startDate: Date
+  $endDate: Date
+)
+@auth(
+  level: USER
+  insecureReason: "Example mutation without strict row-level auth"
+) {
+  task_insert(
+    data: {
+      name: $name
+      description: $description
+      status: "TODO" # Default status for new tasks
+      projectId: $projectId
+      startDate: $startDate
+      endDate: $endDate
+      createdAt_expr: "request.time"
+    }
+  )
 }
 
-query GetProjectDetails($projectId: UUID!) @auth(level: PUBLIC, insecureReason: "This operation is safe to expose to the public") {
+query GetProjectDetails($projectId: UUID!)
+@auth(
+  level: PUBLIC
+  insecureReason: "This operation is safe to expose to the public"
+) {
   project(id: $projectId) {
     id
     name
