@@ -1,0 +1,75 @@
+query ListAllProjects @auth(level: PUBLIC, insecureReason: "This operation is safe to expose to the public") {
+  projects {
+    id
+    name
+    description
+    status
+    dueDate
+    owner {
+      displayName
+    }
+  }
+}
+
+query GetMyTasks @auth(level: USER) {
+  tasks(where: {
+    taskAssignments_on_task: {
+      exist: {
+        userId: {eq_expr: "auth.uid"}
+      }
+    }
+  }) {
+    id
+    name
+    description
+    status
+    startDate
+    endDate
+    project {
+      id
+      name
+    }
+  }
+}
+
+mutation CreateNewTask($name: String!, $description: String, $projectId: UUID, $startDate: Date, $endDate: Date) @auth(level: USER) {
+  task_insert(data: {
+    name: $name,
+    description: $description,
+    status: "TODO", # Default status for new tasks
+    projectId: $projectId,
+    startDate: $startDate,
+    endDate: $endDate,
+    createdAt_expr: "request.time"
+  }) {
+    id
+  }
+}
+
+query GetProjectDetails($projectId: UUID!) @auth(level: PUBLIC, insecureReason: "This operation is safe to expose to the public") {
+  project(id: $projectId) {
+    id
+    name
+    description
+    status
+    createdAt
+    dueDate
+    owner {
+      id
+      displayName
+    }
+    tasks_on_project {
+      id
+      name
+      status
+      startDate
+    }
+    projectMembers_on_project {
+      role
+      user {
+        id
+        displayName
+      }
+    }
+  }
+}

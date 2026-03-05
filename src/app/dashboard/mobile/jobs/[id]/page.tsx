@@ -566,7 +566,7 @@ export default function MobileJobDetailsPage() {
                             <span className="text-[13px] font-bold text-zinc-400 uppercase">Start Date</span>
                             <div className="bg-[#EEE] px-3 py-1.5 rounded-lg self-start">
                                 <span className="text-sm font-semibold text-zinc-900">
-                                    {job.startDate ? format(new Date(job.startDate), "MMM dd, yyyy") : "-"}
+                                    {job.startDate ? (() => { try { const d = new Date(job.startDate.replace(' ', 'T')); return isNaN(d.getTime()) ? "-" : format(d, "MMM dd, yyyy"); } catch(e) { return "-"; } })() : "-"}
                                 </span>
                             </div>
                         </div>
@@ -575,7 +575,7 @@ export default function MobileJobDetailsPage() {
                             <div className="bg-[#EEE] px-3 py-1.5 rounded-lg self-end min-h-[32px] min-w-[80px]">
                                 <span className="text-sm font-semibold text-zinc-900">
                                     {(job.status === 'Complete' || job.status === 'Finalized' || job.status === 'Open Payment') && job.deadline
-                                        ? format(new Date(job.deadline), "MMM dd, yyyy")
+                                        ? (() => { try { const d = new Date(job.deadline.replace(' ', 'T')); return isNaN(d.getTime()) ? "-" : format(d, "MMM dd, yyyy"); } catch(e) { return "-"; } })()
                                         : "-"}
                                 </span>
                             </div>
@@ -764,7 +764,7 @@ export default function MobileJobDetailsPage() {
                                             {inv.isPayoutAddition && <TrendingUp className="w-3 h-3 text-green-500" />}
                                         </div>
                                     </div>
-                                    <p className="text-xs text-zinc-400">{format(new Date(inv.date), "MMM dd, yyyy")}</p>
+                                    <p className="text-xs text-zinc-400">{(() => { try { const d = new Date(inv.date.replace(' ', 'T')); return isNaN(d.getTime()) ? "-" : format(d, "MMM dd, yyyy"); } catch(e) { return "-"; } })()}</p>
                                     {inv.notes && <p className="text-[11px] text-zinc-400 italic mt-0.5 line-clamp-1">{inv.notes}</p>}
                                 </div>
                                 <div className="flex flex-col items-end gap-1">

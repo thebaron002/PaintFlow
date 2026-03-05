@@ -1,0 +1,37 @@
+type User @table {
+  displayName: String!
+  createdAt: Timestamp!
+  email: String
+  photoUrl: String
+}
+
+type Project @table {
+  name: String!
+  createdAt: Timestamp!
+  description: String
+  dueDate: Date
+  status: String
+  owner: User
+}
+
+type Task @table {
+  name: String!
+  createdAt: Timestamp!
+  status: String!
+  description: String
+  startDate: Date
+  endDate: Date
+  project: Project
+}
+
+type ProjectMember @table(key: ["project", "user"]) {
+  project: Project!
+  user: User!
+  role: String!
+}
+
+type TaskAssignment @table(key: ["task", "user"]) {
+  task: Task!
+  user: User!
+  assignedAt: Timestamp!
+}

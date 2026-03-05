@@ -1,0 +1,542 @@
+extend type Mutation {
+  """
+  ✨ Insert a single `Project` into the table and return its key. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  project_insert(
+    """
+    Data object to insert into the table.
+    """
+    data: Project_Data!
+  ): Project_KeyOutput! @fdc_generated(from: "Project", purpose: INSERT_SINGLE)
+  """
+  ✨ Insert a single `ProjectMember` into the table and return its key. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  projectMember_insert(
+    """
+    Data object to insert into the table.
+    """
+    data: ProjectMember_Data!
+  ): ProjectMember_KeyOutput! @fdc_generated(from: "ProjectMember", purpose: INSERT_SINGLE)
+  """
+  ✨ Insert a single `Task` into the table and return its key. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  task_insert(
+    """
+    Data object to insert into the table.
+    """
+    data: Task_Data!
+  ): Task_KeyOutput! @fdc_generated(from: "Task", purpose: INSERT_SINGLE)
+  """
+  ✨ Insert a single `TaskAssignment` into the table and return its key. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  taskAssignment_insert(
+    """
+    Data object to insert into the table.
+    """
+    data: TaskAssignment_Data!
+  ): TaskAssignment_KeyOutput! @fdc_generated(from: "TaskAssignment", purpose: INSERT_SINGLE)
+  """
+  ✨ Insert a single `User` into the table and return its key. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  user_insert(
+    """
+    Data object to insert into the table.
+    """
+    data: User_Data!
+  ): User_KeyOutput! @fdc_generated(from: "User", purpose: INSERT_SINGLE)
+  """
+  ✨ Insert `Project` objects into the table and return their keys. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  project_insertMany(
+    """
+    List of data objects to insert into the table.
+    """
+    data: [Project_Data!]!
+  ): [Project_KeyOutput!]! @fdc_generated(from: "Project", purpose: INSERT_MULTIPLE)
+  """
+  ✨ Insert `ProjectMember` objects into the table and return their keys. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  projectMember_insertMany(
+    """
+    List of data objects to insert into the table.
+    """
+    data: [ProjectMember_Data!]!
+  ): [ProjectMember_KeyOutput!]! @fdc_generated(from: "ProjectMember", purpose: INSERT_MULTIPLE)
+  """
+  ✨ Insert `Task` objects into the table and return their keys. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  task_insertMany(
+    """
+    List of data objects to insert into the table.
+    """
+    data: [Task_Data!]!
+  ): [Task_KeyOutput!]! @fdc_generated(from: "Task", purpose: INSERT_MULTIPLE)
+  """
+  ✨ Insert `TaskAssignment` objects into the table and return their keys. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  taskAssignment_insertMany(
+    """
+    List of data objects to insert into the table.
+    """
+    data: [TaskAssignment_Data!]!
+  ): [TaskAssignment_KeyOutput!]! @fdc_generated(from: "TaskAssignment", purpose: INSERT_MULTIPLE)
+  """
+  ✨ Insert `User` objects into the table and return their keys. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  user_insertMany(
+    """
+    List of data objects to insert into the table.
+    """
+    data: [User_Data!]!
+  ): [User_KeyOutput!]! @fdc_generated(from: "User", purpose: INSERT_MULTIPLE)
+  """
+  ✨ Insert or update a single `Project` into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Project`.
+  """
+  project_upsert(
+    """
+    Data object to insert or update if it already exists.
+    """
+    data: Project_Data!
+  ): Project_KeyOutput! @fdc_generated(from: "Project", purpose: UPSERT_SINGLE)
+  """
+  ✨ Insert or update a single `ProjectMember` into the table, based on the primary key. Returns the key of the newly inserted or existing updated `ProjectMember`.
+  """
+  projectMember_upsert(
+    """
+    Data object to insert or update if it already exists.
+    """
+    data: ProjectMember_Data!
+  ): ProjectMember_KeyOutput! @fdc_generated(from: "ProjectMember", purpose: UPSERT_SINGLE)
+  """
+  ✨ Insert or update a single `Task` into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Task`.
+  """
+  task_upsert(
+    """
+    Data object to insert or update if it already exists.
+    """
+    data: Task_Data!
+  ): Task_KeyOutput! @fdc_generated(from: "Task", purpose: UPSERT_SINGLE)
+  """
+  ✨ Insert or update a single `TaskAssignment` into the table, based on the primary key. Returns the key of the newly inserted or existing updated `TaskAssignment`.
+  """
+  taskAssignment_upsert(
+    """
+    Data object to insert or update if it already exists.
+    """
+    data: TaskAssignment_Data!
+  ): TaskAssignment_KeyOutput! @fdc_generated(from: "TaskAssignment", purpose: UPSERT_SINGLE)
+  """
+  ✨ Insert or update a single `User` into the table, based on the primary key. Returns the key of the newly inserted or existing updated `User`.
+  """
+  user_upsert(
+    """
+    Data object to insert or update if it already exists.
+    """
+    data: User_Data!
+  ): User_KeyOutput! @fdc_generated(from: "User", purpose: UPSERT_SINGLE)
+  """
+  ✨ Insert or update `Project` objects into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Project`.
+  """
+  project_upsertMany(
+    """
+    List of data objects to insert or update if it already exists.
+    """
+    data: [Project_Data!]!
+  ): [Project_KeyOutput!]! @fdc_generated(from: "Project", purpose: UPSERT_MULTIPLE)
+  """
+  ✨ Insert or update `ProjectMember` objects into the table, based on the primary key. Returns the key of the newly inserted or existing updated `ProjectMember`.
+  """
+  projectMember_upsertMany(
+    """
+    List of data objects to insert or update if it already exists.
+    """
+    data: [ProjectMember_Data!]!
+  ): [ProjectMember_KeyOutput!]! @fdc_generated(from: "ProjectMember", purpose: UPSERT_MULTIPLE)
+  """
+  ✨ Insert or update `Task` objects into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Task`.
+  """
+  task_upsertMany(
+    """
+    List of data objects to insert or update if it already exists.
+    """
+    data: [Task_Data!]!
+  ): [Task_KeyOutput!]! @fdc_generated(from: "Task", purpose: UPSERT_MULTIPLE)
+  """
+  ✨ Insert or update `TaskAssignment` objects into the table, based on the primary key. Returns the key of the newly inserted or existing updated `TaskAssignment`.
+  """
+  taskAssignment_upsertMany(
+    """
+    List of data objects to insert or update if it already exists.
+    """
+    data: [TaskAssignment_Data!]!
+  ): [TaskAssignment_KeyOutput!]! @fdc_generated(from: "TaskAssignment", purpose: UPSERT_MULTIPLE)
+  """
+  ✨ Insert or update `User` objects into the table, based on the primary key. Returns the key of the newly inserted or existing updated `User`.
+  """
+  user_upsertMany(
+    """
+    List of data objects to insert or update if it already exists.
+    """
+    data: [User_Data!]!
+  ): [User_KeyOutput!]! @fdc_generated(from: "User", purpose: UPSERT_MULTIPLE)
+  """
+  ✨ Update a single `Project` based on `id`, `key` or `first`, setting columns specified in `data`. Returns the key of the updated `Project` or `null` if not found.
+  """
+  project_update(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Project_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Project_FirstRow
+
+    """
+    Data object containing fields to be updated.
+    """
+    data: Project_Data!
+  ): Project_KeyOutput @fdc_generated(from: "Project", purpose: UPDATE_SINGLE)
+  """
+  ✨ Update a single `ProjectMember` based on `id`, `key` or `first`, setting columns specified in `data`. Returns the key of the updated `ProjectMember` or `null` if not found.
+  """
+  projectMember_update(
+    """
+    The key used to identify the object.
+    """
+    key: ProjectMember_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: ProjectMember_FirstRow
+
+    """
+    Data object containing fields to be updated.
+    """
+    data: ProjectMember_Data!
+  ): ProjectMember_KeyOutput @fdc_generated(from: "ProjectMember", purpose: UPDATE_SINGLE)
+  """
+  ✨ Update a single `Task` based on `id`, `key` or `first`, setting columns specified in `data`. Returns the key of the updated `Task` or `null` if not found.
+  """
+  task_update(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Task_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Task_FirstRow
+
+    """
+    Data object containing fields to be updated.
+    """
+    data: Task_Data!
+  ): Task_KeyOutput @fdc_generated(from: "Task", purpose: UPDATE_SINGLE)
+  """
+  ✨ Update a single `TaskAssignment` based on `id`, `key` or `first`, setting columns specified in `data`. Returns the key of the updated `TaskAssignment` or `null` if not found.
+  """
+  taskAssignment_update(
+    """
+    The key used to identify the object.
+    """
+    key: TaskAssignment_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: TaskAssignment_FirstRow
+
+    """
+    Data object containing fields to be updated.
+    """
+    data: TaskAssignment_Data!
+  ): TaskAssignment_KeyOutput @fdc_generated(from: "TaskAssignment", purpose: UPDATE_SINGLE)
+  """
+  ✨ Update a single `User` based on `id`, `key` or `first`, setting columns specified in `data`. Returns the key of the updated `User` or `null` if not found.
+  """
+  user_update(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: User_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: User_FirstRow
+
+    """
+    Data object containing fields to be updated.
+    """
+    data: User_Data!
+  ): User_KeyOutput @fdc_generated(from: "User", purpose: UPDATE_SINGLE)
+  """
+  ✨ Update `Project` objects matching `where` conditions (or `all`, if true) according to `data`. Returns the number of rows updated.
+  """
+  project_updateMany(
+    """
+    Filter condition to specify which rows to update.
+    """
+    where: Project_Filter
+
+    """
+    Set to true to update all rows.
+    """
+    all: Boolean = false
+
+    """
+    Data object containing fields to update.
+    """
+    data: Project_Data!
+  ): Int! @fdc_generated(from: "Project", purpose: UPDATE_MULTIPLE)
+  """
+  ✨ Update `ProjectMember` objects matching `where` conditions (or `all`, if true) according to `data`. Returns the number of rows updated.
+  """
+  projectMember_updateMany(
+    """
+    Filter condition to specify which rows to update.
+    """
+    where: ProjectMember_Filter
+
+    """
+    Set to true to update all rows.
+    """
+    all: Boolean = false
+
+    """
+    Data object containing fields to update.
+    """
+    data: ProjectMember_Data!
+  ): Int! @fdc_generated(from: "ProjectMember", purpose: UPDATE_MULTIPLE)
+  """
+  ✨ Update `Task` objects matching `where` conditions (or `all`, if true) according to `data`. Returns the number of rows updated.
+  """
+  task_updateMany(
+    """
+    Filter condition to specify which rows to update.
+    """
+    where: Task_Filter
+
+    """
+    Set to true to update all rows.
+    """
+    all: Boolean = false
+
+    """
+    Data object containing fields to update.
+    """
+    data: Task_Data!
+  ): Int! @fdc_generated(from: "Task", purpose: UPDATE_MULTIPLE)
+  """
+  ✨ Update `TaskAssignment` objects matching `where` conditions (or `all`, if true) according to `data`. Returns the number of rows updated.
+  """
+  taskAssignment_updateMany(
+    """
+    Filter condition to specify which rows to update.
+    """
+    where: TaskAssignment_Filter
+
+    """
+    Set to true to update all rows.
+    """
+    all: Boolean = false
+
+    """
+    Data object containing fields to update.
+    """
+    data: TaskAssignment_Data!
+  ): Int! @fdc_generated(from: "TaskAssignment", purpose: UPDATE_MULTIPLE)
+  """
+  ✨ Update `User` objects matching `where` conditions (or `all`, if true) according to `data`. Returns the number of rows updated.
+  """
+  user_updateMany(
+    """
+    Filter condition to specify which rows to update.
+    """
+    where: User_Filter
+
+    """
+    Set to true to update all rows.
+    """
+    all: Boolean = false
+
+    """
+    Data object containing fields to update.
+    """
+    data: User_Data!
+  ): Int! @fdc_generated(from: "User", purpose: UPDATE_MULTIPLE)
+  """
+  ✨ Delete a single `Project` based on `id`, `key` or `first` and return its key (or `null` if not found).
+  """
+  project_delete(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Project_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Project_FirstRow
+  ): Project_KeyOutput @fdc_generated(from: "Project", purpose: DELETE_SINGLE)
+  """
+  ✨ Delete a single `ProjectMember` based on `id`, `key` or `first` and return its key (or `null` if not found).
+  """
+  projectMember_delete(
+    """
+    The key used to identify the object.
+    """
+    key: ProjectMember_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: ProjectMember_FirstRow
+  ): ProjectMember_KeyOutput @fdc_generated(from: "ProjectMember", purpose: DELETE_SINGLE)
+  """
+  ✨ Delete a single `Task` based on `id`, `key` or `first` and return its key (or `null` if not found).
+  """
+  task_delete(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Task_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Task_FirstRow
+  ): Task_KeyOutput @fdc_generated(from: "Task", purpose: DELETE_SINGLE)
+  """
+  ✨ Delete a single `TaskAssignment` based on `id`, `key` or `first` and return its key (or `null` if not found).
+  """
+  taskAssignment_delete(
+    """
+    The key used to identify the object.
+    """
+    key: TaskAssignment_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: TaskAssignment_FirstRow
+  ): TaskAssignment_KeyOutput @fdc_generated(from: "TaskAssignment", purpose: DELETE_SINGLE)
+  """
+  ✨ Delete a single `User` based on `id`, `key` or `first` and return its key (or `null` if not found).
+  """
+  user_delete(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: User_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: User_FirstRow
+  ): User_KeyOutput @fdc_generated(from: "User", purpose: DELETE_SINGLE)
+  """
+  ✨ Delete `Project` objects matching `where` conditions (or `all`, if true). Returns the number of rows deleted.
+  """
+  project_deleteMany(
+    """
+    Filter condition to specify which rows to delete.
+    """
+    where: Project_Filter
+
+    """
+    Set to true to delete all rows.
+    """
+    all: Boolean = false
+  ): Int! @fdc_generated(from: "Project", purpose: DELETE_MULTIPLE)
+  """
+  ✨ Delete `ProjectMember` objects matching `where` conditions (or `all`, if true). Returns the number of rows deleted.
+  """
+  projectMember_deleteMany(
+    """
+    Filter condition to specify which rows to delete.
+    """
+    where: ProjectMember_Filter
+
+    """
+    Set to true to delete all rows.
+    """
+    all: Boolean = false
+  ): Int! @fdc_generated(from: "ProjectMember", purpose: DELETE_MULTIPLE)
+  """
+  ✨ Delete `Task` objects matching `where` conditions (or `all`, if true). Returns the number of rows deleted.
+  """
+  task_deleteMany(
+    """
+    Filter condition to specify which rows to delete.
+    """
+    where: Task_Filter
+
+    """
+    Set to true to delete all rows.
+    """
+    all: Boolean = false
+  ): Int! @fdc_generated(from: "Task", purpose: DELETE_MULTIPLE)
+  """
+  ✨ Delete `TaskAssignment` objects matching `where` conditions (or `all`, if true). Returns the number of rows deleted.
+  """
+  taskAssignment_deleteMany(
+    """
+    Filter condition to specify which rows to delete.
+    """
+    where: TaskAssignment_Filter
+
+    """
+    Set to true to delete all rows.
+    """
+    all: Boolean = false
+  ): Int! @fdc_generated(from: "TaskAssignment", purpose: DELETE_MULTIPLE)
+  """
+  ✨ Delete `User` objects matching `where` conditions (or `all`, if true). Returns the number of rows deleted.
+  """
+  user_deleteMany(
+    """
+    Filter condition to specify which rows to delete.
+    """
+    where: User_Filter
+
+    """
+    Set to true to delete all rows.
+    """
+    all: Boolean = false
+  ): Int! @fdc_generated(from: "User", purpose: DELETE_MULTIPLE)
+}

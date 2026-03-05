@@ -252,8 +252,7 @@ function CurrentJobCard({ job, settings }: { job: Job; settings: GeneralSettings
               <MapPin className="h-4 w-4" /> {job.address}
             </a>
             <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
-              <CalendarDays className="h-4 w-4" />
-              {job.startDate ? `Start: ${format(new Date(job.startDate), "MMM dd, yyyy")}` : "No start date"} · {job.deadline ? `Deadline: ${format(new Date(job.deadline), "MMM dd, yyyy")}` : "No deadline"}
+              {job.startDate ? `Start: ${(() => { try { const d = new Date(job.startDate.replace(' ', 'T')); return isNaN(d.getTime()) ? 'TBD' : format(d, "MMM dd, yyyy"); } catch(e) { return 'TBD'; } })()}` : "No start date"} · {job.deadline ? `Deadline: ${(() => { try { const d = new Date(job.deadline.replace(' ', 'T')); return isNaN(d.getTime()) ? 'TBD' : format(d, "MMM dd, yyyy"); } catch(e) { return 'TBD'; } })()}` : "No deadline"}
             </div>
             <div className="pt-2">
               <Badge variant="outline" className="capitalize">{job.status}</Badge>
@@ -364,7 +363,7 @@ export default function DashboardPage() {
   const getLatestInProgressJob = (jobs: Job[] | null) => {
     if (!jobs || jobs.length === 0) return null;
     // sort by start date descending for in progress jobs
-    return [...jobs].sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())[0];
+    return [...jobs].sort((a, b) => new Date((b.startDate||'').replace(' ', 'T')).getTime() - new Date((a.startDate||'').replace(' ', 'T')).getTime())[0];
   }
 
   const currentJob = getLatestInProgressJob(inProgressJobs) || notStartedJobs[0];

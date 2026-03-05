@@ -1,0 +1,69 @@
+mutation CreateSeedData @transaction @auth(level: USER, insecureReason: "Seed data mutations should only be callable by authenticated users during development or specific seeding processes.") {
+  users_insertMany(data: [
+    {
+      id: "user-1",
+      username: "AliceSmith",
+      email: "alice.smith@example.com",
+      createdAt: "2024-01-01T10:00:00Z",
+      avatarUrl: "https://example.com/avatars/alice.jpg",
+      bio: "An avid art enthusiast and painter."
+    },
+    {
+      id: "user-2",
+      username: "BobJohnson",
+      email: "bob.johnson@example.com",
+      createdAt: "2024-01-02T11:00:00Z",
+      avatarUrl: "https://example.com/avatars/bob.jpg",
+      bio: "Loves abstract art and digital painting."
+    }
+  ])
+  canvases_insertMany(data: [
+    {
+      id: "canvas-1",
+      userId: "user-1",
+      name: "Sunset Serenity",
+      description: "A peaceful sunset scene with vibrant colors.",
+      imageUrl: "https://example.com/canvases/sunset.jpg",
+      createdAt: "2024-01-03T12:00:00Z",
+      visibility: "PUBLIC"
+    },
+    {
+      id: "canvas-2",
+      userId: "user-2",
+      name: "Abstract Dreams",
+      description: "A surreal abstract piece exploring subconscious thoughts.",
+      imageUrl: "https://example.com/canvases/abstract.jpg",
+      createdAt: "2024-01-04T13:00:00Z",
+      visibility: "PRIVATE"
+    },
+    {
+      id: "canvas-3",
+      userId: "user-1",
+      name: "Cityscape at Night",
+      description: "Dynamic view of a city at night with glowing lights.",
+      imageUrl: "https://example.com/canvases/cityscape.jpg",
+      createdAt: "2024-01-05T14:00:00Z",
+      visibility: "PUBLIC"
+    }
+  ])
+  brushes_insertMany(data: [
+    {
+      id: "brush-1",
+      userId: "user-1",
+      name: "Soft Watercolor",
+      description: "A brush perfect for smooth watercolor effects.",
+      settings: "{\"flow\": 0.5, \"size\": 20}",
+      createdAt: "2024-01-06T15:00:00Z",
+      imageUrl: "https://example.com/brushes/watercolor.png"
+    },
+    {
+      id: "brush-2",
+      userId: "user-2",
+      name: "Textured Oil",
+      description: "Creates rich, textured oil paint strokes.",
+      settings: "{\"opacity\": 0.8, \"texture\": 1.0}",
+      createdAt: "2024-01-07T16:00:00Z",
+      imageUrl: "https://example.com/brushes/oil.png"
+    }
+  ])
+}
