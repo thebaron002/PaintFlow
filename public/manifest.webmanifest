@@ -4,8 +4,8 @@
   "description": "Manage your painting business with ease.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#e3f2fd",
-  "theme_color": "#7aa8c8",
+  "background_color": "#F2F1EF",
+  "theme_color": "#F2F1EF",
   "icons": [
     {
       "src": "/icons/icon-192x192.png",
