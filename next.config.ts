@@ -3,6 +3,12 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   /* config options here */
+  env: {
+    NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: "AIzaSyA7iUDdhYpx6lmvsG8u43jsDK1Lj67KfyY",
+    NEXT_PUBLIC_FIREBASE_PROJECT_ID: "studio-170657449-62ce2",
+    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: "studio-170657449-62ce2.firebasestorage.app",
+    NEXT_PUBLIC_USER_EMAIL: "henriquegoncal@gmail.com",
+  },
   typescript: {
     ignoreBuildErrors: true,
   },
