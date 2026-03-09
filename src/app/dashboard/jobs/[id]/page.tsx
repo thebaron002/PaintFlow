@@ -685,6 +685,20 @@ export default function MobileJobDetailsPage() {
                         <IdealDaysCalculator initialValue={job.initialValue || 0} crewSize={1 + (job.crew?.length || 0)} />
                     </div>
 
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <p className="text-[15px] font-medium text-zinc-500">Daily Profit</p>
+                            <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-tighter">Per Production Day</p>
+                        </div>
+                        <span className="text-[17px] font-black text-amber-500">
+                            {(() => {
+                                const totalDays = (job.productionDays || []).reduce((sum, d) => sum + (d.dayType === 'half' ? 0.5 : 1), 0);
+                                const dailyValue = totalDays > 0 ? (profit / totalDays) : 0;
+                                return `$ ${dailyValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+                            })()}
+                        </span>
+                    </div>
+
                     <div className="flex justify-between items-center bg-zinc-50 p-3 rounded-xl">
                         <p className="text-[17px] font-bold text-zinc-900 focus:outline-none">Net Profit</p>
                         <span className={cn(
