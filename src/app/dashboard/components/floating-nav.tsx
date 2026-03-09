@@ -14,7 +14,7 @@ export function FloatingNav({ onPrimaryClick }: { onPrimaryClick?: () => void })
     ];
 
     return (
-        <div className="fixed bottom-6 left-6 right-6 h-[72px] bg-[#2C2C2E] rounded-full shadow-2xl flex items-center justify-between px-6 z-40 mb-[env(safe-area-inset-bottom)]">
+        <div className="fixed bottom-6 left-6 right-6 md:left-1/2 md:-translate-x-1/2 md:right-auto md:w-[450px] h-[72px] bg-[#2C2C2E] rounded-[36px] shadow-2xl flex items-center justify-between px-6 md:px-10 z-40 mb-[env(safe-area-inset-bottom)]">
             {navItems.map((item, idx) => {
                 if (item.isPrimary) {
                     return (

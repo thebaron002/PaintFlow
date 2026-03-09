@@ -432,29 +432,35 @@ export default function MobileDashboardPage() {
     <div className="min-h-screen bg-[#F2F1EF] pb-32 font-sans relative overflow-x-hidden selection:bg-rose-200">
       {/* Background Color is slightly warmer gray per mockup */}
 
-      <div className="px-5 pt-16 relative z-10 max-w-md mx-auto">
+      <div className="px-5 pt-16 relative z-10 max-w-md lg:max-w-6xl mx-auto">
         {/* 1. Header */}
         <NanoHeader
           subtitle={`Hello ${user?.displayName?.split(" ")[0] || "User"},`}
           title={"What we gonna\ndo today?"}
         />
 
-        {/* 2. Hero Job Card */}
-        <div className="mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 mt-6">
+          {/* Left Column (Hero + Actions) */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* 2. Hero Job Card */}
+            <div>
           {isLoading ? (
             <Skeleton className="h-[180px] w-full rounded-[24px]" />
           ) : (
             <HeroJobCard job={currentJob!} />
           )}
-        </div>
+            </div>
 
-        {/* 3. Action Grid (Red Expense + Upcoming) */}
-        <div className="mb-6">
-          <ActionGrid upcomingJobs={upcomingJobs} />
-        </div>
+            {/* 3. Action Grid (Red Expense + Upcoming) */}
+            <div>
+              <ActionGrid upcomingJobs={upcomingJobs} />
+            </div>
+          </div>
 
-        {/* 4. Revenue Overview (Existing) */}
-        <div className="mb-8 relative">
+          {/* Right Column (Revenue / Charts) */}
+          <div className="lg:col-span-1">
+            {/* 4. Revenue Overview (Existing) */}
+            <div className="relative">
           <div className="absolute top-4 left-4 z-10">
             <h2 className="text-lg font-extrabold text-zinc-900">
               Revenue Overview
@@ -474,6 +480,8 @@ export default function MobileDashboardPage() {
               <span>Dec 07</span>
             </div>
           </NanoGlassCard>
+        </div>
+      </div>
           {/* Overlay Nav Mock (From Image) - purely decorative to match visual if desired, 
                          but strictly speaking floating nav is separate. 
                          The mockup shows the nav OVER the chart. 

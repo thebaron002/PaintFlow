@@ -85,7 +85,8 @@ export default function MobileJobsListPage() {
     }, [jobs, activeFilter, searchTerm]);
 
     return (
-        <div className="min-h-screen bg-[#F2F1EF] px-5 pt-16 pb-32 font-sans">
+        <div className="min-h-screen bg-[#F2F1EF] font-sans">
+          <div className="px-5 pt-16 pb-32 max-w-md lg:max-w-6xl mx-auto">
             <NanoHeader title="My Jobs" />
 
             {/* Search Bar */}
@@ -135,22 +136,24 @@ export default function MobileJobsListPage() {
             </div>
 
             {/* Job List */}
-            <div className="flex flex-col gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {isLoading ? (
                     <>
                         <Skeleton className="h-[200px] w-full rounded-[24px]" />
                         <Skeleton className="h-[200px] w-full rounded-[24px]" />
+                        <Skeleton className="h-[200px] w-full rounded-[24px] hidden md:block" />
                     </>
                 ) : filteredAndSortedJobs.length > 0 ? (
                     filteredAndSortedJobs.map(job => (
                         <MobileJobCard key={job.id} job={job} />
                     ))
                 ) : (
-                    <div className="text-center py-10 text-zinc-400">
+                    <div className="text-center py-10 lg:col-span-full text-zinc-400">
                         <p>No jobs found.</p>
                     </div>
                 )}
             </div>
+          </div>
 
             <FloatingNav onPrimaryClick={() => setAddJobOpen(true)} />
 

@@ -63,7 +63,7 @@ export default function MobileProfilePage() {
 
     return (
         <div className="min-h-screen bg-[#F2F1EF] pb-32 font-sans relative overflow-x-hidden">
-            <div className="px-5 pt-8 max-w-md mx-auto">
+            <div className="px-5 pt-8 max-w-md lg:max-w-3xl mx-auto">
 
                 {/* Header Row */}
                 <div className="flex justify-between items-center mb-8">

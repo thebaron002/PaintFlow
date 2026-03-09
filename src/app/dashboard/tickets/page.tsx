@@ -139,7 +139,8 @@ export default function MobileTicketsPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#F2F1EF] px-5 pt-16 font-sans">
+        <div className="min-h-screen bg-[#F2F1EF] font-sans">
+          <div className="px-5 pt-16 pb-32 max-w-md lg:max-w-5xl mx-auto">
             <NanoHeader
                 title={`Support\nTickets`}
                 subtitle="Issues & Tasks"
@@ -155,7 +156,7 @@ export default function MobileTicketsPage() {
                     </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="active" className="space-y-4 pb-20 mt-0">
+                <TabsContent value="active" className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-20 mt-0">
                     {isLoading ? (
                         [...Array(3)].map((_, i) => <Skeleton key={i} className="h-32 w-full rounded-[24px]" />)
                     ) : activeTickets.length > 0 ? (
@@ -170,7 +171,7 @@ export default function MobileTicketsPage() {
                     )}
                 </TabsContent>
 
-                <TabsContent value="closed" className="space-y-4 pb-20 mt-0">
+                <TabsContent value="closed" className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-20 mt-0">
                     {isLoading ? (
                         [...Array(3)].map((_, i) => <Skeleton key={i} className="h-32 w-full rounded-[24px]" />)
                     ) : closedTickets.length > 0 ? (
@@ -185,6 +186,7 @@ export default function MobileTicketsPage() {
                     )}
                 </TabsContent>
             </Tabs>
+          </div>
         </div>
     );
 }

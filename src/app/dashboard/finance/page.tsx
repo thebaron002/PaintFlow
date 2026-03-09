@@ -177,7 +177,7 @@ export default function MobileFinancePage() {
 
     return (
         <div className="min-h-screen bg-[#F2F1EF] pb-32 font-sans relative overflow-x-hidden">
-            <div className="px-5 pt-16 max-w-md mx-auto">
+            <div className="px-5 pt-16 max-w-md lg:max-w-6xl mx-auto">
                 <NanoHeader
                     subtitle="Financials,"
                     title={"Cash Flow &\nProfits"}
@@ -191,8 +191,11 @@ export default function MobileFinancePage() {
                     />
                 </NanoGlassCard>
 
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  <div className="lg:col-span-2 space-y-8">
+
                 {/* Quick Actions */}
-                <div className="grid grid-cols-3 gap-3 mb-8">
+                <div className="grid grid-cols-3 gap-3">
                     <Sheet open={isExpenseSheetOpen} onOpenChange={setIsExpenseSheetOpen}>
                         <SheetTrigger asChild>
                             <button className="flex-1 bg-white p-3 rounded-[24px] shadow-sm border border-zinc-100 flex flex-col items-center gap-2 active:scale-95 transition-all h-full justify-center">
@@ -250,12 +253,12 @@ export default function MobileFinancePage() {
                         <div className="w-10 h-10 rounded-2xl bg-emerald-50 flex items-center justify-center">
                             <PayIcon className="w-5 h-5 text-emerald-500" />
                         </div>
-                        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-900">Pay Crew</span>
+                        <span className="text-[9px] font-black uppercase tracking-tight text-center text-zinc-900 leading-none mt-1">Payroll<br />Run</span>
                     </button>
                 </div>
 
-                {/* 2. Key Stats Grid */}
-                <div className="grid grid-cols-2 gap-4 mb-8">
+                {/* KPI Grid */}
+                <div className="grid grid-cols-2 gap-3 mb-8">
                     <StatItem
                         label="Total Income"
                         value={totalIncome}
@@ -303,9 +306,11 @@ export default function MobileFinancePage() {
                         </div>
                     </div>
                 </NanoGlassCard>
+              </div>
 
-                {/* 4. Recent Transactions */}
-                <div className="mb-8">
+              <div className="lg:col-span-1">
+                {/* Transactions List */}
+                <div>
                     <div className="flex justify-between items-center mb-4 px-1">
                         <h2 className="text-lg font-extrabold text-zinc-900">Recent Activity</h2>
                         <Receipt className="w-4 h-4 text-zinc-400" />
@@ -357,10 +362,11 @@ export default function MobileFinancePage() {
                         )}
                     </div>
                 </div>
-
-                {/* Bottom Nav */}
-                <FloatingNav />
+              </div>
             </div>
+            </div>
+
+            <FloatingNav />
         </div>
     );
 }
