@@ -7,11 +7,5 @@ runConfig:
   maxInstances: 1
 
 env:
-  - variable: GMAIL_USER
-    secret: GMAIL_USER
-  - variable: GMAIL_APP_PASSWORD
-    secret: GMAIL_APP_PASSWORD
-  - variable: RESEND_API_KEY
-    secret: RESEND_API_KEY
   - variable: PAINTFLOW_INGEST_SECRET
     secret: PAINTFLOW_INGEST_SECRET
