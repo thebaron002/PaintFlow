@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { getAuth } from "firebase-admin/auth";
 import { z } from "zod";
 import { adminDb } from "@/lib/firebase-admin";
 
@@ -208,14 +209,24 @@ async function resolveTargetUserId(explicitUserId?: string) {
 
   const configuredEmail = process.env.NEXT_PUBLIC_USER_EMAIL?.trim();
   if (configuredEmail) {
-    const query = await adminDb
+    try {
+      const authUser = await getAuth().getUserByEmail(configuredEmail);
+      return authUser.uid;
+    } catch (error) {
+      console.warn(
+        `OpenClaw intake could not resolve auth user for ${configuredEmail}; falling back to Firestore lookup.`,
+        error
+      );
+    }
+
+    const matchingUsers = await adminDb
       .collection("users")
       .where("email", "==", configuredEmail)
-      .limit(1)
+      .limit(2)
       .get();
 
-    if (!query.empty) {
-      return query.docs[0].id;
+    if (matchingUsers.size === 1) {
+      return matchingUsers.docs[0].id;
     }
   }
 
