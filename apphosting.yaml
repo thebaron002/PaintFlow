@@ -13,3 +13,5 @@ env:
     secret: GMAIL_APP_PASSWORD
   - variable: RESEND_API_KEY
     secret: RESEND_API_KEY
+  - variable: PAINTFLOW_INGEST_SECRET
+    secret: PAINTFLOW_INGEST_SECRET
